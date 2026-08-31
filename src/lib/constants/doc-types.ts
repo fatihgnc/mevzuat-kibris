@@ -68,11 +68,31 @@ export function docTypeLabel(value: string): string {
  * Referans numarası tipleri — spec 3.3 çapaları. `mt` (marka tescil) tasarımdaki
  * "M.T. 8842" örneğinden eklendi; spec 3.3 listesinde marka ilanlarının referans
  * deseni yoktu ama EK V BÖLÜM II kayıtlarının tamamı numaralı yayımlanıyor.
+ *
+ * `s` / `skii` / `kii` / `teki` gerçek arşivden geldi: Bakanlar Kurulu kararının
+ * öneki dönemlere göre değişmiş. 2006/2012/2018/2025 arşiv sayfaları sayıldığında
+ * dördü de ezici çoğunlukla EK IV BÖLÜM I'de çıkıyor, yani spec 3.3'ün Ü(K-I)
+ * dediği serinin ta kendisi:
+ *
+ *   S-1642-2006 / S(K-II) 566-2006  →  K(II)-2839-2012  →  TE(K-I) 1555-2018
+ *   →  Ü(K-I) 2497-2025
+ *
+ * Ayrı tip olarak duruyorlar çünkü künyedeki atıf kaynağa sadık kalmalı: bir
+ * hukukçu 2006 kararını "Ü(K-I) 1642-2006" diye değil "S-1642-2006" diye arar.
+ * Tek tipe indirgemek arama ve alarm eşleşmesini bozardı.
+ *
+ * Parantez içindeki seri harfi dönemler arası GÜVENİLİR DEĞİL: `K(II)` ikinci
+ * seri gibi okunuyor ama 2012'de EK IV BÖLÜM I'de. Bölümü referans önekinden
+ * türetme.
  */
 export const REF_TYPES = [
   'ae',
   'uki',
   'ukii',
+  's',
+  'skii',
+  'kii',
+  'teki',
   'sm',
   'mt',
   'yt',
@@ -94,6 +114,15 @@ export function formatRef(refType: string | null, refNumber: string | null): str
       return `Ü(K-I) ${refNumber}`;
     case 'ukii':
       return `Ü(K-II) ${refNumber}`;
+    // Dönemsel Bakanlar Kurulu önekleri — kaynaktaki yazımıyla geri veriliyor.
+    case 's':
+      return `S-${refNumber}`;
+    case 'skii':
+      return `S(K-II) ${refNumber}`;
+    case 'kii':
+      return `K(II)-${refNumber}`;
+    case 'teki':
+      return `TE(K-I) ${refNumber}`;
     case 'sm':
       return `Ş.M. ${refNumber}`;
     case 'mt':

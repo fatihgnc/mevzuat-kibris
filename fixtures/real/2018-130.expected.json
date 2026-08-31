@@ -1,0 +1,16 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 130, 06.09.2018. Bu yıl iç tablo ÜÇ sütunlu (diğer yıllar dört): sabit sütun indeksi kullanılamayacağının kanıtı. Dönem referansı TE(K-I). EK VI kayıtlarının numarası ayrı sütunda değil başlığın içinde.",
+  "recordCount": 10,
+  "records": [
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "gorevden_alma" },
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "atama_kararnamesi" },
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "tuzuk" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "805", "docType": "diger" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "806", "docType": "sinav_sonucu" },
+    { "section": "EK_IV_B_I", "refType": "teki", "refNumber": "1024-2018", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_VI", "refType": "yo", "refNumber": "17/1/2018", "docType": "yasa_onerisi" },
+    { "section": "EK_VI", "refType": "yt", "refNumber": "56/1/2018", "docType": "yasa_tasarisi" },
+    { "section": "EK_VI", "refType": "yt", "refNumber": "55/1/2018", "docType": "yasa_tasarisi" },
+    { "section": "EK_VI", "refType": "yo", "refNumber": "18/1/2018", "docType": "yasa_onerisi" }
+  ]
+}

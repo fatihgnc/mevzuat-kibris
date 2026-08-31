@@ -3,11 +3,14 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { formatRef } from '../../src/lib/constants/doc-types';
+import { CRAWLER_USER_AGENT } from '../../src/lib/seo/config';
 import { classifyDocType, classifyTopics } from '../classify/rules';
+import { parseIssueNumber } from '../crawl-archive';
 import { titleCase } from '../shared/turkish-suffix';
 import { summarize } from '../summarize/rules';
 
-import { parseIndexCell } from './parser';
+import { parseIndexCell, parseIndexTable } from './parser';
 
 /**
  * Ayrıştırma testi — spec 7.3, ZORUNLU.
@@ -231,5 +234,186 @@ describe('özet üretimi — kaynak metin tuzakları', () => {
 
   it('kurum adındaki KIBRIS doğru yazılır', () => {
     expect(titleCase('KIBRIS TÜRK ELEKTRİK KURUMU')).toBe('Kıbrıs Türk Elektrik Kurumu');
+  });
+});
+
+/**
+ * GERÇEK arşiv verisi — spec 7.3.
+ *
+ * Yukarıdaki .txt fixture'ları elle yazılmıştı ve İÇERİK hücresinin düz metin
+ * dökümü olduğunu varsayıyordu. basimevi.gov.ct.tr'den gerçek sayfalar
+ * çekildiğinde hücrenin sütunlu bir İÇ TABLO olduğu görüldü; metin yolu her
+ * kaydı ikiye bölüyordu (2025 için 3.977 satırdan 7.170 sahte kayıt).
+ *
+ * Buradaki .html dosyaları arşivden olduğu gibi alınmış İÇERİK hücreleri,
+ * beklenen çıktılar ham hücreye karşı satır satır elle doğrulandı. Dört
+ * dönemin dördü de temsil ediliyor çünkü biçim yıllara göre değişiyor.
+ */
+const REAL_DIR = join(FIXTURE_DIR, 'real');
+
+const realCases = readdirSync(REAL_DIR)
+  .filter((name) => name.endsWith('.expected.json'))
+  .map((name) => name.replace(/\.expected\.json$/, ''));
+
+function parseReal(id: string) {
+  return parseIndexTable(readFileSync(join(REAL_DIR, id + '.html'), 'utf8'));
+}
+
+describe('parseIndexTable — gerçek arşiv fixture uyumu', () => {
+  it('dört dönemin dördü de temsil ediliyor', () => {
+    expect(realCases.sort()).toEqual(['2006-193', '2012-190', '2018-130', '2025-175']);
+  });
+
+  for (const id of realCases) {
+    it(id + ' beklenen kayıtları üretiyor', () => {
+      const expected: Expected = JSON.parse(
+        readFileSync(join(REAL_DIR, id + '.expected.json'), 'utf8'),
+      );
+
+      const parsed = parseReal(id);
+      expect(parsed).not.toBeNull();
+      expect(parsed!).toHaveLength(expected.recordCount);
+
+      parsed!.forEach((record, index) => {
+        const want = expected.records[index]!;
+        expect(
+          {
+            section: record.section,
+            refType: record.refType,
+            refNumber: record.refNumber,
+          },
+          record.title,
+        ).toEqual({
+          section: want.section,
+          refType: want.refType,
+          refNumber: want.refNumber,
+        });
+
+        const docType = classifyDocType({
+          title: record.title,
+          section: record.section,
+          refType: record.refType,
+        });
+        expect(docType, record.title).toBe(want.docType);
+      });
+    });
+  }
+});
+
+describe('gerçek veride yakalanan hatalar', () => {
+  /*
+   * Bunların hepsi gerçek arşiv çekildiğinde ortaya çıktı; elle yazılmış
+   * fixture'lar hiçbirini gösteremiyordu. Her biri bir regresyon bekçisi.
+   */
+
+  it('bölüm başlığı blok boyunca aşağı taşınır', () => {
+    // 2006-193: bölüm hücresi 7 satırın yalnızca 4'ünde dolu.
+    const parsed = parseReal('2006-193')!;
+    expect(parsed.map((record) => record.section)).toEqual([
+      'MAIN',
+      'MAIN',
+      'EK_III',
+      'EK_IV_B_I',
+      'EK_IV_B_I',
+      'EK_IV_B_I',
+      'EK_VI',
+    ]);
+  });
+
+  it('başlıktaki atıf kaydın kendi referansını gasbetmez', () => {
+    // 2012-190: başlık "K(II) 2476-2012 SAYI VE ... KARARIN TADİLİ", kayıt 2487-2012.
+    const record = parseReal('2012-190')!.find((item) => item.title.startsWith('K(II) 2476'));
+    expect(record?.refNumber).toBe('2487-2012');
+  });
+
+  it('sütun sayısı yıla göre değişse de başlık bulunur', () => {
+    // 2018 üç sütunlu, 2025 dört; ikisinde de başlık dolu gelmeli.
+    for (const id of ['2018-130', '2025-175']) {
+      for (const record of parseReal(id)!) {
+        expect(record.title.length, id + ' / ' + record.title).toBeGreaterThan(10);
+      }
+    }
+  });
+
+  it('yasa tasarısı numarası başlığın içinden okunur', () => {
+    // EK VI kayıtlarının ayrı referans sütunu yok.
+    const bills = parseReal('2018-130')!.filter((record) => record.section === 'EK_VI');
+    expect(bills).toHaveLength(4);
+    expect(bills.map((record) => record.refNumber)).toEqual([
+      '17/1/2018',
+      '56/1/2018',
+      '55/1/2018',
+      '18/1/2018',
+    ]);
+  });
+
+  it('tablo yoksa null döner ve çağıran metin yoluna düşebilir', () => {
+    expect(parseIndexTable('<p>düz metin, tablo yok</p>')).toBeNull();
+  });
+});
+
+describe('dönemsel Bakanlar Kurulu referansları', () => {
+  /*
+   * S- / S(K-II) / K(II)- / TE(K-I) / Ü(K-I) aynı serinin dönemsel yazımları
+   * (bkz. REF_TYPES notu). Dördü de gerçek arşivde EK IV BÖLÜM I'de sayıldı.
+   * Ayrı tip olarak duruyorlar ki künyedeki atıf kaynağa sadık kalsın.
+   */
+  const eras: Array<[string, string, string]> = [
+    ['2006-193', 'skii', 'S(K-II) 314-2006'],
+    ['2012-190', 'kii', 'K(II)-2487-2012'],
+    ['2018-130', 'teki', 'TE(K-I) 1024-2018'],
+    ['2025-175', 'uki', 'Ü(K-I) 1905-2025'],
+  ];
+
+  for (const [id, refType, label] of eras) {
+    it(id + ' → ' + refType + ' ve künyede "' + label + '"', () => {
+      const record = parseReal(id)!.find((item) => item.refType === refType);
+      expect(record, id + ' için ' + refType + ' kaydı yok').toBeDefined();
+      expect(record!.section).toBe('EK_IV_B_I');
+      expect(formatRef(record!.refType, record!.refNumber)).toBe(label);
+    });
+  }
+});
+
+describe('kaynak siteye giden istek', () => {
+  /*
+   * Bu tek satır ingest'in tamamını kilitlemişti: HTTP başlık değerleri
+   * ByteString ve marka adındaki 'ı' (305) sığmıyor. fetch daha isteği
+   * kurmadan TypeError atıyor, yani boru hattı tek istek bile atamıyor.
+   * Ucuz bekçi, pahalı hata.
+   */
+  it('User-Agent yalnızca ASCII içerir', () => {
+    for (const char of CRAWLER_USER_AGENT) {
+      expect(char.codePointAt(0), 'başlığa sığmayan karakter: ' + char).toBeLessThan(256);
+    }
+  });
+
+  it('User-Agent kendini tanıtır ve iletişim adresi verir', () => {
+    expect(CRAWLER_USER_AGENT).toContain('bot');
+    expect(CRAWLER_USER_AGENT).toContain('@');
+  });
+});
+
+describe('parseIssueNumber — SAYI hücresi', () => {
+  it('yalın numarayı okur', () => {
+    expect(parseIssueNumber('262')).toBe(262);
+    expect(parseIssueNumber('\n  1 \n')).toBe(1);
+  });
+
+  /*
+   * Gerçek 2018 arşivinde iki satır böyle. Eski hâl bütün rakamları
+   * yapıştırıp 1.95e+23 üretiyordu ve bu değer Number.isInteger denetiminden
+   * GEÇİYORDU — koruma devreye girmeden bigint sütununa çöp yazılacaktı.
+   */
+  it('birleşik sayıda ilk numarayı alır', () => {
+    expect(parseIssueNumber('195/1\n 195/2\n 195/3\n 195/4\n')).toBe(195);
+    expect(parseIssueNumber('146/1\n 146/2\n 146/3')).toBe(146);
+  });
+
+  it('numara olmayan ya da makul aralık dışı hücreyi reddeder', () => {
+    expect(parseIssueNumber('SAYI')).toBeNull();
+    expect(parseIssueNumber('')).toBeNull();
+    expect(parseIssueNumber('0')).toBeNull();
+    expect(parseIssueNumber('19511952195319542')).toBeNull();
   });
 });

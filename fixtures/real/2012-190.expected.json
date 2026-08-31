@@ -1,0 +1,12 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 190, 14.11.2012. Dönem referansı K(II). İkinci kaydın BAŞLIĞI başka bir karara atıf yapıyor (K(II) 2476-2012) ama kaydın kendi numarası 2487-2012; referans hücreden okunduğu için atıf kaydı gasbetmiyor.",
+  "recordCount": 6,
+  "records": [
+    { "section": "EK_III", "refType": "ae", "refNumber": "616", "docType": "merkez_bankasi_duyurusu" },
+    { "section": "EK_IV_B_I", "refType": "kii", "refNumber": "2487-2012", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_IV_B_I", "refType": "kii", "refNumber": "2395-2012", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_IV_B_I", "refType": "kii", "refNumber": "2401-2012", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_V_B_I", "refType": null, "refNumber": null, "docType": "sirket_duyurusu" },
+    { "section": "EK_VI", "refType": "yo", "refNumber": "41/5/2012", "docType": "yasa_onerisi" }
+  ]
+}

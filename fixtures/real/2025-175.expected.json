@@ -1,0 +1,13 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 175, 26.08.2025. Güncel dönem referansı Ü(K-I). Bölüm sırası gazetenin kendi sırası: EK V BÖLÜM I, EK IV BÖLÜM I'den ÖNCE geliyor — ayrıştırıcı sıralama uydurmuyor.",
+  "recordCount": 7,
+  "records": [
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "mahkeme_duyurusu" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "669", "docType": "rekabet_kurulu_karari" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "670", "docType": "tuzuk" },
+    { "section": "EK_V_B_I", "refType": null, "refNumber": null, "docType": "sirket_duyurusu" },
+    { "section": "EK_V_B_I", "refType": null, "refNumber": null, "docType": "sirket_duyurusu" },
+    { "section": "EK_IV_B_I", "refType": "uki", "refNumber": "1905-2025", "docType": "tuzuk" },
+    { "section": "EK_VI", "refType": "yt", "refNumber": "313/4/2025", "docType": "yasa_tasarisi" }
+  ]
+}

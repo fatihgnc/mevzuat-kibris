@@ -10,7 +10,7 @@ import { sql } from '../shared/db';
 import { log } from '../shared/logger';
 import { summarize } from '../summarize/rules';
 
-import { extractBody, parseIndexCell } from './parser';
+import { extractBody, parseIndexCell, parseIndexTable } from './parser';
 
 /**
  * Aşama 4-7 — bir sayıyı uçtan uca işler.
@@ -41,7 +41,22 @@ export async function processIssue(issue: {
   const touchedTopics = new Set<string>();
   const touchedEntities = new Set<string>();
 
-  const parsed = parseIndexCell(stripHtml(issue.rawIndexHtml ?? ''));
+  /*
+   * Yapıdan oku, olmazsa metne düş.
+   *
+   * Gerçek arşivde İÇERİK hücresi sütunlu bir iç tablo, düz metin dökümü
+   * değil (bkz. parseIndexTable). Tablo yolu referansı kendi hücresinden
+   * aldığı için kayıtları doğru bölüyor; metin yolu her hücreyi ayrı satır
+   * sanıp her kaydı ikiye bölüyordu.
+   *
+   * Metin yolu yine de duruyor: dört yılın taramasında sayıların küçük bir
+   * azınlığında İÇERİK tablosuz geliyor (2025'te 262'nin 2'si, 2018'de
+   * 194'ün 1'i). Onlarda tek seçenek metin.
+   */
+  const rawIndex = issue.rawIndexHtml ?? '';
+  const fromTable = parseIndexTable(rawIndex);
+  const parsed = fromTable?.length ? fromTable : parseIndexCell(stripHtml(rawIndex));
+
   if (!parsed.length) {
     log.warn('içindekiler hücresinden kayıt çıkmadı', { year: issue.year, number: issue.number });
   }

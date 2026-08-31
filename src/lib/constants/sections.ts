@@ -45,8 +45,25 @@ export const SECTION_DESCRIPTION: Record<Section, string> = {
   EK_VI: 'Yasa tasarıları ve önerileri',
 };
 
-/** Arşiv HTML'indeki ham bölüm başlığı → enum. */
+/**
+ * Arşiv HTML'indeki ham bölüm başlığı → enum.
+ *
+ * `\s*` bilerek gevşek: kaynakta "EK IV BÖLÜMI" (boşluksuz), "EK  VI" ve
+ * "EK IV BÖLÜM    I" gibi yazımlar var. Bunlar veri girişi kiri, ayrı bölüm
+ * değil.
+ *
+ * MAIN burada olmak zorunda: iç tabloda bölüm hücresi yalnızca blok başında
+ * dolu ve aşağıya taşınıyor (bkz. parseIndexTable). Kaynak ana bölüme dönerken
+ * hücreye düz "MAIN" yazıyor; bunu tanımazsak bir önceki EK başlığı yapışıp
+ * kalır ve kayıtlar yanlış bölüme düşer. "MAİN" (Türkçe İ) kaynakta gerçekten
+ * geçiyor ve /i bayrağı İ↔I eşleştirmediği için açıkça yazılı.
+ *
+ * Tanınmayan hücre (tek başına "EK V", ya da klavye kazası "hljkhljhljkhljkhlj")
+ * bilerek eşleşmiyor: taşınan bölüm korunuyor. Tahmin etmek yanlış bölüme
+ * yazmaktan iyi değil.
+ */
 export const SECTION_HEADINGS: Array<[RegExp, Section]> = [
+  [/^MA[İI]N$/i, 'MAIN'],
   [/^EK\s*I\s*BÖLÜM\s*I$/i, 'EK_I_B_I'],
   [/^EK\s*I\s*BÖLÜM\s*II$/i, 'EK_I_B_II'],
   [/^EK\s*II\s*BÖLÜM\s*I$/i, 'EK_II_B_I'],

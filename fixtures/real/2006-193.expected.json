@@ -1,0 +1,13 @@
+{
+  "note": "Gerçek arşiv verisi: basimevi.gov.ct.tr/ARŞİV/2006, sayı 193, 17.11.2006. İÇERİK hücresinin ham iç tablosu, elle doğrulandı. Dönem referansı S(K-II); bölüm sütunu yalnızca blok başında dolu, iki kez aşağı taşınıyor.",
+  "recordCount": 7,
+  "records": [
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "gorevden_alma" },
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "atama_kararnamesi" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "640", "docType": "emirname" },
+    { "section": "EK_IV_B_I", "refType": "skii", "refNumber": "314-2006", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_IV_B_I", "refType": "skii", "refNumber": "335-2006", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_IV_B_I", "refType": "skii", "refNumber": "338-2006", "docType": "atama_kararnamesi" },
+    { "section": "EK_VI", "refType": "yt", "refNumber": "107/1/2005", "docType": "yasa_tasarisi" }
+  ]
+}
