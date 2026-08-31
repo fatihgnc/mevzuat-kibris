@@ -21,46 +21,47 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Veritabanı şeması + RLS | ✅ 8 migration, hepsi geçiyor |
 | Arama (FTS, facet, öneri) | ✅ Çalışıyor, spec'ten sapma var (bkz. §3) |
 | Konu sınıflandırması | ✅ Gerçek veriyle kalibre; konusuz oran %52 → %17 (§3.7) |
-| Özet üretimi (kural tabanlı) | ⚠️ Gerçek veride yalnızca %10,7 (427/3.976) — LLM katmanı gerekli |
+| Özet üretimi | ⚠️ Yalnızca kural katmanı: 5.223 kaydın 565'inde özet (%10,8) — bkz. §6.2 |
 | Rehber içerikleri (8 adet) | ✅ Elle yazıldı |
 | SEO (sitemap, JSON-LD, robots) | ✅ Build'de 59 sayfa üretiliyor |
-| Ingest (2025 tamamı) | ✅ 262 sayı, 3.976 kayıt, 0 hata — gerçek veri |
-| PDF metin çıkarma | ✅ 238 sayı; 21 taranmış (OCR kuyruğunda), 3 gözden geçirme |
-| OCR | ⚠️ `ocrmypdf`/`tesseract` kurulu değil, 21 sayı gövdesiz |
+| Ingest (2025 + 2026) | ✅ 422 sayı, 6.915 kayıt, 0 hata — gerçek veri |
+| PDF metin çıkarma | ✅ 383 sayı; 33 taranmış (OCR kuyruğunda), 6 gözden geçirme |
+| OCR | ⚠️ `ocrmypdf`/`tesseract` kurulu değil, 33 sayı gövdesiz — bkz. §6.1 |
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
+| Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
 | Alarm/e-posta | ⚠️ Kod yazıldı, Resend anahtarı yok, gönderim denenmedi |
 | Auth (magic link) | ⚠️ Kod yazıldı, gerçek Supabase'e bağlanmadı |
 
-Doğrulama: `tsc` temiz, `eslint` temiz, **73 test** geçiyor,
+Doğrulama: `tsc` temiz, `eslint` temiz, **83 test** geçiyor,
 `next build` 59 sayfa üretiyor, First Load JS 103 kB (spec hedefi <120 kB).
 
 ---
 
-## 2. Veritabanı KARMA: sayılar gerçek, kayıtlar hâlâ sahte
+## 2. Veritabanındaki verinin TAMAMI gerçek
 
-Önceki oturumda buradaki her şey uydurmaydı. Artık değil — ama yarısı hâlâ öyle
-ve karışım yanlış anlamaya en müsait nokta.
+Bu dosya bir ara "veritabanındaki veri SAHTE" diye başlıyordu. Artık değil —
+tek bir uydurma satır kalmadı, ve bunu bilerek okuman lazım çünkü bu dosyanın
+eski hâlini görmüş olabilirsin.
 
-**Gerçek olan.** `npm run ingest:crawl 2025` gerçek siteye karşı çalıştı:
+| | |
+| --- | --- |
+| 2025 | 262 sayı · 3.976 kayıt · 02.01–31.12.2025 |
+| 2026 | 160 sayı · 2.939 kayıt · 02.01–31.08.2026 |
+| Veritabanı | 46 MB |
 
-- `issues` tablosunda 2025'in **262 sayısı** var; numaralar 1–262 boşluksuz,
-  tarihler 02.01–31.12, PDF bağlantıları gerçek (`/Portals/6/2025/NNN.pdf`),
-  `raw_index_html` gerçek İÇERİK dökümü.
-- Arşiv sayfaları 2006, 2012, 2018, 2025 için çekilip incelendi (5 istek,
-  hepsi throttle'lı).
+- PDF bağlantıları gerçek (`/Portals/6/<yıl>/<sayı>.pdf`), `raw_index_html`
+  gerçek İÇERİK dökümü, gövdeler gerçek PDF metninden.
+- Elle yazılmış sahte 17 kayıt **silindi** (cascade ile 18 konu ve 40 varlık
+  bağı, artı sahte başlıklardan türetilmiş 23 varlık).
+- `ingest_runs` artık dolu; `backfill` ve `daily` yazıyor.
+- Arşiv sayfaları 2006, 2012, 2018, 2025 için çekilip incelendi — o dönemlerin
+  biçim farkları §3.5'te.
 
-**Hâlâ sahte olan.**
-
-- `records` **boş**. Sahte 17 kayıt silindi (cascade ile 18 konu ve 40 varlık
-  bağı, ayrıca sahte başlıklardan türetilmiş 23 varlık). Sahte kayıtlar gerçek
-  261/262 sayılarına bağlı kalmıştı; sayı doğru, altındaki kayıt uydurma olan
-  bir karışım bırakmaktansa temizlendi.
-- 261 ve 262 sahte olarak `text_status='extracted'`, kalite 0.93, 40 sayfa
-  iddia ediyordu — hiç çıkarma yapılmadığı hâlde. Hepsi `pending`'e çekildi.
-- `ingest_runs` hâlâ **0 kayıt** — onu yalnızca `ingest:daily` yazıyor.
-
-Yani: sayı katmanı gerçek ve eksiksiz, kayıt katmanı **boş ve dürüst**.
-Sıradaki iş kayıtları gerçek İÇERİK dökümünden doldurmak.
+**2026 arşiv sayfasında DEĞİL.** Kaynak site `/ARŞİV/<yıl>` sayfasını yalnızca
+yıl kapandıktan sonra dolduruyor; yürüyen yılın sayıları ANA SAYFADA, aynı
+tabloyla. `crawlYear` arşiv sayfası boş dönerse ana sayfaya düşüyor ve gelen
+satırları TARİH sütunundaki yıla göre süzüyor — süzme olmadan boş bir
+`/ARŞİV/2019` sorgusu ana sayfadaki 2026 sayılarını 2019 diye kaydederdi.
 
 ### 2.1 PDF erişimi: robots.txt aykırı, ürün sahibi bilerek devam ediyor
 
@@ -88,18 +89,18 @@ Sık sorulan soru: 4.400 PDF nereye sığacak? **Hiçbir yere — saklanmıyorla
 siliyor (başarıda da hatada da). Saklanan tek şey `body_text`
 (kayıt başına en fazla 20 KB, `BODY_TEXT_LIMIT_BYTES`).
 
-**ÖLÇÜLDÜ** — 2025'in tamamı (262 sayı, 3.976 kayıt) işlendikten sonra:
+**ÖLÇÜLDÜ** — 2025 + 2026 (422 sayı, 6.915 kayıt) işlendikten sonra:
 
 | | |
 | --- | --- |
-| Veritabanının tamamı | **29 MB** |
-| `records` (veri 4,2 MB + indeks 6,3 MB + TOAST) | 16 MB |
-| `body_text` toplamı | 4,6 MB |
+| Veritabanının tamamı | **46 MB** |
 | Kayıt başına ortalama gövde | 2,2 KB (tavan 20 KB, tavana değen kayıt var) |
-| En büyük indeks: `records_search_idx` (GIN) | 3,4 MB |
-| İkinci: `records_title_trgm_idx` | 1,9 MB |
+| Gövde uzunluğu | medyan 1.208 · p90 2.308 |
+| En büyük indeks | `records_search_idx` (GIN) |
+| İkinci | `records_title_trgm_idx` |
 
-Yani **sayı başına ~110 KB**. 2006–2025 için ~4.400 sayı:
+Yani **sayı başına ~109 KB** — iki yıl üzerinden ölçüldüğü için tek yıllık
+tahminden (110 KB) daha güvenilir. 2006–2025 için ~4.400 sayı:
 
 ```
 4.400 × 110 KB  ≈  480 MB
@@ -108,9 +109,9 @@ Yani **sayı başına ~110 KB**. 2006–2025 için ~4.400 sayı:
 ⚠️ Supabase ücretsiz katmanı 500 MB (güncel limiti doğrula). Yani tam arşiv
 **teknik olarak sığıyor ama boşluk kalmıyor** — ve iki şey bu hesabı bozar:
 
-1. **OCR.** 2025'te sayıların %8'i (21 tanesi) taranmış çıktı ve gövdesiz
-   kaldı. OCR açılırsa onlar 2 KB yerine 200 KB+ verir; eski yıllarda taranmış
-   oranı muhtemelen daha yüksek.
+1. **OCR.** 422 sayının 33'ü (%8) taranmış çıktı ve gövdesiz kaldı. OCR
+   açılırsa onlar 2 KB yerine 200 KB+ verir; eski yıllarda taranmış oranı
+   muhtemelen daha yüksek. Bkz. §6.1.
 2. Alarm/kullanıcı tabloları büyüdükçe.
 
 Boşluk açmanın ölçülmüş yolları, ucuzdan pahalıya:
@@ -396,6 +397,36 @@ ve §3.5'teki `s`/`skii`/`kii`/`teki` gibi eklenmeleri gerekecek.
 
 ---
 
+## 3.8 Gövde sınırları — kayıt, komşusunun metnini yutuyordu
+
+`extractBody` gövdeyi kaydın referansından başlatıp bitişi ararken YALNIZCA
+içindekiler sırasındaki **bir sonraki** kaydın etiketine bakıyordu. O etiket
+başlangıçtan sonra bulunamazsa gövde PDF'in sonuna kadar uzuyor, 20 KB
+tavanında kesiliyordu.
+
+Bulunamaması sık: gazetenin fiziksel sırası içindekiler sırasıyla aynı olmak
+zorunda değil, yani "bir sonraki" etiket başlangıçtan ÖNCE kalabiliyor.
+
+Ölçüm (2025 + 2026): **3.646 gövdeli kaydın 184'ü (%5,0)** başka kayıtların
+referansını içeriyordu, taşan kayıt başına ortalama 7,9 yabancı referans,
+13–18 KB gövdeler (medyan 1.219 karakter).
+
+Bu yalnızca görüntü sorunu değildi: gövde metni `search_vector`'a giriyor,
+yani kayıt **kendisiyle ilgisi olmayan kelimelerle bulunabiliyordu.** Gövdeden
+aramanın var oluş amacını kirletiyordu.
+
+Bitiş artık **başlangıçtan sonraki en yakın BAŞKA referans** — sıradan
+bağımsız. Hiçbiri bulunamazsa sona kadar gidiyor; PDF'teki son kayıt için
+doğru davranış.
+
+Sonuç: 184 (%5,0) → **6 (%0,17)**, gövde p90 3.080 → 2.308. Kalan altısı,
+referansı PDF metninde hiç geçmeyen kayıtlar.
+
+> Düzeltme yalnızca kodu değiştirmekle bitmiyor: mevcut kayıtlar için
+> etkilenen 52 sayı `pending` yapılıp yeniden işlendi (yöntem §6.3).
+
+---
+
 ## 4. Tekrar düşülmemesi gereken tuzaklar
 
 Bunların hepsi **gerçekten yaşandı** ve statik analiz hiçbirini yakalamadı.
@@ -523,36 +554,169 @@ Dev server bu oturumda **açık bırakıldı** (port 3000).
 
 ## 6. Sıradaki işler
 
-Öncelik sırasıyla, spec §15 yol haritasına göre:
+Ürün sahibi **OCR** ve **LLM özet katmanını** ayrı bir oturumda yaptırmayı
+seçti. İkisinin tam brifingi §6.1 ve §6.2'de: ölçümler, kısıtlar ve tuzaklar
+orada, o oturuma başlayan kişi hiçbir şeyi yeniden türetmek zorunda kalmasın.
 
-1. **Kayıtları gerçekle doldur — sıradaki asıl iş.** Aşama 1 bitti, `issues`
-   gerçek ve `records` boş. `processIssue` hazır: `parseIndexTable` İÇERİK
-   dökümünü doğru ayrıştırıyor, `extractPdfText` gövdeyi getiriyor, taranmış
-   sayılar `failed` damgasıyla kuyruğa düşüyor (§3.6). 262 sayı × ~15 kayıt
-   ≈ 4.000 kayıt bekleniyor.
-   Çalıştırmadan önce: kaynak siteye 262 PDF isteği gidecek, saniyede bir.
-2. **Fixture'ları çoğalt.** `fixtures/real/` altında dört gerçek sayı var
+Kalan işler, öncelik sırasıyla:
+
+1. **OCR** — §6.1. Taranmış sayıların gövdesi yok.
+2. **LLM özet katmanı** — §6.2. Kayıtların %89'unda özet yok.
+3. **Fixture'ları çoğalt.** `fixtures/real/` altında dört gerçek sayı var
    (dönem başına bir tane, hepsi elle doğrulandı). Spec §7.3 25 istiyor.
    Yeni fixture eklerken beklenen çıktıyı ayrıştırıcıdan üretip ham hücreye
    karşı **gözle doğrula** — üretip doğrulamadan koymak testi kendini
    onaylayan bir aynaya çevirir.
-3. **OCR kararı.** `ocrmypdf` + `tesseract-ocr-tur` kurulu değil, o yüzden
-   taranmış sayıların gövdesi yok. Kurulursa: (a) kaç sayının taranmış
-   olduğunu ölç — OCR bütçesi ve depolama tahmini (§2.2) buna bağlı,
-   (b) `estimateQuality` eşiği (0.55) gerçek OCR çıktısına göre kalibre
-   edilmeli, şu an tahmin. Metin PDF'lerinde ölçülen kalite 0.98–0.99, yani
-   eşik oralarda değil; OCR çıktısı görülmeden ayarlanamaz.
-4. **Supabase'e bağlan.** Auth akışı (magic link → `/auth/callback` → alarm
+4. **2006–2024 backfill.** Kapasite için önce yakın yıllar (§2.2): 2015–2025
+   ≈ 240 MB, ücretsiz katmana rahat sığar. `npm run ingest:backfill <yıl>`.
+   Eski yıllara geçerken §3.5'te not düşülen dönemsel önekler (`SİBER(K-I)`,
+   `H(K-I)`, `Y(K-I)`, `E-`) `REF_PATTERNS`'e eklenmeli.
+5. **Supabase'e bağlan.** Auth akışı (magic link → `/auth/callback` → alarm
    yazımı) hiç uçtan uca denenmedi.
-5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
+6. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
    dağıtım mantığı test edilmedi.
-6. **LLM özet yedeği.** Spec §3.8 kademeli üretim diyor: kural → LLM → yok.
-   Kural katmanı var, **LLM katmanı yazılmadı**. Şu an kural tutmazsa özet yok
-   ve maskelenmiş başlık gösteriliyor (bu davranış doğru, sadece orta basamak
-   eksik).
 7. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
    basılmıyor, yalnızca ayrılmış kutu görünüyor. Spec §14.5: başvuru Milestone 4
    bitmeden yapılmamalı.
+
+---
+
+### 6.1 OCR — taranmış sayıların gövdesini kurtarmak
+
+**Sorun.** PDF'lerin bir kısmı metin değil, sayfanın taranmış görüntüsü.
+`pdftotext` görüntüden harf okuyamıyor, yalnızca varsa metin katmanını alıyor.
+
+**Ölçüm** (422 sayı: 2025 + 2026):
+
+| `text_status` | Sayı | Ortalama kalite |
+| --- | --- | --- |
+| `extracted` | 383 | 0.98 |
+| `failed` (taranmış) | 33 | 0.84 |
+| `needs_review` | 6 | 0.34 |
+
+Somut örnek: 2025 sayı 175 → **23,8 MB PDF, çıkan metin 2 KB** (yalnızca kapak
+sayfasının metin katmanı). Metin/PDF bayt oranı %0,01; sağlıklı bir metin
+PDF'inde %0,27–0,45.
+
+**Kod hazır, araç yok.** `scripts/extract-text/index.ts` zaten şu zinciri
+kuruyor:
+
+```
+pdftotext → metin çok az mı? → ocrmypdf --language tur --skip-text → pdftotext tekrar
+```
+
+`ocrmypdf` ve `tesseract-ocr-tur` bu makinede kurulu değil; `commandExists`
+bunu görüp `failed` damgası vuruyor ve yeniden deneme kuyruğuna atıyor
+(`issues_retry_idx`). Sessizce boş kaydetmiyor — bu davranış doğru, dokunma.
+
+**Yapılacaklar:**
+
+1. `ocrmypdf` + `tesseract-ocr-tur` kur. GitHub Actions workflow'u zaten
+   kuruyor; yerelde elle gerekiyor.
+2. **Önce birkaç sayıda dene, toplu çalıştırma.** Kuyruktaki 33 sayıdan 3–5
+   tanesiyle başla: OCR sayfa başına saniyeler sürüyor, 40 sayfalık bir gazete
+   dakikalar demek.
+3. **`estimateQuality` eşiğini kalibre et.** `QUALITY_THRESHOLD = 0.55` ve
+   **hiç gerçek OCR çıktısı görülmeden tahminle kondu.** Metin PDF'lerinde
+   ölçülen kalite 0.98–0.99, yani eşik oralarda değil. OCR çıktısı görülmeden
+   ayarlanamaz.
+4. Kurtarılan sayıları `text_status='pending'` yapıp yeniden işle (§6.3).
+
+**Depolama uyarısı — bu hesabı bozabilir.** Taranmış bir sayı şu an 2 KB
+veriyor; OCR'lanınca 200 KB+ verir. 33 sayı için sorun değil ama §2.2'deki
+~480 MB'lık 20 yıllık tahmin **taranmış oranın düşük kalmasına dayanıyor** ve
+eski yıllarda o oran muhtemelen çok daha yüksek. OCR açıldıktan sonra §2.2'yi
+yeniden ölç.
+
+**Tuzak.** `estimateQuality` bu hata sınıfını **yakalayamıyor**: taranmış bir
+sayıdan çıkan az miktarda metin (kapak sayfası) tertemiz Türkçe olduğu için
+kalite 0.99 geliyor. Kalite metnin *doğruluğunu* ölçüyor, *eksikliğini* değil.
+Taranmışlığı yakalayan şey `SCANNED_TEXT_RATIO` (§3.6) ve OCR sonrası da o
+denetim geçerli kalmalı.
+
+---
+
+### 6.2 LLM özet katmanı — kademeli üretimin eksik orta basamağı
+
+**Sorun.** Ham gazete başlıkları okunmuyor. Gerçek bir örnek:
+
+```
+REKABET KURULU KARARI-KARAR SAYISI:319/2025 KONU:ÇELEBİOĞLU ÖZEL GÜVENLİK
+LTD. TARAFINDAN SOSYAL SİGORTALAR DAİRESİ MERKEZ MÜDÜRLÜK BİNASINA GÜVENLİK
+HİZMETİ ALIMI İHALESİNE YAPILAN İTİRAZ.
+```
+
+Spec §3.8 kademeli üretim istiyor:
+
+```
+1. Kural tabanlı  → tanınabilir kalıptaki kayıtlar
+2. Kalıp yoksa    → LLM (tek seferlik)
+3. O da olmazsa   → özet yok, maskelenmiş başlık gösterilir
+```
+
+**Birinci ve üçüncü basamak var, ortadaki yok.**
+
+**Ölçüm:** 5.223 kayıttan **565'inde özet var (%10,8)**, hepsi
+`summary_source='rule'`, `llm` **0**. Yani kayıtların **%89'unda** kullanıcı
+ham başlığı görüyor.
+
+> Kural katmanının neden bu kadar düşük kaldığı öğretici: bu dosya bir ara
+> "17 kaydın 15'inde özet üretiyor" (%88) diyordu. O 17 kayıt elle yazılmış
+> fixture'lardı, yani özetleyicinin kendi kalıplarına göre yazılmışlardı.
+> Gerçek veride oran %10,8'e düştü. Kural setini genişletmek de bir seçenek
+> ama kalıp çeşitliliği çok yüksek.
+
+**Şema hazır.** `records.summary` ve
+`records.summary_source text check (summary_source in ('rule','llm'))` zaten
+var, migration gerekmiyor. Özet **bir kez üretilip kalıcı saklanıyor** (spec
+§3.8 madde 4): liste, detay, e-posta, RSS ve `og:title` aynı metni kullanıyor,
+sayfaya özel yeniden üretim yasak.
+
+**PAZARLIK KONUSU OLMAYAN KISIT — spec §3.8 madde 1:**
+
+> Özet, başlıktan **kesinlikle çıkarılabilen** şeyi söyler. Kararın sonucunu
+> bildirmez.
+
+Yukarıdaki örnekte "itirazı karara bağladı" **doğru**, "itirazı reddetti"
+**yanlış** — o bilgi gövdede ve hukuki metinde tahmin yürütmek kabul edilemez.
+Modele serbest özet yazdırılamaz; çıktı bu kurala göre kısıtlanmalı ve
+denetlenmeli. Diğer maddeler de bağlayıcı: günlük dil (madde 2), aynı belge
+tipi hep aynı kalıp (madde 3), orijinal başlık her zaman sayfada (madde 5).
+
+**Yapılacaklar:**
+
+1. `scripts/summarize/` altına LLM basamağı ekle. Giriş: `title`, `section`,
+   `refType`, `docType`. **Gövde metnini verme** — özet başlıktan türetilmeli,
+   yoksa madde 1 ihlal edilir.
+2. Yalnızca `summarize()` (kural) null döndüğünde çağır.
+3. Sonucu `summary` + `summary_source='llm'` olarak yaz. `processIssue`
+   içindeki `ON CONFLICT` mevcut özeti koruyor
+   (`summary = coalesce(records.summary, excluded.summary)`), yani yeniden
+   işleme özeti ezmiyor — kasıtlı.
+4. **Çıktıyı denetle.** Sonuç bildiren cümleleri yakalayan bir kontrol yaz
+   (reddetti / kabul etti / onayladı gibi); tutarsa özeti at ve üçüncü
+   basamağa düş.
+5. Maliyet tek seferlik: kural tutmayan ~4.650 kayıt × bir kısa çağrı.
+
+**Model seçimi.** Bu depoda LLM çağrısı yapan hiçbir kod yok; sağlayıcı seçimi
+ve anahtar yönetimi de bu işin parçası. Anthropic API kullanılacaksa
+`claude-api` becerisini yükleyip model kimliklerini ve fiyatlandırmayı oradan
+al, hafızadan yazma.
+
+---
+
+### 6.3 Kayıtları yeniden işlemek (ikisinde de gerekecek)
+
+Kural ya da çıkarma mantığı değiştiğinde mevcut kayıtlara uygulamanın yolu:
+
+- **Yalnızca sınıflandırma değiştiyse:** `npm run reclassify` — ağa çıkmıyor,
+  PDF indirmiyor, saklanan başlıklardan `doc_type` ve konuları yeniden
+  hesaplıyor. `--dry` ile yalnızca sayar.
+- **Gövde/metin çıkarma değiştiyse:** ilgili sayıları
+  `update issues set text_status='pending'` yapıp
+  `npm run ingest:backfill <yıl>` çalıştır. Backfill yalnızca `pending`
+  olanları işliyor, yani hedefli çalışıyor ve kesilirse kaldığı yerden devam
+  ediyor. PDF'ler yeniden iniyor — kaynak siteye yük olduğunu unutma.
 
 ---
 
@@ -572,6 +736,27 @@ Değiştirmeden önce okunması gereken dosyalar:
 | `scripts/shared/turkish-suffix.ts` | Türkçe ek uyumu, I harfi kararı |
 | `scripts/parse-records/parser.ts` | `parseIndexTable` (birincil yol) + metin yedeği |
 | `fixtures/real/` | Gerçek arşiv hücreleri + elle doğrulanmış beklenen çıktı |
+| `scripts/extract-text/index.ts` | PDF metni + OCR zinciri + taranmış tespiti (§6.1) |
+| `scripts/reclassify/` | Ağa çıkmadan yeniden sınıflandırma (§6.3) |
+| `scripts/backfill/` | Bir yılın tamamını işler; kesilirse devam eder |
+| `src/styles/globals.css` | Renk jetonları, `--header-h` / `--sticky-top` |
+
+### Yapışan sütunlar
+
+Filtre rayı ve ana sayfanın sağ sütunu `--sticky-top` ile konumlanıyor; o da
+`--header-h`'den türüyor ve ikisi de `globals.css`'te tanımlı. Başlığın
+yüksekliği **sabitlenmiş** (`h-[var(--header-h)]`), çünkü varyanta göre
+değişince (arama kutulu 70px, kutusuz 62px) sütunların altındaki boşluk
+sayfadan sayfaya kayıyordu.
+
+⚠️ Yapışan öğenin ızgara hücresine `self-start` **verme**. Sezgi tersini
+söylüyor ama sticky için hücre GERİLMİŞ olmak zorunda: yapışan öğe yalnızca
+kapsayıcısının kutusu içinde hareket edebiliyor ve `self-start` hücreyi öğenin
+kendi yüksekliğine indirince kayacak alan kalmıyor. Bu tam olarak yaşandı;
+`position: sticky` uygulanıyordu ama hiçbir etkisi yoktu.
+
+Aynı sebeple ızgara hücresinin KENDİSİ yapışan öğe olamıyor (ana sayfadaki
+`aside` böyle); yapışkanlık içteki bir sarmalayıcıya konuyor.
 
 ### Genişlik kuralı
 
