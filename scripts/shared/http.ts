@@ -50,6 +50,16 @@ export async function politeFetch(
       return response;
     } catch (error) {
       lastError = error;
+
+      /*
+       * TypeError = isteğin kendisi kurulamadı (geçersiz URL, ByteString'e
+       * sığmayan başlık). Yeniden denemek bunu düzeltmez; yalnızca kaynak
+       * siteye gereksiz istek gönderir ve asıl nedeni sıradan bir ağ hatası
+       * gibi gösterir. Bir kez CRAWLER_USER_AGENT'taki Türkçe karakter tam
+       * olarak böyle gizlendi.
+       */
+      if (error instanceof TypeError) throw error;
+
       const backoff = Math.min(30_000, 2000 * 2 ** attempt);
       log.warn('istek başarısız, yeniden denenecek', { url, attempt, backoff });
       await new Promise((resolve) => setTimeout(resolve, backoff));

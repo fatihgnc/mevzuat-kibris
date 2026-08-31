@@ -62,6 +62,34 @@ function isoOrNull(year: number, month: number, day: number): string | null {
 }
 
 /**
+ * Bir yılda makul en büyük sayı numarası. 2025'te 262 çıktı; 999 rahat bir
+ * tavan. Amaç sınırlamak değil, biçim değişikliğini sessiz bozulma yerine
+ * gürültülü hataya çevirmek (spec 16).
+ */
+const MAX_ISSUE_NUMBER = 999;
+
+/**
+ * SAYI hücresinden sayı numarasını okur.
+ *
+ * Hücre her zaman yalın bir numara DEĞİL: birleşik yayımlanan sayılarda
+ * "195/1 195/2 195/3 195/4" gibi çok parçalı oluyor (2018'de iki kez).
+ * Eski hâl bütün rakamları yapıştırıyordu — 1.95e+23. Bu sayı `Number.isInteger`
+ * denetiminden GEÇİYOR (kesirsiz her kayan nokta sayısı gibi), yani koruma
+ * devreye girmeden bigint sütununa çöp yazılacaktı.
+ *
+ * İlk numarayı alıyoruz: parçalar tek sayının bölümleri ve tek PDF'e bakıyorlar.
+ */
+export function parseIssueNumber(raw: string): number | null {
+  const match = /\d+/.exec(raw);
+  if (!match) return null;
+
+  const number = Number(match[0]);
+  if (!Number.isInteger(number) || number <= 0 || number > MAX_ISSUE_NUMBER) return null;
+
+  return number;
+}
+
+/**
  * Arşiv HTML'ini ayrıştırır. Tablo kolonları: SAYI | TARİH | İÇERİK.
  * Sayı numarası PDF'e link (spec 3.1).
  */
@@ -75,8 +103,8 @@ export function parseArchiveHtml(html: string, year: number): CrawledIssue[] {
 
     const numberCell = cells.eq(0);
     const link = numberCell.find('a').attr('href');
-    const number = Number(numberCell.text().replace(/\D/g, ''));
-    if (!Number.isInteger(number) || number <= 0 || !link) return;
+    const number = parseIssueNumber(numberCell.text());
+    if (number === null || !link) return;
 
     const publishedAt = parseTurkishDate(cells.eq(1).text());
     if (!publishedAt) return;

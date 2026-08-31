@@ -1,13 +1,7 @@
-import { config as loadEnv } from 'dotenv';
 import postgres from 'postgres';
 
-/*
- * Next.js .env.local'i kendisi okuyor ama tsx ile çalışan scriptler okumuyor.
- * Aynı dosyadan beslenmezlerse "uygulamada çalışıyor, ingest'te çalışmıyor"
- * sınıfında bir hata çıkıyor. Öncelik Next ile aynı: .env.local > .env
- */
-loadEnv({ path: '.env.local' });
-loadEnv({ path: '.env' });
+// Env yükleme `./env` içinde; DATABASE_URL'i okumadan önce çalışması şart.
+import './env';
 
 /**
  * Ingest bağlantısı. Uygulamanınkinden ayrı: burası service role ile yazıyor

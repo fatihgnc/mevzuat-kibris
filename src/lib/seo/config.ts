@@ -46,9 +46,22 @@ export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || '';
 /** Liste sayfalarında sayfa başına kayıt. Tasarımdaki sayfalama bu değere göre. */
 export const PAGE_SIZE = 20;
 
-/** Kaynak siteye kendini tanıtan User-Agent (spec 3.6). */
+/**
+ * Kaynak siteye kendini tanıtan User-Agent (spec 3.6).
+ *
+ * SADECE ASCII — pazarlık konusu değil. HTTP başlık değerleri ByteString, yani
+ * karakter başına en fazla 255. Marka adı olduğu gibi konunca ("Mevzuat Kıbrıs")
+ * fetch daha isteği kurmadan patlıyordu:
+ *
+ *   TypeError: Cannot convert argument to a ByteString because the character
+ *   at index 9 has a value of 305 which is greater than 255      ('ı')
+ *
+ * Bu hata politeFetch'in yeniden deneme döngüsüne yakalanıp sıradan bir ağ
+ * hatası gibi görünüyordu; yani ingest boru hattı hiçbir zaman tek bir istek
+ * bile atamazdı. Marka adını buraya bağlama, aksanları elle düşür.
+ */
 export const CRAWLER_USER_AGENT =
-  SITE_NAME + ' arşiv botu (+' + SITE_URL + '/hakkinda; ' + CONTACT_EMAIL + ')';
+  'MevzuatKibris arsiv botu (+' + SITE_URL + '/hakkinda; ' + CONTACT_EMAIL + ')';
 
 export function absoluteUrl(path: string): string {
   return SITE_URL + (path.startsWith('/') ? path : '/' + path);
