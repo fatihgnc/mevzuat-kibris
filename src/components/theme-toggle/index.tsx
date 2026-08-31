@@ -29,7 +29,9 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+    setTheme(
+      document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+    );
     setMounted(true);
   }, []);
 
@@ -53,7 +55,7 @@ export function ThemeToggle() {
 
   return (
     <button
-      type="button"
+      type='button'
       onClick={toggle}
       aria-label={label}
       title={label}
@@ -62,13 +64,39 @@ export function ThemeToggle() {
        * arasında geçiş. Ekran okuyucuya "koyu tema açık mı" değil, "basınca ne
        * olacak" söylemek daha anlaşılır.
        */
-      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-line text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+      /*
+       * Boyut, yanındaki "Ara" butonuyla birebir aynı olmak zorunda ve o buton
+       * yüksekliğini arama GİRDİSİNDEN alıyor (form `flex`, hizalama stretch).
+       * Girdinin dış kutusu `border px-3 py-2 text-md`, yani:
+       *
+       *     2px kenarlık + 1rem dikey dolgu + 15px × 1.55 satır yüksekliği
+       *
+       * Aşağıdaki calc tam olarak bu; sayı uydurulmadı, aynı jetonlardan
+       * türetildi. 2px terimi GİRDİNİN kenarlığı — bu butonun kendi kenarlığı
+       * yok, ama toplam yüksekliğin girdiyle eşleşmesi için sayılması gerekiyor.
+       * `aspect-square` genişliği yükseklikten alıyor.
+       *
+       * Kenarlık KALDIRILDI (ürün sahibinin kararı): dolu teal "Ara" butonunun
+       * yanında çerçeveli bir kutu, ölçüleri birebir aynı olsa bile farklı bir
+       * nesne gibi okunuyor ve hizasız duruyordu. Geri bildirim artık hover'da
+       * zemin rengiyle veriliyor.
+       *
+       * `self-stretch` denendi ve yükseklik doğru geliyor ama genişlik içerik
+       * kadar (19px) kalıyor: esnetmeyle gelen yükseklik `aspect-ratio` için
+       * belirli sayılmıyor. Açık yükseklik verilince oran çalışıyor.
+       */
+      className='inline-flex aspect-square h-[42px] shrink-0 items-center justify-center rounded p-0 text-ink-muted transition-colors hover:text-ink'
     >
+      {/*
+        İkon boyutu kutuyla birlikte büyüdü. Kutu 36px'ken ikon 17px'ti (%47);
+        kutu "Ara" ile eşitlenip 41px olunca 17px ikon kutunun içinde kaybolup
+        boş bir çerçeve gibi duruyordu. 20px aynı oranı (%48) koruyor.
+      */}
       {mounted ? (
         theme === 'dark' ? (
-          <Sun size={17} aria-hidden />
+          <Sun size={20} aria-hidden />
         ) : (
-          <Moon size={17} aria-hidden />
+          <Moon size={20} aria-hidden />
         )
       ) : null}
     </button>

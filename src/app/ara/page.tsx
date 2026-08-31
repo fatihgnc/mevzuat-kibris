@@ -68,10 +68,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-8 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-search">
           {/*
-            self-start olmadan ızgara hücresi satır yüksekliğine geriliyor ve
-            içindeki sticky rayın kayacak alanı kalmıyor.
+            `self-start` KULLANMA. Sezgi tersini söylüyor ama sticky için hücre
+            GERİLMİŞ olmak zorunda: yapışan öğe yalnızca kendi kapsayıcısının
+            kutusu içinde hareket edebiliyor. `self-start` hücreyi formun
+            yüksekliğine indiriyor (632px), ikisi eşitlenince kayacak alan
+            kalmıyor ve `position: sticky` hiçbir etki göstermiyor — öğe
+            sayfayla birlikte akıp gidiyor.
+
+            Ölçüldü: self-start ile hücre 632px, onsuz 3172px; ilkinde form
+            kaydırmayı birebir takip ediyor, ikincisinde 72px'te sabitleniyor.
           */}
-          <div className="min-w-0 self-start">
+          <div className="min-w-0">
             {empty ? (
               <ActiveFilterChips params={params} />
             ) : (

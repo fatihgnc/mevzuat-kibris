@@ -104,7 +104,7 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
        * Yalnızca lg'de — altında ızgara tek sütuna düşüyor ve orada sticky bir
        * ray içeriği iterdi.
        */
-      className="flex flex-col gap-6 lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto lg:pb-1"
+      className="flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto lg:pb-1"
     >
       {/* Form gönderilirken kaybolmaması gereken, rayda göstermediğimiz alanlar. */}
       <input type="hidden" name="q" value={params.q} />

@@ -49,7 +49,7 @@ export function RecordCard({
     <Link
       href={recordHref(record)}
       className={cn(
-        'grid grid-cols-row items-start gap-[18px] border-b border-line-soft py-4 pr-[10px]',
+        'grid grid-cols-row items-start gap-[18px] border-b border-line-soft py-4 pl-3 pr-[10px]',
         'no-underline transition-colors hover:bg-surface-hover hover:no-underline',
         className,
       )}

@@ -40,14 +40,23 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   return (
     <header
+      /*
+       * Yükseklik SABİT ve `--header-h` ile aynı kaynaktan geliyor.
+       *
+       * Bırakıldığında yükseklik varyanta göre değişiyordu: arama kutulu
+       * başlık 70px, kutusuz ana sayfa başlığı 62px. Yapışan yan sütunlar
+       * konumlarını başlığın altından aldığı için aradaki boşluk da sayfadan
+       * sayfaya kayıyordu (32px yerine 40px). Yüksekliği burada sabitleyince
+       * `--header-h` her sayfada DOĞRU oluyor, tahmin olmaktan çıkıyor.
+       */
       className={cn(
-        'sticky top-0 z-20 border-b border-line bg-surface',
+        'sticky top-0 z-20 h-[var(--header-h)] border-b border-line bg-surface',
         className,
       )}
     >
       <div
         className={cn(
-          'mx-auto flex max-w-6xl items-center px-4 py-3.5 sm:px-8 lg:px-10',
+          'mx-auto flex h-full max-w-6xl items-center px-4 sm:px-8 lg:px-10',
           variant === 'search' ? 'gap-5' : 'justify-between gap-4',
         )}
       >

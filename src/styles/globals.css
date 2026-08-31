@@ -78,6 +78,30 @@
     --radius: 0.25rem;             /* 4px — tasarımın taban yarıçapı */
 
     /*
+     * Başlığın toplam yüksekliği — TARAYICIDA ÖLÇÜLDÜ, hesaplanmadı.
+     *
+     *   28px  başlığın py-3.5 dolgusu (iki yan)
+     * + 42px  en uzun çocuk: tema düğmesi
+     * +  1px  başlığın alt çizgisi
+     * = 71px
+     *
+     * Formülle yazmayı denedim, 70,25px veriyor ve 0,75px eksik kalıyor:
+     * tema düğmesi `aspect-square` ve tarayıcı genişliği yukarı yuvarlayınca
+     * yükseklik de onu takip ediyor (41,25 → 42). Alt piksel yuvarlaması
+     * hesapla önceden bilinemez. Başlığın dolgusu, yazı boyutu ya da
+     * düğmenin boyutu değişirse burayı YENİDEN ÖLÇ.
+     *
+     * Başlık `sticky top-0`, yani yapışan yan sütunlar onun ALTINDAN
+     * başlamak zorunda; daha küçük bir değer verilirse sütun başlığın arkasına
+     * girip kayboluyor. "top: 32px" istendiğinde asıl istenen buydu:
+     * başlıktan sonra 32px boşluk, ekranın tepesinden değil.
+     */
+    --header-h: 71px;
+
+    /* Yapışan sütunların üst konumu — başlıkla arasında 2rem nefes payı. */
+    --sticky-top: calc(var(--header-h) + 2rem);
+
+    /*
      * Bağlantı metni rengi. Açık temada vurgu renginin ta kendisi, ama AYRI
      * bir token olmak zorunda: koyu temada vurgu iki farklı iş yapıyor ve tek
      * değer ikisini birden karşılayamıyor. Buton ZEMİNİ olarak koyu kalmalı
