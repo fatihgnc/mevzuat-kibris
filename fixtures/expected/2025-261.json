@@ -1,0 +1,14 @@
+{
+  "note": "Spec 7.3 zor vakaları: DÜZELTME kaydı, tek satırda üç şirket, yazım hatalı kaynak metin (METEROLOJİ, PORJESİ, KARLIŞANMASI korunmalı).",
+  "recordCount": 8,
+  "records": [
+    { "section": "MAIN", "refType": null, "refNumber": null, "docType": "munhal_ilani" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "1064", "docType": "kamulastirma" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "1063", "docType": "emirname" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "1062", "docType": "diger" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "1052", "docType": "duzeltme" },
+    { "section": "EK_V_B_I", "refType": "sm", "refNumber": "4401", "docType": "sirket_duyurusu" },
+    { "section": "EK_V_B_I", "refType": "sm", "refNumber": "4402", "docType": "sirket_duyurusu" },
+    { "section": "EK_V_B_I", "refType": "sm", "refNumber": "4403", "docType": "sirket_duyurusu" }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "note": "Spec 7.3 zor vakası: aynı konu hem EK III'te A.E. hem EK IV BÖLÜM I'de Ü(K-I) olarak görünüyor. İkisi AYRI kayıt olmalı.",
+  "recordCount": 9,
+  "records": [
+    { "section": "EK_III", "refType": "ae", "refNumber": "1071", "docType": "emirname" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "1070", "docType": "rekabet_kurulu_karari" },
+    { "section": "EK_III", "refType": "ae", "refNumber": "1069", "docType": "tuzuk" },
+    { "section": "EK_IV_B_I", "refType": "uki", "refNumber": "2497-2025", "docType": "emirname" },
+    { "section": "EK_IV_B_I", "refType": "uki", "refNumber": "2496-2025", "docType": "bakanlar_kurulu_karari" },
+    { "section": "EK_IV_B_I", "refType": "ukii", "refNumber": "618-2025", "docType": "atama_kararnamesi" },
+    { "section": "EK_V_B_I", "refType": "sm", "refNumber": "4412", "docType": "sirket_duyurusu" },
+    { "section": "EK_V_B_I", "refType": "sm", "refNumber": "4413", "docType": "sirket_duyurusu" },
+    { "section": "EK_V_B_II", "refType": "mt", "refNumber": "8842", "docType": "marka_ilani" }
+  ]
+}

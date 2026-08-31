@@ -1,0 +1,16 @@
+# Depoda her zaman LF; checkout'ta platforma birakiliyor.
+# Windows'ta gelistirilip Linux runner'da (GitHub Actions) calistigi icin
+# normalize edilmezse her dosya sahte diff uretiyor.
+* text=auto eol=lf
+
+# Ikili dosyalar dokunulmadan gecsin
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff  binary
+*.woff2 binary
+
+# Uretilen dosyalar diff/istatistik disinda
+package-lock.json -diff linguist-generated
+support.js        -diff linguist-generated

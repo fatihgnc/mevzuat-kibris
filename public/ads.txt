@@ -1,0 +1,2 @@
+# AdSense onayı geldiğinde publisher satırı buraya eklenir (spec 14.4).
+# Biçim: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tasarım jetonları — "Mevzuat Kıbrıs.dc.html" artboard'larından birebir alındı.
+ * Tasarım tek bir açık temaya bağlanıyor; koyu tema varyantı yok.
+ * Buradaki değerler tek kaynak; hiçbir bileşen ham hex yazmaz.
+ */
+@layer base {
+  :root {
+    /* Yüzeyler */
+    --canvas: 240 3% 90%;          /* #E6E6E8 — kanvas zemini */
+    --surface: 0 0% 100%;          /* #FFFFFF */
+    --surface-muted: 240 5% 96%;   /* #F4F4F5 — yan kutu, alıntı, reklam yeri */
+    --surface-hover: 240 5% 97%;   /* #F7F7F8 — satır hover */
+
+    /* Çizgiler */
+    --border: 240 6% 90%;          /* #E4E4E7 */
+    --border-soft: 240 8% 93%;     /* #ECECEF — liste satır ayracı */
+    --border-strong: 240 7% 79%;   /* #C6C6CE — input, ikincil buton */
+    --border-dashed: 240 6% 84%;   /* #D4D4DA — reklam yeri, alıntı çizgisi */
+
+    /* Metin */
+    --ink: 240 4% 9%;              /* #17181A — başlık, birincil */
+    --ink-body: 240 6% 18%;        /* #2A2A30 — gövde */
+    --ink-muted: 240 4% 44%;       /* #6B6B75 — ikincil */
+    --ink-faint: 240 4% 56%;       /* #8B8B94 — etiket */
+    --ink-fainter: 240 4% 62%;     /* #9A9AA2 — künye, breadcrumb */
+    --ink-placeholder: 240 7% 72%; /* #B4B4BC — placeholder, pasif */
+
+    /* Vurgu */
+    --accent: 190 60% 30%;         /* #1F6E7C */
+    --accent-hover: 189 61% 23%;   /* #17575F */
+    --accent-ink: 0 0% 100%;
+
+    /* Eşleşme vurgusu — arama vurgusu ve ::selection aynı sarı */
+    --mark: 53 61% 85%;            /* #F2ECC0 */
+
+    /* Uyarı bandı — "metin otomatik okundu" */
+    --notice: 46 60% 95%;          /* #FAF6E7 */
+    --notice-border: 46 47% 81%;   /* #E8DDB5 */
+    --notice-ink: 45 32% 30%;      /* #6B5E33 */
+
+    --radius: 0.25rem;             /* 4px — tasarımın taban yarıçapı */
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface text-ink-body antialiased;
+    font-feature-settings: 'kern' 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: hsl(var(--mark));
+  }
+
+  a {
+    @apply text-accent no-underline;
+  }
+
+  a:hover {
+    @apply text-ink underline;
+    text-underline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-ink;
+    text-wrap: pretty;
+  }
+
+  /* Klavye odağı her yerde görünür kalsın; tasarımda odak halkası tanımlı değil,
+     erişilebilirlik için vurgu rengiyle türetildi. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+/*
+ * Maskelenmiş gazete başlığının jeton stilleri BURADA DEĞİL.
+ *
+ * Seviye -> sınıf eşlemesi src/lib/search/highlight.ts içindeki tokenClass()
+ * fonksiyonunda, doğrudan Tailwind utility'leri olarak duruyor. Burada özel
+ * sınıf tanımlanıp koda 'tok-' + level diye birleştirilerek verilseydi Tailwind
+ * içerik taraması bu adları göremez ve kuralları eleyip atardı.
+ */

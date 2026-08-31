@@ -1,0 +1,33 @@
+name: dispatch-alerts
+
+on:
+  workflow_run:
+    workflows: [daily-ingest]
+    types: [completed]
+  schedule:
+    - cron: '0 5 * * *' # 08:00 TRT, günlük digest penceresi
+  workflow_dispatch:
+
+concurrency:
+  group: alerts
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run alerts:dispatch
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ vars.RESEND_FROM }}
+          ALERT_UNSUBSCRIBE_SECRET: ${{ secrets.ALERT_UNSUBSCRIBE_SECRET }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
