@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { TopicDot } from '@/components/topic-badge';
 import { TR_WEEKDAYS } from '@/lib/text/dates';
 import type { AlertRow } from '@/types/alert';
 
@@ -46,7 +45,6 @@ export function AlertList({ alerts }: { alerts: AlertRow[] }) {
         >
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-md text-ink">
-              {alert.topics[0] ? <TopicDot topic={alert.topics[0]} /> : null}
               <span className="font-medium">{alert.label}</span>
             </div>
             <div className="mt-0.5 text-sm text-ink-muted">

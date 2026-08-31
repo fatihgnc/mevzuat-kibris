@@ -8,7 +8,6 @@ import { MaskedText } from '@/components/masked-text';
 import { RawTitle } from '@/components/raw-title';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 import { SourceNotice, OcrNotice } from '@/components/source-notice';
-import { TopicDot } from '@/components/topic-badge';
 import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
 import { recordHref } from '@/lib/db/queries/shared';
@@ -42,7 +41,6 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             href={'/konu/' + primaryTopic.slug}
             className="inline-flex items-center gap-[7px] font-semibold text-ink-body no-underline hover:text-accent hover:no-underline"
           >
-            <TopicDot topic={primaryTopic.slug} />
             {primaryTopic.name}
           </Link>
         ) : null}

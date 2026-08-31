@@ -8,7 +8,6 @@ import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { TopicDot } from '@/components/topic-badge';
 import { YearNav } from '@/components/year-nav';
 import { TOPICS, TOPIC_SLUGS, isTopicSlug } from '@/lib/constants/topics';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
@@ -106,7 +105,6 @@ export default async function TopicPage({ params, searchParams }: Props) {
         <div className="grid items-start gap-10 lg:grid-cols-page">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <TopicDot topic={konu} size={10} />
               <h1 className="m-0 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">
                 {topic.name}
               </h1>

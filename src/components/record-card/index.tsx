@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 import { MaskedText } from '@/components/masked-text';
-import { TopicDot } from '@/components/topic-badge';
 import { recordHref } from '@/lib/db/queries/shared';
 import { formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
 import { TOPICS } from '@/lib/constants/topics';
@@ -111,7 +110,6 @@ export function RecordCard({
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
           {!hideTopic && record.primaryTopic ? (
             <span className="inline-flex items-center gap-1.5">
-              <TopicDot topic={record.primaryTopic} />
               {TOPICS[record.primaryTopic].name}
             </span>
           ) : null}

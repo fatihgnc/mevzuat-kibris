@@ -7,7 +7,6 @@ import { MaskedText } from '@/components/masked-text';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { TextQualityBadge } from '@/components/text-quality-badge';
-import { TopicDot } from '@/components/topic-badge';
 import { SECTIONS, SECTION_DESCRIPTION, SECTION_SHORT, isSection } from '@/lib/constants/sections';
 import { adjacentIssues, getIssue, getIssueSections } from '@/lib/db/queries/issues';
 import { recordHref } from '@/lib/db/queries/shared';
@@ -149,7 +148,6 @@ export default async function IssuePage({ params }: Props) {
                           href={'/konu/' + record.primaryTopic}
                           className="inline-flex items-center gap-1.5 text-ink-muted no-underline hover:text-accent hover:no-underline"
                         >
-                          <TopicDot topic={record.primaryTopic} />
                           {record.docTypeLabel}
                         </Link>
                       ) : (
