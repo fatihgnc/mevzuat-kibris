@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { formatRef } from '../../src/lib/constants/doc-types';
 import { CRAWLER_USER_AGENT } from '../../src/lib/seo/config';
 import { classifyDocType, classifyTopics } from '../classify/rules';
-import { parseIssueNumber } from '../crawl-archive';
+import { parseIssueNumber, parseTurkishDate } from '../crawl-archive';
 import { titleCase } from '../shared/turkish-suffix';
 import { summarize } from '../summarize/rules';
 
@@ -373,6 +373,29 @@ describe('dönemsel Bakanlar Kurulu referansları', () => {
       expect(formatRef(record!.refType, record!.refNumber)).toBe(label);
     });
   }
+});
+
+describe('parseTurkishDate — TARİH hücresi', () => {
+  it('sayısal ve adlandırılmış ayları okur', () => {
+    expect(parseTurkishDate('31.12.2025')).toBe('2025-12-31');
+    expect(parseTurkishDate('31/12/2025')).toBe('2025-12-31');
+    expect(parseTurkishDate('26 Ağustos 2025')).toBe('2025-08-26');
+  });
+
+  /*
+   * Kaynakta gerçekten var: 2026 sayı 78'in tarihi "22..04.2026". Tek ayraç
+   * şart koşulduğunda tarih çözülemiyor, kayıt düşüyor ve bir gazete sayısı
+   * sessizce kayboluyordu.
+   */
+  it('tekrarlanan ayraçlı yazım hatasını tolere eder', () => {
+    expect(parseTurkishDate('22..04.2026')).toBe('2026-04-22');
+    expect(parseTurkishDate('1//2/2026')).toBe('2026-02-01');
+  });
+
+  it('geçersiz tarihi reddeder', () => {
+    expect(parseTurkishDate('31.02.2026')).toBeNull();
+    expect(parseTurkishDate('tarih yok')).toBeNull();
+  });
 });
 
 describe('kaynak siteye giden istek', () => {

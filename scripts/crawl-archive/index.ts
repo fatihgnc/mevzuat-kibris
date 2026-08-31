@@ -1,5 +1,7 @@
 import * as cheerio from 'cheerio';
 
+import { SOURCE_BASE_URL } from '../../src/lib/seo/config';
+
 import { archiveUrl, absolutize, politeFetch } from '../shared/http';
 import { closeDb, sql } from '../shared/db';
 import { log } from '../shared/logger';
@@ -40,7 +42,13 @@ const TR_MONTHS: Record<string, number> = {
 export function parseTurkishDate(raw: string): string | null {
   const text = raw.replace(/\s+/g, ' ').trim();
 
-  const numeric = /(\d{1,2})[./](\d{1,2})[./](\d{4})/.exec(text);
+  /*
+   * Ayraç TEKRARLANABİLİR: kaynakta "22..04.2026" gibi yazım hataları var
+   * (2026 sayı 78). Tek ayraç şart koşulduğunda tarih çözülemiyor ve kayıt
+   * `publishedAt` null olduğu için tamamen düşüyordu — bir yazım hatası
+   * yüzünden koca bir gazete sayısını kaybetmek doğru değil.
+   */
+  const numeric = /(\d{1,2})[./]+(\d{1,2})[./]+(\d{4})/.exec(text);
   if (numeric) {
     const [, d, m, y] = numeric;
     return isoOrNull(Number(y), Number(m), Number(d));
@@ -122,15 +130,49 @@ export function parseArchiveHtml(html: string, year: number): CrawledIssue[] {
   return issues;
 }
 
-export async function crawlYear(year: number): Promise<{ seen: number; inserted: number }> {
+async function fetchHtml(url: string): Promise<string> {
+  const response = await politeFetch(url);
+  if (!response.ok) throw new Error('Sayfa alınamadı: HTTP ' + response.status + ' — ' + url);
+  return response.text();
+}
+
+/**
+ * Bir yılın sayı listesini bulur.
+ *
+ * İÇİNDE BULUNULAN YIL ARŞİV SAYFASINDA DEĞİL. Kaynak site `/ARŞİV/<yıl>`
+ * sayfasını yalnızca yıl kapandıktan sonra dolduruyor; yürüyen yılın sayıları
+ * ANA SAYFADA duruyor. 2026 için `/ARŞİV/2026` HTTP 200 dönüyor ama içinde tek
+ * tablo yok (24 KB'lık boş kabuk), oysa ana sayfada 1–160 arası sayılar aynı
+ * `SAYI | TARİH | İÇERİK` yapısıyla listeli. Sitenin arşiv menüsü de 2026'yı
+ * hiç saymıyor.
+ *
+ * Bu, günlük ingest'i de etkiliyordu: `daily` her gün yürüyen yılı tarıyor,
+ * yani boş sayfaya bakıp "hiç sayı bulunamadı" diye hata veriyordu.
+ *
+ * Yedek yol KÖR DEĞİL. Ana sayfadan gelen satırlar TARİH sütunundaki yıla göre
+ * süzülüyor. Bu şart: süzme olmadan `/ARŞİV/2019` boş çıktığında ana sayfadaki
+ * 2026 sayıları 2019 diye kaydedilirdi. Yıl artık istenen değere göre
+ * doğrulanıyor, `parseArchiveHtml`in damgaladığı değere göre değil.
+ */
+async function findIssues(year: number): Promise<CrawledIssue[]> {
   const url = archiveUrl(year);
   log.info('arşiv sayfası çekiliyor', { year, url });
 
-  const response = await politeFetch(url);
-  if (!response.ok) throw new Error('Arşiv sayfası alınamadı: HTTP ' + response.status);
+  const fromArchive = parseArchiveHtml(await fetchHtml(url), year);
+  if (fromArchive.length) return fromArchive;
 
-  const html = await response.text();
-  const issues = parseArchiveHtml(html, year);
+  log.warn('arşiv sayfası boş, ana sayfaya bakılıyor', { year, url });
+
+  const fromHome = parseArchiveHtml(await fetchHtml(SOURCE_BASE_URL + '/'), year).filter(
+    (issue) => issue.publishedAt.startsWith(String(year) + '-'),
+  );
+
+  log.info('ana sayfadan bulunan sayı', { year, count: fromHome.length });
+  return fromHome;
+}
+
+export async function crawlYear(year: number): Promise<{ seen: number; inserted: number }> {
+  const issues = await findIssues(year);
 
   /*
    * Sağlık kontrolü — spec 16: kaynak site yapısını değiştirirse ingest sessizce
