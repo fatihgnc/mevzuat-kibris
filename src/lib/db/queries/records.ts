@@ -37,8 +37,19 @@ export interface SearchResult {
   };
 }
 
-/** Filtre koşulları — arama, konu akışı ve varlık sayfalarında paylaşılıyor. */
-function filterConditions(params: Partial<SearchParams>) {
+/**
+ * Filtre koşulları — arama, konu akışı ve varlık sayfalarında paylaşılıyor.
+ *
+ * `exclude` verilirse o boyutun kendi filtresi UYGULANMAZ.
+ *
+ * Facet sayıları için şart. Sayımlar filtrelerin tamamıyla hesaplanınca,
+ * "Atama" seçen kullanıcı konu listesinde yalnızca Atama'yı görüyordu: diğer
+ * konular sıfırlanıp listeden düşüyor ve seçim GERİ ALINAMAZ hâle geliyordu.
+ * Faceted arama beklentisi bunun tersi — bir boyutun sayıları, o boyut hariç
+ * bütün filtreler uygulanmış hâlde hesaplanır ki "buna ek olarak şunu da
+ * seçsem kaç sonuç kalır" sorusu cevaplanabilsin.
+ */
+function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur') {
   const parts = [sql`true`];
 
   /*
@@ -47,7 +58,7 @@ function filterConditions(params: Partial<SearchParams>) {
    * devreye girmiyor ve sorgu "malformed array literal" ile patlıyordu — yani
    * konu ve belge türü filtreleri hiç çalışmıyordu (bkz. queries/shared.ts).
    */
-  if (params.konu?.length) {
+  if (params.konu?.length && exclude !== 'konu') {
     parts.push(
       sql`exists (
         select 1 from record_topics rt
@@ -55,7 +66,7 @@ function filterConditions(params: Partial<SearchParams>) {
       )`,
     );
   }
-  if (params.tur?.length) {
+  if (params.tur?.length && exclude !== 'tur') {
     parts.push(sql`r.doc_type in (${inList(params.tur)})`);
   }
   if (params.yil) {
@@ -87,12 +98,15 @@ function filterConditions(params: Partial<SearchParams>) {
   return sql.join(parts, sql` and `);
 }
 
-function orderBy(sort: SortOption, hasQuery: boolean) {
-  if (sort === 'yeni') return sql`r.published_at desc, r.id desc`;
+/*
+ * "En ilgili" (rank desc) seçeneği kaldırıldı, bu yüzden hasQuery'ye bakan dal
+ * da kalktı: metin araması olsa da olmasa da sıralama tarihe göre. `rank`
+ * sütunu hâlâ hesaplanıyor (ts_headline vurgusu ve ileride geri alınabilmesi
+ * için) ama artık sıralamayı belirlemiyor. Bkz. build-query.ts → SORT_OPTIONS.
+ */
+function orderBy(sort: SortOption) {
   if (sort === 'eski') return sql`r.published_at asc, r.id asc`;
-  // Sorgu yoksa "en ilgili" anlamsız; tarihe düşüyoruz.
-  if (!hasQuery) return sql`r.published_at desc, r.id desc`;
-  return sql`rank desc, r.published_at desc`;
+  return sql`r.published_at desc, r.id desc`;
 }
 
 /**
@@ -107,7 +121,6 @@ export async function searchRecords(
   built: BuiltQuery,
 ): Promise<SearchResult> {
   const filters = filterConditions(params);
-  const hasQuery = Boolean(built.tsquery);
   const tsq = built.tsquery
     ? sql`mk_tsquery(${built.tsquery})`
     : null;
@@ -129,7 +142,7 @@ export async function searchRecords(
      where ${matchCondition}
        and r.has_own_page
        and ${filters}
-     order by ${orderBy(params.sirala, hasQuery)}
+     order by ${orderBy(params.sirala)}
      limit ${built.limit} offset ${built.offset}
   `);
 
@@ -147,18 +160,22 @@ export async function searchRecords(
 
   // Facet sayıları sonuç kümesinden hesaplanıyor, arşiv toplamından değil —
   // artboard 1b'deki sol raydaki sayılar bu yüzden filtreye göre değişiyor.
+  // Ama her boyut KENDİ filtresi hariç sayılıyor; bkz. filterConditions.
+  const topicFacetFilters = filterConditions(params, 'konu');
+  const docTypeFacetFilters = filterConditions(params, 'tur');
+
   const facetQuery = db.execute<Row<{ kind: string; key: string; n: string }>>(sql`
     select 'topic' as kind, rt.topic as key, count(*)::int as n
       from records r
       join issues i on i.id = r.issue_id
       join record_topics rt on rt.record_id = r.id
-     where ${matchCondition} and r.has_own_page and ${filters}
+     where ${matchCondition} and r.has_own_page and ${topicFacetFilters}
      group by rt.topic
     union all
     select 'doc_type', r.doc_type, count(*)::int
       from records r
       join issues i on i.id = r.issue_id
-     where ${matchCondition} and r.has_own_page and ${filters}
+     where ${matchCondition} and r.has_own_page and ${docTypeFacetFilters}
      group by r.doc_type
   `);
 
@@ -310,11 +327,21 @@ export async function countRecords(options: ListOptions): Promise<number> {
 }
 
 /** Konu başına arşiv toplamı — ana sayfa konu ızgarası. */
+/**
+ * Konu başına kayıt sayısı.
+ *
+ * `has_own_page` şartı ŞART: konu sayfası ve arama facet'leri de yalnızca
+ * kendi sayfası olan kayıtları sayıyor (spec 8.2 madde 2 — ince içerik kendi
+ * URL'ini almıyor). Bu filtre olmadan dizin sayfası "Marka 14" diyor,
+ * tıklayınca 5 kayıt çıkıyordu. Aynı şeyi sayan iki yerin farklı cevap vermesi,
+ * kullanıcının sayaçlara olan güvenini tek seferde bitiriyor (spec 8.4).
+ */
 export async function topicCounts(): Promise<Record<string, number>> {
   const rows = await db.execute<Row<{ topic: string; n: string }>>(sql`
     select rt.topic, count(*)::int as n
       from record_topics rt
       join records r on r.id = rt.record_id
+     where r.has_own_page
      group by rt.topic
   `);
 

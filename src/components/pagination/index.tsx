@@ -72,13 +72,24 @@ function boxClass() {
 }
 
 /**
- * 1 … n-1 n n+1 … son biçiminde pencere. Tasarımda "1 2 3 … 64" var:
- * baştan üç, sondan bir, aradakiler üç nokta.
+ * "1 … 9 10 11 … 30" biçiminde pencere: ilk sayfa, geçerli sayfanın iki yanı,
+ * son sayfa.
+ *
+ * Tasarım artboard'ı "1 2 3 … 64" gösteriyordu, yani baştan üç sayfa sabitti.
+ * Ürün sahibinin kararıyla değiştirildi: ilk üç sayfayı sabit tutmak, kullanıcı
+ * arşivin ortasındayken ekranın yarısını hiç işine yaramayan bağlantılara
+ * ayırıyordu. Artık yalnızca 1 ve son sayfa sabit — biri "başa dön", diğeri
+ * "arşiv ne kadar derin" sorusuna cevap.
+ *
+ * Sayı adedi 3 ile 5 arasında değişiyor (kenarlarda pencere taşmadığı için
+ * daralıyor). Sabit genişlik için kenarlarda pencereyi kaydırmak mümkündü ama
+ * o zaman 1. sayfada "1 2 3 4" gibi tuhaf bir dizi çıkıyor; daralma daha
+ * dürüst.
  */
-function pageWindow(page: number, total: number): Array<number | null> {
+export function pageWindow(page: number, total: number): Array<number | null> {
   if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
 
-  const items = new Set<number>([1, 2, 3, page - 1, page, page + 1, total]);
+  const items = new Set<number>([1, page - 1, page, page + 1, total]);
   const sorted = [...items].filter((value) => value >= 1 && value <= total).sort((a, b) => a - b);
 
   const out: Array<number | null> = [];

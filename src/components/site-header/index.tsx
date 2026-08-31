@@ -5,7 +5,12 @@ import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
 import { cn } from '@/lib/utils';
 
 const NAV = [
-  { href: '/konu/munhal', label: 'Konular' },
+  /*
+   * '/konu' dizin sayfası — eskiden doğrudan '/konu/munhal'e gidiyordu, yani
+   * çoğul etiket tek bir konuyu açıyor ve diğer yedisine buradan
+   * ulaşılamıyordu.
+   */
+  { href: '/konu', label: 'Konular' },
   { href: '/sayilar', label: 'Sayılar' },
   { href: '/takip', label: 'Takip' },
   { href: '/hakkinda', label: 'Hakkında' },

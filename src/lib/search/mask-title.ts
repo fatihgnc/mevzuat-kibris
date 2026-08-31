@@ -179,6 +179,21 @@ function fallbackMask(title: string): Token[] {
     tokens.push({ t: part, lvl: isBoilerplate ? 0 : isYearish ? 2 : 1 });
   }
 
+  /*
+   * Başlığın TAMAMI kalıpsa maskeleme anlamını yitiriyor: geri plana atılacak
+   * bir arka plan yok, çünkü her şey arka plan. "SÖZLEŞMELİ PERSONEL" gibi
+   * başlıklarda satırın tümü sönük tona düşüyor ve okunmaz hâle geliyordu.
+   *
+   * Böyle bir durumda kalıp jetonları öne çıkarıyoruz — o başlık için taşıdığı
+   * bilgi zaten o. Maskeleme ayırt etmek için var; ayıracak bir şey yoksa
+   * hiçbir şeyi silikleştirmemeli.
+   */
+  if (!tokens.some((token) => token.lvl === 1)) {
+    for (const token of tokens) {
+      if (token.lvl === 0 && !/^[/\-–—,:()\s]+$/.test(token.t)) token.lvl = 1;
+    }
+  }
+
   return mergeAdjacent(tokens);
 }
 

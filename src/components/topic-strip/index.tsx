@@ -11,6 +11,11 @@ import { formatCount } from '@/lib/db/queries/shared';
  * aradaki boşluk gri, yani ızgara kendi kenarlığını çiziyor. Kenarlık yerine
  * boşluk kullanmak hücre içindeki metnin hizasını bozmuyor.
  *
+ * Bu tekniğin bedeli: son satır eksik kalırsa boşluk hücre kadar büyür ve
+ * ızgaranın gri zemini koca bir blok olarak görünür. Konu sayısı sekizken
+ * (çift) fark edilmiyordu; dokuzuncu konu eklenince ortaya çıktı. Tek sayıda
+ * konu varken boş hücreyi beyaz bir dolgu kapatıyor.
+ *
  * Sıralama kayıt sayısına göre: kullanıcı en çok içerik olan konuyu önce görür.
  */
 export function TopicStrip({ counts }: { counts: Record<string, number> }) {
@@ -36,6 +41,13 @@ export function TopicStrip({ counts }: { counts: Record<string, number> }) {
           </span>
         </Link>
       ))}
+
+      {/*
+        Son satırdaki boş hücreyi kapatan dolgu. `hidden sm:block` şart:
+        tek sütunlu düzende boş hücre diye bir şey yok, dolgu orada yalnızca
+        ızgaranın altına sahte bir ayraç çizerdi.
+      */}
+      {topics.length % 2 === 1 ? <div aria-hidden className="hidden bg-surface sm:block" /> : null}
     </div>
   );
 }

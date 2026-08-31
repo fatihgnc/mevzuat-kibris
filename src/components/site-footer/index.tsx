@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { TopicDot } from '@/components/topic-badge';
 import { TOPIC_LIST } from '@/lib/constants/topics';
 import { SITE_NAME } from '@/lib/seo/config';
 import type { EntityRow } from '@/types/entity';
@@ -34,9 +33,8 @@ export function SiteFooter({
                 <li key={topic.slug}>
                   <Link
                     href={'/konu/' + topic.slug}
-                    className="inline-flex items-center gap-2 text-ink-body no-underline hover:text-accent hover:no-underline"
+                    className="text-ink-body no-underline hover:text-accent hover:no-underline"
                   >
-                    <TopicDot topic={topic.slug} />
                     {topic.name}
                   </Link>
                 </li>

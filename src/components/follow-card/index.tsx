@@ -176,7 +176,23 @@ export function FollowCard({
         </button>
       </form>
 
-      {message ? <p className="mt-2.5 text-sm text-notice-ink">{message}</p> : null}
+      {/*
+        Hata ile bilgi aynı renkte olamaz: ikisi de sarıyken "gönderilemedi"
+        bir dipnot gibi okunuyor ve kullanıcı işlemin başarısız olduğunu
+        fark etmiyor. role="alert" da şart — mesaj JS ile sonradan
+        belirdiği için ekran okuyucu aksi hâlde hiç duyurmuyor.
+      */}
+      {message ? (
+        <p
+          role={phase === 'error' ? 'alert' : 'status'}
+          className={cn(
+            'mt-2.5 text-sm',
+            phase === 'error' ? 'font-semibold text-danger-ink' : 'text-notice-ink',
+          )}
+        >
+          {message}
+        </p>
+      ) : null}
 
       {rssHref ? (
         <div className="mt-2.5 text-sm">

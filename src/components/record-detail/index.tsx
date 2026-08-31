@@ -229,7 +229,7 @@ function MissingTextCard({ record }: { record: RecordDetailType }) {
             href={record.issue.pdfUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded bg-accent px-5 py-3 text-lg font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:no-underline"
+            className="rounded bg-accent px-5 py-3 text-lg font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:text-accent-ink hover:no-underline"
           >
             PDF&apos;i aç{page}
           </a>

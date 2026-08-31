@@ -19,11 +19,21 @@ import { normalizeForSearch } from '@/lib/text/turkish-lower';
  * 1-2 burada, 3-7 SQL tarafında (0007-search-functions.sql).
  */
 
-export const SORT_OPTIONS = ['ilgili', 'yeni', 'eski'] as const;
+/**
+ * Sıralama seçenekleri. İlki varsayılan.
+ *
+ * "En ilgili" (ts_rank_cd) ürün sahibinin kararıyla KALDIRILDI. Sonucu bilerek
+ * kabul edilmiş bir ödünç: artık metin araması da tarihe göre sıralanıyor,
+ * yani "ihale" araması en alakalıyı değil en yeniyi başa koyuyor. Resmî Gazete
+ * için bu savunulabilir — kullanıcı çoğunlukla "en son ne oldu" diye bakıyor.
+ * Geri istenirse `orderBy` içindeki rank dalı ve buradaki seçenek geri gelir.
+ */
+export const SORT_OPTIONS = ['yeni', 'eski'] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
 
+export const DEFAULT_SORT: SortOption = 'yeni';
+
 export const SORT_LABELS: Record<SortOption, string> = {
-  ilgili: 'En ilgili',
   yeni: 'En yeni',
   eski: 'En eski',
 };
@@ -52,7 +62,7 @@ export const searchParamsSchema = z.object({
   yil: z.coerce.number().int().min(1900).max(2200).optional().catch(undefined),
   baslangic: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
   bitis: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
-  sirala: z.enum(SORT_OPTIONS).catch('ilgili'),
+  sirala: z.enum(SORT_OPTIONS).catch(DEFAULT_SORT),
   sayfa: z.coerce.number().int().min(1).max(500).catch(1),
 });
 
@@ -184,40 +194,58 @@ export function buildSearchHref(
   push('yil', merged.yil);
   push('baslangic', merged.baslangic);
   push('bitis', merged.bitis);
-  if (merged.sirala && merged.sirala !== 'ilgili') push('sirala', merged.sirala);
+  if (merged.sirala && merged.sirala !== DEFAULT_SORT) push('sirala', merged.sirala);
   if (typeof merged.sayfa === 'number' && merged.sayfa > 1) push('sayfa', merged.sayfa);
 
   const qs = search.toString();
   return qs ? basePath + '?' + qs : basePath;
 }
 
-/**
- * Tarih aralığı kısayolları — artboard 1b'deki sol raydaki seçenekler.
- * "Tümü" etiketindeki kapsam aralığı çağıran taraftan geliyor ve veriden
- * türetiliyor (queries/coverage.ts), sabitten değil.
- */
-export function dateRangePresets(coverageLabel?: string | null, now = new Date()) {
-  const year = now.getUTCFullYear();
-  const twelveMonthsAgo = new Date(
-    Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), now.getUTCDate()),
-  )
-    .toISOString()
-    .slice(0, 10);
+export interface YearOption {
+  key: string;
+  label: string;
+  /** undefined = "Tümü", yani yıl filtresi yok. */
+  yil?: number;
+}
 
-  return [
-    { key: 'son12', label: 'Son 12 ay', baslangic: twelveMonthsAgo, bitis: undefined },
-    { key: 'gecenYil', label: String(year - 1), yil: year - 1 },
-    {
-      key: 'bes',
-      label: year - 6 + ' – ' + (year - 2),
-      baslangic: year - 6 + '-01-01',
-      bitis: year - 2 + '-12-31',
-    },
-    /*
-     * Kapsam etiketi veriden geliyor (queries/coverage.ts). Verilmezse yalnızca
-     * "Tümü" yazıyoruz: arkasında veri olmayan bir yıl iddiası, iddia hiç
-     * yapmamaktan kötü (spec 8.4).
-     */
-    { key: 'tumu', label: coverageLabel ? 'Tümü, ' + coverageLabel : 'Tümü' },
-  ] as const;
+/**
+ * Tarih filtresi seçenekleri — artboard 1b'deki sol raydaki liste.
+ *
+ * Ürün sahibinin kararıyla yıllar TEKİL listeleniyor; aralık yok. Eskiden
+ * "Son 12 ay / 2025 / 2020 – 2024 / Tümü" vardı. İki sonucu var:
+ *
+ * 1. "Son 12 ay" kaldırıldı. Tek başına aralık olduğu için tekil yıl listesine
+ *    girmiyordu; ayrıca `baslangic`/`bitis` gerektirdiğinden filtreyi tek
+ *    parametreye (`yil`) indirgemeyi engelliyordu. Tek parametre olması
+ *    "Filtrele" butonlu formu radyo grubuyla çözülebilir kıldı.
+ * 2. Yıllar VERİDEN geliyor, takvimden değil. Bugün 2026 ama arşivde yalnızca
+ *    2025 var; takvimden üretilseydi 2026 seçeneği çıkar ve tıklayan boş sonuç
+ *    alırdı. Spec 8.4'ün kapsam kuralı: arkasında veri olmayan yıl iddiası
+ *    yapma.
+ *
+ * `baslangic`/`bitis` parametreleri şemada DURUYOR — paylaşılmış eski
+ * bağlantılar çalışmaya devam etsin diye. Sadece arayüz onları üretmiyor.
+ */
+export function yearOptions(
+  coverage?: { earliestYear: number | null; latestYear: number | null } | null,
+): YearOption[] {
+  const options: YearOption[] = [];
+
+  const latest = coverage?.latestYear ?? null;
+  const earliest = coverage?.earliestYear ?? null;
+
+  if (latest !== null && earliest !== null) {
+    for (let year = latest; year >= earliest; year -= 1) {
+      options.push({ key: String(year), label: String(year), yil: year });
+    }
+  }
+
+  /*
+   * Sade "Tümü". Eskiden kapsam aralığı da yazıyordu ("Tümü, 2025") ama
+   * yıllar zaten hemen üstünde tek tek listelendiği için tekrar oluyordu;
+   * kapsam iddiası sayfanın kendi kapsam cümlesinde duruyor (spec 8.4).
+   */
+  options.push({ key: 'tumu', label: 'Tümü' });
+
+  return options;
 }

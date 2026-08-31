@@ -130,14 +130,24 @@ export default async function TopicPage({ params, searchParams }: Props) {
               ) : null}
             </div>
 
-            {supportsDeadline ? (
+            {/*
+              Sıfır sayılı bir filtre düğmesi göstermek anlamsız: tıklayan boş
+              liste alıyor. Son başvuru tarihi ancak münhal/ihale kayıtlarının
+              GÖVDESİNDEN çıkarılabiliyor (extractDeadline); gövdesi olmayan
+              kayıtta çıkarılamıyor ve şu an arşivde tarihi olan tek bir kayıt
+              var, yani düğme neredeyse her zaman "0" diyordu.
+
+              openOnly şartı, filtre AÇIKKEN düğmenin kaybolmamasını sağlıyor —
+              yoksa kullanıcı boş listede kalır ve geri dönecek düğme olmaz.
+            */}
+            {supportsDeadline && (openCount > 0 || openOnly) ? (
               <div className="mb-1 mt-[26px] flex flex-wrap items-center gap-2 border-b border-line pb-3.5">
                 <Link
                   href={'/konu/' + konu + '?filtre=acik'}
                   className={cn(
                     'rounded-pill px-3.5 py-1.5 text-base no-underline hover:no-underline',
                     openOnly
-                      ? 'bg-ink font-semibold text-surface'
+                      ? 'bg-ink font-semibold text-surface hover:text-surface'
                       : 'border border-line text-ink-body hover:border-accent hover:text-accent',
                   )}
                 >
@@ -148,7 +158,7 @@ export default async function TopicPage({ params, searchParams }: Props) {
                   className={cn(
                     'rounded-pill px-3.5 py-1.5 text-base no-underline hover:no-underline',
                     !openOnly
-                      ? 'bg-ink font-semibold text-surface'
+                      ? 'bg-ink font-semibold text-surface hover:text-surface'
                       : 'border border-line text-ink-body hover:border-accent hover:text-accent',
                   )}
                 >
@@ -201,7 +211,7 @@ export default async function TopicPage({ params, searchParams }: Props) {
               </div>
             </div>
 
-            {supportsDeadline ? (
+            {supportsDeadline && openCount > 0 ? (
               <p className="border-t border-line pt-4 text-sm leading-[1.55] text-ink-muted">
                 Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî PDF&apos;e
                 bakın.

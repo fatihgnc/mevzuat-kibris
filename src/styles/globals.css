@@ -21,13 +21,32 @@
     --border-strong: 240 7% 79%;   /* #C6C6CE — input, ikincil buton */
     --border-dashed: 240 6% 84%;   /* #D4D4DA — reklam yeri, alıntı çizgisi */
 
-    /* Metin */
-    --ink: 240 4% 9%;              /* #17181A — başlık, birincil */
-    --ink-body: 240 6% 18%;        /* #2A2A30 — gövde */
-    --ink-muted: 240 4% 44%;       /* #6B6B75 — ikincil */
-    --ink-faint: 240 4% 56%;       /* #8B8B94 — etiket */
-    --ink-fainter: 240 4% 62%;     /* #9A9AA2 — künye, breadcrumb */
-    --ink-placeholder: 240 7% 72%; /* #B4B4BC — placeholder, pasif */
+    /*
+     * Metin — hepsi beyaz zeminde WCAG AA (4.5:1) eşiğini geçiyor.
+     *
+     * Beyaz üstünde 4.5:1 sınırı yaklaşık %47 açıklıkta; bunun üstündeki her
+     * gri okunmaz sayılır. Eski ölçek bu sınırın çok üstündeydi: faint %56
+     * (3.5:1), fainter %62 (2.9:1), placeholder %72 (2.2:1). Yani künye,
+     * facet sayıları ve maskelenmiş başlığın kalıp kısmı ölçülebilir biçimde
+     * okunaksızdı.
+     *
+     * Ölçek sıkıştırıldı: hiyerarşi korunuyor ama en açık İÇERİK rengi bile
+     * eşiği geçiyor. Ton farkı azaldığı için ayrım artık ağırlıkla da
+     * destekleniyor (bkz. highlight.ts → MASK_CLASS).
+     */
+    --ink: 240 4% 9%;              /* #17181A — 17.4:1 başlık, birincil */
+    --ink-body: 240 6% 18%;        /* #2A2A30 — 13.2:1 gövde */
+    --ink-muted: 240 4% 40%;       /* #62626B —  6.6:1 ikincil */
+    --ink-faint: 240 4% 44%;       /* #6B6B75 —  5.6:1 etiket */
+    --ink-fainter: 240 4% 47%;     /* #73737D —  4.9:1 künye, breadcrumb */
+
+    /*
+     * Placeholder ve DEVRE DIŞI durumlar için. WCAG devre dışı denetimleri
+     * kontrast şartından muaf tutuyor, o yüzden açık kalabiliyor.
+     * İÇERİK METNİNDE KULLANMA — okunmuyor. Başlık maskelemesi tam olarak bu
+     * hataya düşmüştü.
+     */
+    --ink-placeholder: 240 7% 72%; /* #B4B4BC — 2.2:1, yalnızca pasif öğeler */
 
     /* Vurgu */
     --accent: 190 60% 30%;         /* #1F6E7C */
@@ -41,6 +60,19 @@
     --notice: 46 60% 95%;          /* #FAF6E7 */
     --notice-border: 46 47% 81%;   /* #E8DDB5 */
     --notice-ink: 45 32% 30%;      /* #6B5E33 */
+
+    /*
+     * Hata — "işlem yapılamadı". notice'ten AYRI olmalı: notice bilgi veriyor
+     * ("bu metin otomatik okundu"), bu ise kullanıcının işleminin başarısız
+     * olduğunu söylüyor. İkisi aynı sarıyla gösterilince başarısızlık
+     * dipnot gibi okunuyordu.
+     *
+     * Aynı L/C iskeleti, yalnızca hue farkı — konu noktalarındaki kural.
+     * --danger-ink 4.5:1 kontrast eşiğini yüzeyde geçiyor.
+     */
+    --danger: 8 70% 96%;           /* #FDEEEC */
+    --danger-border: 8 55% 82%;    /* #EFC3BC */
+    --danger-ink: 8 62% 38%;       /* #9C3325 */
 
     --radius: 0.25rem;             /* 4px — tasarımın taban yarıçapı */
   }
@@ -67,6 +99,26 @@
     @apply text-accent no-underline;
   }
 
+  /*
+   * DİKKAT — koyu zeminli bağlantılarda tuzak.
+   *
+   * Bu kural `a:hover` olduğu için üzerindeki sınıf seçicisinden daha güçlü ve
+   * bağlantının rengini KOŞULSUZ `--ink`e çekiyor. Zemini koyu olan bir
+   * bağlantıda (`bg-ink text-surface` ya da `bg-accent text-accent-ink`) hover
+   * anında siyah üstüne siyah çıkıyor ve yazı okunmaz oluyor.
+   *
+   * Böyle bir bağlantı yazarken hover rengini AÇIKÇA geri koy:
+   *   bg-ink text-surface hover:text-surface
+   *   bg-accent text-accent-ink hover:text-accent-ink
+   *
+   * `hover:no-underline` yeterli değil — o yalnızca alt çizgiyi kaldırıyor,
+   * rengi değil. Dört yerde bu şekilde bozuktu (konu sayfası pill'leri,
+   * yıl navigasyonu, kayıt sayfasındaki "PDF'i aç").
+   *
+   * Kuralı gevşetmek yerine çağrı yerinde düzeltmek tercih edildi: buradaki
+   * davranış bütün sıradan bağlantıların temeli ve onu değiştirmek her sayfayı
+   * etkilerdi.
+   */
   a:hover {
     @apply text-ink underline;
     text-underline-offset: 3px;

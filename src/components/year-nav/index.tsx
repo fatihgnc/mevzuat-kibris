@@ -20,7 +20,7 @@ export function YearNav({ years, current, hrefFor, allHref, className }: YearNav
           className={cn(
             'rounded-pill border px-3.5 py-1.5 text-base no-underline hover:no-underline',
             current === undefined
-              ? 'border-ink bg-ink font-semibold text-surface'
+              ? 'border-ink bg-ink font-semibold text-surface hover:text-surface'
               : 'border-line bg-surface text-ink-body hover:border-accent hover:text-accent',
           )}
         >
@@ -35,7 +35,7 @@ export function YearNav({ years, current, hrefFor, allHref, className }: YearNav
           className={cn(
             'rounded-pill border px-3.5 py-1.5 text-base no-underline hover:no-underline',
             year === current
-              ? 'border-ink bg-ink font-semibold text-surface'
+              ? 'border-ink bg-ink font-semibold text-surface hover:text-surface'
               : 'border-line bg-surface text-ink-body hover:border-accent hover:text-accent',
           )}
         >

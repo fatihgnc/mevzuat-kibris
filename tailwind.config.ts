@@ -40,6 +40,11 @@ const config: Config = {
           border: 'hsl(var(--notice-border))',
           ink: 'hsl(var(--notice-ink))',
         },
+        danger: {
+          DEFAULT: 'hsl(var(--danger))',
+          border: 'hsl(var(--danger-border))',
+          ink: 'hsl(var(--danger-ink))',
+        },
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],

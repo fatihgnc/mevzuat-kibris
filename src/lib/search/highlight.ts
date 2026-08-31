@@ -184,8 +184,17 @@ function findRanges(text: string, terms: string[]): Array<[number, number]> {
  * dinamik birleştirilen adları göremiyor ve kuralları eleyip atıyor. Maskeleme
  * bu yüzden sayfada hiç görünmüyordu: bütün jetonlar aynı ağırlıkta basılıyordu.
  */
+/*
+ * Seviye 0 eskiden `text-ink-placeholder` idi: beyaz üstünde 2.2:1, yani
+ * okunmuyordu. Kalıp sözcükler geri plana düşmeli ama METİN, ve bütün metin
+ * okunabilir olmak zorunda. Tamamı kalıp sayılan bir başlık ("SÖZLEŞMELİ
+ * PERSONEL") tümüyle o renge düşünce satır tamamen kayboluyordu.
+ *
+ * Ayrım artık renkten çok AĞIRLIKLA kuruluyor: 0 ile 1 arasında font-light ile
+ * font-semibold farkı var ve ikisi de okunabilir tonda.
+ */
 const MASK_CLASS: Record<TokenLevel, string> = {
-  0: 'font-light text-ink-placeholder', // kalıp
+  0: 'font-light text-ink-fainter', // kalıp — 4.9:1
   1: 'font-semibold text-ink', //          ayırt edici
   2: 'font-normal text-ink-muted', //      ara bilgi
   3: 'rounded-sm bg-mark font-semibold text-ink', // arama eşleşmesi

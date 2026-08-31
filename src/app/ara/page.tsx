@@ -14,7 +14,7 @@ import {
   searchRecords,
   suggestSimilar,
 } from '@/lib/db/queries/records';
-import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
+import { archiveCoverage } from '@/lib/db/queries/coverage';
 import { formatCount } from '@/lib/db/queries/shared';
 import {
   SORT_LABELS,
@@ -67,14 +67,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-8 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-search">
-          <div className="min-w-0">
+          {/*
+            self-start olmadan ızgara hücresi satır yüksekliğine geriliyor ve
+            içindeki sticky rayın kayacak alanı kalmıyor.
+          */}
+          <div className="min-w-0 self-start">
             {empty ? (
               <ActiveFilterChips params={params} />
             ) : (
               <SearchFilters
                 params={params}
                 facets={result.facets}
-                coverageLabel={coverageRange(coverage)}
+                coverage={coverage}
               />
             )}
           </div>
@@ -116,8 +120,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   emptyMessage="Bu filtrelerle kayıt yok. Filtreleri gevşetmeyi deneyin."
                 />
 
-                <div className="mt-[22px] flex flex-wrap items-center justify-between gap-4">
+                <div className="mt-[22px] flex flex-col items-center gap-3.5">
                   <Pagination
+                    className="justify-center"
                     page={params.sayfa}
                     totalPages={Math.min(totalPages, 500)}
                     hrefFor={(page) => buildSearchHref(params, { sayfa: page })}
