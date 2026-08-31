@@ -23,9 +23,11 @@
     "ingest:classify": "tsx scripts/classify/index.ts",
     "ingest:entities": "tsx scripts/extract-entities/index.ts",
     "ingest:daily": "tsx scripts/daily/index.ts",
+    "ingest:backfill": "tsx scripts/backfill/index.ts",
     "alerts:dispatch": "tsx scripts/dispatch-alerts/index.ts",
     "revalidate": "tsx scripts/revalidate/index.ts",
     "db:migrate": "tsx scripts/migrate/index.ts",
+    "reclassify": "tsx scripts/reclassify/index.ts",
     "db:seed": "tsx scripts/seed/index.ts",
     "db:reset": "tsx scripts/migrate/index.ts --reset && tsx scripts/seed/index.ts"
   },

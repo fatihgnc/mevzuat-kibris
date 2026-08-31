@@ -30,7 +30,8 @@ const DOC_TYPE_RULES: DocTypeRule[] = [
    * birincil/ikincil referans ayrımı). O yüzden referans tipine ek olarak
    * başlık kalıbına da bakıyoruz.
    */
-  { type: 'rekabet_kurulu_karari', keywords: ['REKABET KURULU KARARI'] },
+  // Kaynak iki biçim kullanıyor: "REKABET KURULU KARARI" ve "... KARAR FORMU".
+  { type: 'rekabet_kurulu_karari', keywords: ['REKABET KURULU KARAR'] },
   { type: 'eski_eserler_karari', refTypes: ['eskieser'] },
   { type: 'eski_eserler_karari', keywords: ['ESKİ ESERLER YÜKSEK KURULU'] },
   { type: 'yasa_tasarisi', refTypes: ['yt'] },
@@ -49,14 +50,35 @@ const DOC_TYPE_RULES: DocTypeRule[] = [
       'DENİZAŞIRI YABANCI ŞİRKET TESCİLİ',
     ],
   },
+  /*
+   * EK V BÖLÜM I tanımı gereği şirket sicil işlemleri (bkz. SECTION_DESCRIPTION),
+   * EK V BÖLÜM II ise ticaret markaları. Anahtar kelime listesi kaynağın bütün
+   * kalıplarını tutmuyor: 2012 arşivinde kayıtlar doğrudan şirket adıyla
+   * başlıyor ("ALPAR TEKSTİL ... LİMİTED ŞİRKETİ, ..."), 2006'da EK V BÖLÜM II
+   * kayıtlarının M.T. numarası yok. İkisi de 'diger'e düşüyordu. Bölüm zaten
+   * belgenin ne olduğunu söylüyor; kelime kalıbı tutmadığında ona güveniyoruz.
+   */
+  { type: 'sirket_duyurusu', sections: ['EK_V_B_I'] },
+  { type: 'marka_ilani', sections: ['EK_V_B_II'] },
   { type: 'kamulastirma', keywords: ['ZORLA MAL İKTİSABI', 'KAMULAŞTIRMA', 'İSTİMLAK'] },
   { type: 'munhal_ilani', keywords: ['MÜNHAL İLANI', 'MÜNHAL İLAN', 'İLK ATAMA KADROSU'] },
-  { type: 'sinav_sonucu', keywords: ['SINAV SONUÇLARI', 'SINAV SONUCU'] },
+  /*
+   * "NETİCELERİ" eski kullanım ama kaynak hâlâ kullanıyor: 2018'in
+   * "AVUKATLAR YASASI - BARO SINAV NETİCELERİ" kaydı bu kelime olmadan
+   * en sondaki 'YASASI' kuralına düşüp yasa sanılıyordu. EK III kayıtları
+   * "<DAYANAK YASA> - <asıl belge>" diye adlandığı için baştaki yasa adı
+   * sınıflandırmayı kaçırmaya çok müsait.
+   */
+  { type: 'sinav_sonucu', keywords: ['SINAV SONUÇLARI', 'SINAV SONUCU', 'SINAV NETİCELERİ'] },
   { type: 'anayasa_mahkemesi_karari', sections: ['EK_II_B_I'] },
   { type: 'yasa', sections: ['EK_I_B_I'] },
   { type: 'yasa_gucunde_kararname', sections: ['EK_I_B_II'] },
   { type: 'meclis_karari', sections: ['EK_IV_B_II'] },
-  { type: 'gorevden_alma', keywords: ['GÖREVDEN ALMA', 'GÖREVİNE SON VERİLMESİ'] },
+  // Kaynak "GÖREVDEN ALINMA KARARNAMESİ" yazıyor; "ALMA" biçimi hiç geçmiyor.
+  {
+    type: 'gorevden_alma',
+    keywords: ['GÖREVDEN ALINMA', 'GÖREVDEN ALMA', 'GÖREVİNE SON VERİLMESİ'],
+  },
   {
     type: 'atama_kararnamesi',
     keywords: ['SÖZLEŞMELİ PERSONEL', 'ATAMA', 'GÖREVLENDİRME', 'EMEKLİYE SEVK'],
@@ -130,17 +152,31 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
       'SİCİLDEN KAYIT SİLİNMESİ',
       'DENİZAŞIRI YABANCI ŞİRKET TESCİLİ',
       'LİMİTED',
+      // Serbest bölgede faaliyet izni — gayrimenkul değil, şirket işlemi.
+      'İŞLETME İZNİ',
     ],
   },
   {
     topic: 'gayrimenkul',
+    /*
+     * Kelimeler gerçek arşiv ölçülerek genişletildi. Eski liste fazla dardı:
+     * "TAŞINMAZ MAL SATIN ALMA" arıyordu ama kaynakta çoğunlukla yalın
+     * "TAŞINMAZ" geçiyor, "YOL AYRILMASI" arıyordu ama "KAMU YOLU İLAN
+     * EDİLMESİ" yazıyor. 2025'te 240'tan fazla gayrimenkul kaydı bu yüzden
+     * konusuz kalıyordu.
+     */
     keywords: [
-      'TAŞINMAZ MAL SATIN ALMA',
+      'TAŞINMAZ',
+      'ARAZİ',
+      'PARSEL',
+      'KOÇAN',
       'PLANLAMA ONAYI',
-      'HALİ ARAZİ',
       'KIRSAL KESİM ARSASI',
+      'KAMU YOLU',
       'YOL AYRILMASI',
+      'YOL GENİŞLET',
       'GEÇİT HAKKI',
+      'MENDİREK',
       'ZORLA MAL İKTİSABI',
       'İMAR',
       'KAMULAŞTIRMA',
@@ -160,6 +196,20 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
       'BÜTÇE',
       'ZORUNLU KARŞILIK',
       'GÜMRÜK',
+      /*
+       * Bakanlar Kurulu kararlarının büyük bölümü kamu harcaması: masraf ve
+       * gider karşılama, katkı, muafiyet, devlet kefaleti. Hepsi mali karar
+       * ama hiçbiri eski listeye uymuyordu.
+       *
+       * "GİDERLER" bilerek çoğul: yalın "GİDER" öneki "GİDERİLMESİ" gibi
+       * ilgisiz sözcükleri de yakalardı.
+       */
+      'MASRAF',
+      'GİDERLER',
+      'KATKI',
+      'MUAFİYET',
+      'KEFALET',
+      'FİNANSMAN',
     ],
   },
   {
@@ -168,7 +218,30 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
   },
   {
     topic: 'atama',
-    keywords: ['SÖZLEŞMELİ PERSONEL', 'ATANMASI', 'GÖREVLENDİRME', 'EMEKLİYE SEVK', 'GÖREVDEN ALMA'],
+    /*
+     * 'GÖREVLENDİR' öneki bilerek: kaynak 'GÖREVLENDİRME' kadar sık
+     * 'GÖREVLENDİRİLECEK' / 'GÖREVLENDİRİLMESİ' de yazıyor ve tam sözcük
+     * araması bunları kaçırıyordu.
+     */
+    keywords: [
+      'SÖZLEŞMELİ PERSONEL',
+      'ATANMASI',
+      'GÖREVLENDİR',
+      'EMEKLİYE SEVK',
+      'GÖREVDEN ALMA',
+      'GÖREVDEN ALINMA',
+    ],
+  },
+  {
+    topic: 'yurttaslik',
+    /*
+     * 'YURTTAŞL' öneki ŞART. Kaynakta üç yazım var ve ikisi hatalı:
+     *   YURTTAŞLIĞINA ALINMASI   525
+     *   YURTTAŞLAĞINA ALINMASI    29   (kaynaktaki yazım hatası)
+     *   YURTTAŞLIĞNA ALINMASI      1
+     * 'YURTTAŞLIĞINA' aransaydı 30 kayıt kaçardı.
+     */
+    keywords: ['YURTTAŞL'],
   },
 ];
 

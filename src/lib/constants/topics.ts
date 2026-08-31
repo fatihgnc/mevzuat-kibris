@@ -15,6 +15,7 @@ export const TOPIC_SLUGS = [
   'vergi-mali',
   'mevzuat',
   'atama',
+  'yurttaslik',
 ] as const;
 
 export type TopicSlug = (typeof TOPIC_SLUGS)[number];
@@ -104,6 +105,25 @@ export const TOPICS: Record<TopicSlug, Topic> = {
       'Kamu görevlisi atama, görevden alma, görevlendirme ve emeklilik kararnameleri. Kişi adı geçen kayıtlarda kişiye özel sayfa üretilmez; tam liste için resmî metne yönlendirilirsiniz.',
     color: 'oklch(0.58 0.11 175)',
     sortOrder: 8,
+  },
+  /*
+   * Dokuzuncu konu, gerçek veriden geldi. 2025 arşivi işlendiğinde konusuz
+   * kalan 1.595 kaydın 537'si (üçte biri) "X'in KKTC YURTTAŞLIĞINA ALINMASI"
+   * biçimindeydi ve mevcut sekiz konunun hiçbirine girmiyordu — münhal değil,
+   * atama değil, mevzuat değil. Kelime eklemek çözmüyordu; kategori eksikti.
+   *
+   * Hue 100, mevcut sekiz hue'nun (25/60/145/175/210/250/300/340) en geniş
+   * boşluğuna denk geliyor; L ve C aynı kalıyor ki listede eşit ağırlıkta
+   * okunsun.
+   */
+  yurttaslik: {
+    slug: 'yurttaslik',
+    name: 'Yurttaşlık',
+    blurb: 'KKTC yurttaşlığına alınma kararları',
+    description:
+      'Bakanlar Kurulunun KKTC yurttaşlığına alınma kararları. Kayıtlar kişi adı taşıdığı için kişiye özel sayfa üretilmez; tam metin için resmî PDF sayfasına yönlendirilirsiniz.',
+    color: 'oklch(0.58 0.11 100)',
+    sortOrder: 9,
   },
 };
 
