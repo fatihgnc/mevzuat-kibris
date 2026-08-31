@@ -382,26 +382,58 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
 export function extractBody(
   pdfText: string,
   refLabel: string | null,
-  nextRefLabel: string | null,
+  /**
+   * Aynı sayıdaki DİĞER kayıtların referans etiketleri. Bitişi bunlar
+   * belirliyor.
+   */
+  otherLabels: readonly string[] = [],
 ): { body: string | null; pageFrom: number | null } {
   if (!refLabel) return { body: null, pageFrom: null };
 
-  const escaped = refLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*');
-  const start = new RegExp(escaped, 'i').exec(pdfText);
-  if (!start) return { body: null, pageFrom: null };
+  const start = findLabel(pdfText, refLabel, 0);
+  if (start === -1) return { body: null, pageFrom: null };
 
+  /*
+   * Bitiş, BAŞLANGIÇTAN SONRAKİ EN YAKIN diğer referans.
+   *
+   * Eskiden yalnızca içindekiler sırasındaki BİR SONRAKİ kaydın etiketi
+   * aranıyordu; bulunamazsa gövde PDF'in sonuna kadar uzuyordu. Bulunamaması
+   * sık: gazetenin fiziksel sırası içindekiler sırasıyla aynı olmak zorunda
+   * değil ve etiket PDF'te biraz farklı dizilmiş olabiliyor.
+   *
+   * Sonuç ölçüldü: 3.646 gövdeli kaydın 184'ünde (%5) gövde başka kayıtlara
+   * taşıyordu — taşan kayıt başına ortalama 7,9 yabancı referans, 13–18 KB'lık
+   * gövdeler (medyan 1.219 karakter). Aramada da bu metin indekslendiği için
+   * kayıt, kendisiyle ilgisi olmayan kelimelerle bulunabiliyordu.
+   *
+   * Hiçbiri bulunamazsa gövde sona kadar gidiyor; bu, PDF'teki SON kayıt için
+   * doğru davranış.
+   */
+  const from = start + refLabel.length;
   let end = pdfText.length;
-  if (nextRefLabel) {
-    const nextEscaped = nextRefLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*');
-    const nextMatch = new RegExp(nextEscaped, 'i').exec(pdfText.slice(start.index + refLabel.length));
-    if (nextMatch) end = start.index + refLabel.length + nextMatch.index;
+
+  for (const label of otherLabels) {
+    const at = findLabel(pdfText, label, from);
+    if (at !== -1 && at < end) end = at;
   }
 
-  const body = pdfText.slice(start.index, end).trim();
+  const body = pdfText.slice(start, end).trim();
 
   // pdftotext sayfa ayracı olarak form feed basıyor; kaçıncı sayfada olduğunu
   // buradan sayıyoruz.
-  const pageFrom = pdfText.slice(0, start.index).split('\f').length;
+  const pageFrom = pdfText.slice(0, start).split('').length;
 
   return { body: body.length > 40 ? body : null, pageFrom };
+}
+
+/**
+ * Referans etiketini metinde arar; bulunursa mutlak konumunu döndürür.
+ *
+ * Boşluklar esnek (`\s*`): PDF'te "Ü(K-I) 2497-2025" bazen "Ü(K-I)2497-2025"
+ * diye, bazen satır sonuyla bölünmüş çıkıyor.
+ */
+function findLabel(text: string, label: string, from: number): number {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*');
+  const match = new RegExp(escaped, 'i').exec(text.slice(from));
+  return match ? from + match.index : -1;
 }

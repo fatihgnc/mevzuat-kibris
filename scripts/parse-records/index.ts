@@ -94,15 +94,23 @@ export async function processIssue(issue: {
 
   let written = 0;
 
+  /*
+   * Bu sayıdaki bütün referans etiketleri. `extractBody` gövdenin bitişini
+   * bunlarla belirliyor: kendi başlangıcından sonraki EN YAKIN başka referans.
+   * Yalnızca bir sonraki kaydın etiketine bakmak yetmiyordu — gazetenin
+   * fiziksel sırası içindekiler sırasıyla aynı olmayabiliyor ve etiket
+   * bulunamayınca gövde PDF'in sonuna kadar uzuyordu.
+   */
+  const allRefLabels = parsed
+    .map((item) => formatRef(item.refType, item.refNumber))
+    .filter((label): label is string => Boolean(label));
+
   for (let i = 0; i < parsed.length; i += 1) {
     const record = parsed[i]!;
     const refLabel = formatRef(record.refType, record.refNumber);
-    const nextRefLabel = (() => {
-      const next = parsed[i + 1];
-      return next ? formatRef(next.refType, next.refNumber) : null;
-    })();
+    const otherLabels = allRefLabels.filter((label) => label !== refLabel);
 
-    const { body, pageFrom } = extractBody(pdfText, refLabel, nextRefLabel);
+    const { body, pageFrom } = extractBody(pdfText, refLabel, otherLabels);
     const bodyText = body ? truncateBytes(body) : null;
 
     const docType = classifyDocType({
