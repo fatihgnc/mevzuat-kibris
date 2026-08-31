@@ -18,50 +18,110 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Alan | Durum |
 | --- | --- |
 | Arayüz (8 artboard) | ✅ Tamam |
-| Veritabanı şeması + RLS | ✅ 7 migration, hepsi geçiyor |
+| Veritabanı şeması + RLS | ✅ 8 migration, hepsi geçiyor |
 | Arama (FTS, facet, öneri) | ✅ Çalışıyor, spec'ten sapma var (bkz. §3) |
-| Özet üretimi (kural tabanlı) | ✅ 17 kaydın 15'inde özet üretiyor |
+| Konu sınıflandırması | ✅ Gerçek veriyle kalibre; konusuz oran %52 → %17 (§3.7) |
+| Özet üretimi (kural tabanlı) | ⚠️ Gerçek veride yalnızca %10,7 (427/3.976) — LLM katmanı gerekli |
 | Rehber içerikleri (8 adet) | ✅ Elle yazıldı |
 | SEO (sitemap, JSON-LD, robots) | ✅ Build'de 59 sayfa üretiliyor |
-| Ingest boru hattı | ⚠️ Kod yazıldı, **hiç çalıştırılmadı** |
+| Ingest (2025 tamamı) | ✅ 262 sayı, 3.976 kayıt, 0 hata — gerçek veri |
+| PDF metin çıkarma | ✅ 238 sayı; 21 taranmış (OCR kuyruğunda), 3 gözden geçirme |
+| OCR | ⚠️ `ocrmypdf`/`tesseract` kurulu değil, 21 sayı gövdesiz |
+| Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Alarm/e-posta | ⚠️ Kod yazıldı, Resend anahtarı yok, gönderim denenmedi |
 | Auth (magic link) | ⚠️ Kod yazıldı, gerçek Supabase'e bağlanmadı |
 
-Doğrulama: `tsc` temiz, `eslint` temiz, **48 test** geçiyor,
+Doğrulama: `tsc` temiz, `eslint` temiz, **73 test** geçiyor,
 `next build` 59 sayfa üretiyor, First Load JS 103 kB (spec hedefi <120 kB).
 
 ---
 
-## 2. EN ÖNEMLİ: Veritabanındaki veri SAHTE
+## 2. Veritabanı KARMA: sayılar gerçek, kayıtlar hâlâ sahte
 
-Bu, yeni oturumun yanlış anlamaya en müsait olduğu nokta.
+Önceki oturumda buradaki her şey uydurmaydı. Artık değil — ama yarısı hâlâ öyle
+ve karışım yanlış anlamaya en müsait nokta.
 
-- `ingest_runs` tablosunda **0 kayıt** var. Boru hattı hiç çalışmadı.
-- `basimevi.gov.ct.tr` adresine **tek bir istek bile gitmedi**.
-- Veritabanındaki 2 sayı ve 17 kayıt, `fixtures/issues/*.txt` dosyalarından
-  geliyor. O dosyaları SPEC.md §3.2/§3.3'teki biçim tarifine ve tasarımdaki
-  örnek verilere bakarak **elle yazdım**; gerçek gazete çıktısı değiller.
-- Gövde metinleri `scripts/seed/index.ts` içindeki sabit bir paragraf.
-- PDF bağlantıları sahte (`basimevi.gov.ct.tr/ornek/...`), tıklanınca 404.
+**Gerçek olan.** `npm run ingest:crawl 2025` gerçek siteye karşı çalıştı:
 
-Kullanıcı siteye istek atılmasını **açıkça istemedi** ("hayır, siteye
-dokunma"). Gerçek veri çekmeden önce yeniden izin al.
+- `issues` tablosunda 2025'in **262 sayısı** var; numaralar 1–262 boşluksuz,
+  tarihler 02.01–31.12, PDF bağlantıları gerçek (`/Portals/6/2025/NNN.pdf`),
+  `raw_index_html` gerçek İÇERİK dökümü.
+- Arşiv sayfaları 2006, 2012, 2018, 2025 için çekilip incelendi (5 istek,
+  hepsi throttle'lı).
 
-### Doğrulanmamış en kritik varsayım
+**Hâlâ sahte olan.**
 
-`scripts/crawl-archive/index.ts` içindeki `parseArchiveHtml`, arşiv sayfasının
-`SAYI | TARİH | İÇERİK` sütunlu bir `<table>` olduğunu varsayıyor. Bu varsayım
-**yalnızca SPEC.md §3.1'deki bir cümleye** dayanıyor; gerçek HTML hiç
-görülmedi. Spec §16 zaten "kaynak site yapısını değiştirir → ingest kırılır"
-riskini listeliyor.
+- `records` **boş**. Sahte 17 kayıt silindi (cascade ile 18 konu ve 40 varlık
+  bağı, ayrıca sahte başlıklardan türetilmiş 23 varlık). Sahte kayıtlar gerçek
+  261/262 sayılarına bağlı kalmıştı; sayı doğru, altındaki kayıt uydurma olan
+  bir karışım bırakmaktansa temizlendi.
+- 261 ve 262 sahte olarak `text_status='extracted'`, kalite 0.93, 40 sayfa
+  iddia ediyordu — hiç çıkarma yapılmadığı hâlde. Hepsi `pending`'e çekildi.
+- `ingest_runs` hâlâ **0 kayıt** — onu yalnızca `ingest:daily` yazıyor.
 
-Gerçek veriye geçiş iki adım:
+Yani: sayı katmanı gerçek ve eksiksiz, kayıt katmanı **boş ve dürüst**.
+Sıradaki iş kayıtları gerçek İÇERİK dökümünden doldurmak.
 
-1. `npm run ingest:crawl 2025` — sadece HTTP + cheerio, ek araç istemiyor.
-   Gerçek sayı numaraları, tarihler, PDF linkleri ve İÇERİK dökümü gelir.
-2. `npm run ingest:daily` — PDF gövdeleri için `pdftotext`, `ocrmypdf`,
-   `tesseract-ocr-tur` gerekiyor. Bu makinede **yok**; GitHub Actions
-   workflow'u kendisi kuruyor.
+### 2.1 PDF erişimi: robots.txt aykırı, ürün sahibi bilerek devam ediyor
+
+Kaynak site stok bir DotNetNuke kurulumu ve `robots.txt`'i `User-agent: *`
+için **`Disallow: /Portals/`** diyor. PDF'lerin tamamı orada
+(`/Portals/6/2025/262.pdf`). Arşiv listesi (`/ARŞİV/2025`) serbest.
+
+O robots.txt'i kimse düzenlememiş: içinde `#Sitemap: http://www.DomainNamehere.com/...`
+gibi doldurulmamış şablon satırları ve `/App_Code/`, `/DesktopModules/` gibi saf
+DNN iç dizinleri var. `/Portals/` DNN'in dosya deposu ve şablon onu topluca
+kapatıyor — yani gazete PDF'leri hakkında verilmiş bir karar değil, platform
+varsayılanı. **Ama beyan bu.**
+
+Risk kaydedildi ve **ürün sahibi izin almadan devam etme kararını verdi**
+(izin konusuna sonra bakılacak). Gerçekleşirse en olası sonuç IP/UA engeli;
+spec §16'nın "kaynak erişimi keser → ürün durur" senaryosu. İstek atarken
+`politeFetch`'in saniyede bir istek sınırına dokunma.
+
+**Teknik durum doğrulandı:** PDF'ler indirilebiliyor, engel yok.
+
+### 2.2 PDF saklanmıyor — depolama sorusu zaten çözülmüş
+
+Sık sorulan soru: 4.400 PDF nereye sığacak? **Hiçbir yere — saklanmıyorlar.**
+`extractPdfText` geçici dizine indiriyor, metni çıkarıyor, `finally` bloğunda
+siliyor (başarıda da hatada da). Saklanan tek şey `body_text`
+(kayıt başına en fazla 20 KB, `BODY_TEXT_LIMIT_BYTES`).
+
+**ÖLÇÜLDÜ** — 2025'in tamamı (262 sayı, 3.976 kayıt) işlendikten sonra:
+
+| | |
+| --- | --- |
+| Veritabanının tamamı | **29 MB** |
+| `records` (veri 4,2 MB + indeks 6,3 MB + TOAST) | 16 MB |
+| `body_text` toplamı | 4,6 MB |
+| Kayıt başına ortalama gövde | 2,2 KB (tavan 20 KB, tavana değen kayıt var) |
+| En büyük indeks: `records_search_idx` (GIN) | 3,4 MB |
+| İkinci: `records_title_trgm_idx` | 1,9 MB |
+
+Yani **sayı başına ~110 KB**. 2006–2025 için ~4.400 sayı:
+
+```
+4.400 × 110 KB  ≈  480 MB
+```
+
+⚠️ Supabase ücretsiz katmanı 500 MB (güncel limiti doğrula). Yani tam arşiv
+**teknik olarak sığıyor ama boşluk kalmıyor** — ve iki şey bu hesabı bozar:
+
+1. **OCR.** 2025'te sayıların %8'i (21 tanesi) taranmış çıktı ve gövdesiz
+   kaldı. OCR açılırsa onlar 2 KB yerine 200 KB+ verir; eski yıllarda taranmış
+   oranı muhtemelen daha yüksek.
+2. Alarm/kullanıcı tabloları büyüdükçe.
+
+Boşluk açmanın ölçülmüş yolları, ucuzdan pahalıya:
+
+- **Önce yakın yılları doldur.** 2015–2025 ≈ 10 yıl ≈ 240 MB, rahat sığar.
+  Eski yıllar kapasite netleşince eklenir.
+- `records_title_trgm_idx` yılda 1,9 MB, 20 yılda ~32 MB. Bulanık başlık
+  eşleştirmesi için; vazgeçilebilirse doğrudan kazanç.
+- `BODY_TEXT_LIMIT_BYTES` (20 KB) düşürmek — ortalama zaten 2,2 KB, yalnızca
+  uzun kuyruğu keser.
+- Supabase Pro (8 GB) — sorunu tamamen bitirir.
 
 ---
 
@@ -128,6 +188,214 @@ Yıl ekleri okunuşa göre hesaplanıyor (`src/lib/text/turkish-number.ts`):
 
 ---
 
+## 3.5 Gerçek arşiv çekilince çıkan beş hata
+
+Beşi de **elle yazılmış fixture'ların gizlediği** hatalardı: `tsc`, `eslint` ve
+o günkü 48 test hiçbirini görmüyordu, çünkü hepsi fixture'ların *biçimini*
+doğru varsayıyordu. Ders: uydurma fixture, ayrıştırıcıyı değil kendini test
+eder.
+
+**1. İÇERİK hücresi metin dökümü değil, sütunlu iç tablo.** En büyüğü.
+`BÖLÜM | REFERANS | BAŞLIK | (artık sütun)`. Metne düzleştirilince her hücre
+kendi satırına düşüyor ve her kayıt ikiye bölünüyordu: biri referansı taşıyıp
+başlığı `"A.E.1071"` olan, diğeri başlığı taşıyıp referansı olmayan. 2025 için
+3.977 gerçek satırdan **7.170 sahte kayıt**, %48'i referanssız.
+
+Çözüm `parseIndexTable` (`scripts/parse-records/parser.ts`) — cheerio ile
+yapıdan okuyor. Metin yolu (`parseIndexCell`) **silinmedi**, yedek: sayıların
+küçük bir azınlığında İÇERİK tablosuz geliyor (2025'te 262'nin 2'si).
+
+Yan fayda: referans kendi HÜCRESİNDEN geldiği için başlık içindeki atıflar
+artık hayalet kayıt üretemiyor. Gerçek vaka, 2012 sayı 190: başlık
+`K(II) 2476-2012 SAYI VE ... KARARIN TADİLİ`, kaydın kendi numarası
+`2487-2012`. Metin yolu burada yanlış numarayı alırdı.
+
+**2. Bakanlar Kurulu referansının öneki dönemlere göre değişiyor.**
+`REF_PATTERNS`'te yalnızca `Ü(K-I)` vardı; dört yılın taramasında 6.400+
+satırın referans tipi kayboluyordu:
+
+```
+S-1642-2006 / S(K-II) 566-2006  →  K(II)-2839-2012  →  TE(K-I) 1555-2018
+→  Ü(K-I) 2497-2025
+```
+
+Dördü de ezici çoğunlukla EK IV BÖLÜM I'de, yani aynı seri. Ayrı `RefType`
+olarak eklendiler (`s`, `skii`, `kii`, `teki`) çünkü künyedeki atıf kaynağa
+sadık kalmalı — bir hukukçu 2006 kararını `S-1642-2006` diye arar.
+
+⚠️ Parantez içindeki seri harfi **güvenilir değil**: `K(II)` ikinci seri gibi
+okunuyor ama 2012'de EK IV BÖLÜM I'de. Bölümü referans önekinden türetme.
+
+`ref_type` sütunu kısıtsız `text` (`0003-core-tables.sql`), enum değil —
+yeni tip eklemek migration istemiyor.
+
+**3. Birleşik sayı numarası `Number.isInteger`'ı deliyor.** SAYI hücresi
+`195/1 195/2 195/3 195/4` olabiliyor (2018'de iki kez). Eski kod bütün
+rakamları yapıştırıp `1.95e+23` üretiyordu ve bu değer `Number.isInteger`
+denetiminden **geçiyor** — kesirsiz her kayan nokta sayısı gibi. Koruma
+devreye girmeden bigint sütununa çöp yazılacaktı. Artık `parseIssueNumber`
+ilk numarayı alıyor ve makul aralık dışını reddediyor.
+
+**4. User-Agent'taki Türkçe karakter ingest'in tamamını kilitliyordu.**
+HTTP başlık değerleri ByteString, karakter başına en fazla 255.
+`CRAWLER_USER_AGENT` marka adını (`Mevzuat Kıbrıs`) içeriyordu; `ı` = 305.
+`fetch` daha isteği kurmadan `TypeError` atıyor:
+
+```
+Cannot convert argument to a ByteString because the character
+at index 9 has a value of 305 which is greater than 255
+```
+
+Yani boru hattı **tek bir istek bile atamazdı**. Beteri: hata `politeFetch`'in
+yeniden deneme döngüsüne yakalanıp sıradan bir ağ hatası gibi görünüyordu, 4
+kez denenip "site erişilemiyor" diye raporlanıyordu. `politeFetch` artık
+`TypeError`'ı yeniden denemiyor (denemek düzeltmez, yalnızca kaynak siteyi
+yorar). `CRAWLER_USER_AGENT` artık ASCII; bekçi testi var.
+
+> Bunu curl ile yapılan keşif **göremez** — curl'e ASCII bir UA verilir ve
+> istek çalışır. Ancak `npm run ingest:crawl` çalıştırılınca çıktı.
+
+**5. Sınıflandırıcı kaynağın gerçek kelimelerini bilmiyordu.** Kurallar
+tahmini kalıplara göre yazılmıştı:
+
+| Kural aradı | Kaynak yazıyor | Sonuç |
+| --- | --- | --- |
+| `GÖREVDEN ALMA` | `GÖREVDEN ALINMA` | `diger` |
+| `SINAV SONUÇLARI` | `SINAV NETİCELERİ` | `yasa` (!) |
+| `REKABET KURULU KARARI` | `... KARAR FORMU` | `diger` |
+
+`SINAV NETİCELERİ` vakası özellikle sinsi: EK III kayıtları
+`<DAYANAK YASA> - <asıl belge>` diye adlandığı için baştaki yasa adı en
+sondaki `YASASI` kuralına düşürüp belgeyi *yasa* sanıyordu. Yeni kural yazarken
+başlığın dayanak yasa adıyla başlayabileceğini varsay.
+
+Ayrıca EK V BÖLÜM I / II için bölüm tabanlı yedek eklendi: kelime kalıbı
+tutmadığında bölümün kendisi belgenin ne olduğunu zaten söylüyor.
+
+---
+
+## 3.6 PDF'ler ilk kez indirildiğinde çıkanlar
+
+Dört sayı örneklendi (2006-193, 2012-190, 2018-130, 2025-175) + üç 2025 sayısı.
+
+**1. `pdftotext` bu makinede KURULU** (sürüm 4.00, `/mingw64/bin`). Bu dosya
+önceden yok diyordu, yanlıştı. Kurulu olmayanlar: `pdfinfo`, `ocrmypdf`,
+`tesseract`.
+
+**2. Metin kalitesi beklenenden çok iyi.** 2006 dahil sayılar gerçek metin
+PDF'i, taranmış görüntü değil; `estimateQuality` 0.98–0.99 veriyor. "2015
+öncesi OCR ister" varsayımı yanlış — OCR yıla değil **tekil sayıya** bağlı.
+
+**3. ⚠️ Taranmış PDF tespiti bozuktu — sessiz veri kaybı.** En önemlisi.
+`pdfinfo` kurulu olmadığı için `pdfPageCount` null dönüyor, eski kod da
+`perPage`'i tüm metin uzunluğuna düşürüyordu; 150 karakter eşiği hiçbir zaman
+tetiklenmiyordu. Sonuç: 23,8 MB'lık taranmış bir sayı (2025-175), yalnızca
+kapak sayfasından gelen 2 KB metinle `status='extracted'` damgası alıyordu.
+
+`estimateQuality` bunu **yakalayamaz**: çıkan az miktarda metin tertemiz
+Türkçe olduğu için kalite 0.99. Kalite metnin *doğruluğunu* ölçüyor,
+*eksikliğini* değil. Yeni kural yazarken bu ayrımı unutma.
+
+Çözüm `SCANNED_TEXT_RATIO` (`scripts/extract-text/index.ts`): sayfa sayısı
+yoksa metin baytı / PDF baytı oranına bakılıyor. Ölçülen ayrım 27 kat:
+
+| 2025 sayı | PDF | metin | oran | |
+| --- | --- | --- | --- | --- |
+| 100 | 2,7 MB | 12 KB | %0,45 | metin |
+| 262 | 3,2 MB | 9 KB | %0,27 | metin |
+| 175 | 23,8 MB | 2 KB | %0,01 | **taranmış** |
+
+**4. Arşivdeki PDF bağlantıları ölü olabilir.** 2018-130 → HTTP 404. O yılın
+yolu da farklı (`/Portals/105/`, diğerleri `/Portals/6/`). Ingest 404'ü
+ölümcül saymamalı; sayı kaydı durur, gövde boş kalır.
+
+**5. `scripts/fetch-pdf/` dizini YOK** ama `package.json` `ingest:fetch`
+betiğiyle ona işaret ediyor. Çalıştırılırsa patlar. İndirme zaten
+`extract-text` içinde; ya betik girdisi silinmeli ya dizin yazılmalı.
+
+---
+
+## 3.7 Konu sınıflandırması gerçek veriyle kalibre edildi
+
+2025 işlendikten sonra ölçüldü: kendi sayfası olan 3.059 kaydın **1.595'i
+(%52) konusuzdu** ve %91'i Bakanlar Kurulu kararıydı. Yani `doc_type` doğru
+atanıyordu, kaçan şey **konu**. Üç ayrı sebep vardı, üçü ayrı ayrı çözüldü.
+
+**1. Kurallar fazla dardı.** Tahminle yazılmışlardı, kaynağın gerçek
+sözcüklerini bilmiyorlardı:
+
+| Kural arıyordu | Kaynak yazıyor | Kaçan |
+| --- | --- | --- |
+| `TAŞINMAZ MAL SATIN ALMA` | yalın `TAŞINMAZ` | 126 |
+| `YOL AYRILMASI` | `KAMU YOLU İLAN EDİLMESİ` | 28 |
+| `ÖDENEK AKTARMA` | `MASRAF`, `GİDERLER` | 188 |
+| `GÖREVLENDİRME` | `GÖREVLENDİRİLECEK` | 19 |
+
+`GİDERLER` bilerek çoğul: yalın `GİDER` öneki `GİDERİLMESİ` gibi ilgisiz
+sözcükleri de yakalardı. `İŞLETME İZNİ` gayrimenkule değil **şirkete** verildi:
+serbest bölgede faaliyet izni, mülk işlemi değil.
+
+**2. Bir konu tamamen eksikti.** 537 kayıt (konusuzların üçte biri)
+`X'in KKTC YURTTAŞLIĞINA ALINMASI` biçimindeydi ve sekiz konunun hiçbirine
+girmiyordu. Dokuzuncu konu eklendi: `yurttaslik`.
+
+⚠️ Anahtar kelime `YURTTAŞL` öneki — tam biçim aranırsa 30 kayıt kaçıyor:
+
+```
+YURTTAŞLIĞINA ALINMASI   525
+YURTTAŞLAĞINA ALINMASI    29   <- kaynaktaki yazım hatası
+YURTTAŞLIĞNA ALINMASI      1
+```
+
+Konu eklemek migration İSTİYOR: `record_topics.topic` sütunu `topics(slug)`'a
+foreign key. `scripts/seed` o tabloyu dolduruyor ama yalnızca `db:reset`'te
+çalışıyor ve gerçek veri yüklüyken reset yapılamaz. Bu yüzden
+`0008-topic-yurttaslik.sql`.
+
+**3. Tadil kararlarının kendi başlığında konu sinyali yok.**
+`Ü(K-I) 1880-2024 SAYI VE ... KARARIN TADİL EDİLMESİ` — konusu, tadil ettiği
+kararın konusu. Kelime kuralıyla çözülemez. `scripts/reclassify/inherit.ts`
+başlıktaki referansı çözüp kaynak kaydın konularını devralıyor.
+
+Devralma kural katmanından SONRA çalışmak zorunda; sıra tersse kaynakların
+çoğu hâlâ konusuz olur. İlk ölçümde yalnızca 7 kayıt devralabiliyordu, kurallar
+düzeldikten sonra 36 oldu.
+
+### Sonuç
+
+```
+konusuz kayıt   1.595 / 3.059  (%52,1)   ->   515 / 3.059  (%16,8)
+```
+
+Kalan 515'in 473'ü çeşitli Bakanlar Kurulu kararı (protokol, heyet, muhtelif);
+ortak bir kalıpları yok.
+
+### `npm run reclassify`
+
+Sınıflandırma kuralları değiştiğinde mevcut kayıtlara uygulamanın yolu.
+Yalnızca `title`, `section`, `ref_type` sütunlarına bakıyor — **ağa hiç
+çıkmıyor**, PDF indirmiyor. Öncesinde tek yol bütün arşivi yeniden çekmekti.
+Dokunmadıkları: `body_text`, `summary`, `has_own_page`, `slug` (spec 8.1).
+
+`--dry` ile yalnızca sayar, yazmaz.
+
+### Bilinen kabul
+
+`TAŞINMAZ` anahtarı, "KKTC TAŞINMAZ ESKİ ESERLER VE ANITLAR YÜKSEK KURULU"
+kararlarını da (102 kayıt) gayrimenkule alıyor. Taşınmaz eski eser gerçekten
+bir mülk konusu, o yüzden yanlış sayılmadı; ama bunlar bir gün kendi konusunu
+hak edebilir.
+
+### Eski yıllara geçerken dikkat
+
+Tadil başlıklarındaki atıflarda `REF_PATTERNS`'te OLMAYAN dönemsel önekler
+görüldü: `SİBER(K-I)297-2013`, `H(K-I)1795-2016`, `Y(K-I)2412-2014`,
+`E-1584-2000`. 2025 verisinde bunlar yalnızca metin içi atıf olduğu için
+zararsız; ama o yıllar backfill edilirse kayıtların KENDİ referansı olacaklar
+ve §3.5'teki `s`/`skii`/`kii`/`teki` gibi eklenmeleri gerekecek.
+
+---
+
 ## 4. Tekrar düşülmemesi gereken tuzaklar
 
 Bunların hepsi **gerçekten yaşandı** ve statik analiz hiçbirini yakalamadı.
@@ -188,8 +456,38 @@ Kabul edilen sınır: "ASLIHAN" → "Aslihan" (Türkçe ama işaret yok).
 - Bash heredoc'larında **ters bölü ve backtick yenip gidiyor**. Regex veya
   template literal içeren dosyaları `Write`/`Edit` aracıyla yaz, heredoc'la
   değil. (Regex'i `\d` yerine `d` olarak yazıp sessizce bozdum, sonra fark ettim.)
-- `dotenv/config` `.env.local` okumuyor; `scripts/shared/db.ts` ikisini de
-  açıkça yüklüyor.
+- `dotenv/config` `.env.local` okumuyor; yükleme `scripts/shared/env.ts`
+  içinde ve ikisini de açıkça yüklüyor (`.env.local` > `.env`).
+
+### 4.7 Env sabitleri modül yüklenirken donuyor (SESSİZ)
+
+`src/lib/seo/config.ts` env'i **değerlendirildiği anda** okuyup sabite
+donduruyor:
+
+```ts
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://mevzuatkibris.com')
+```
+
+Next.js'te sorun yok, env build'de hazır. **Betiklerde sorun var:** import
+zinciri `crawl-archive` → `shared/http` → `seo/config` şeklinde ilerliyor ve
+`seo/config`'i, dotenv'i yükleyen modülden ÖNCE değerlendiriyor. Sonuç:
+`.env.local`'de `http://localhost:3000` yazılı olmasına rağmen `SITE_URL`
+üretim domainine donuyor.
+
+Bu yalnızca yerel bir tuhaflık değil: **domain yayına girdiğinde yerelde
+çalıştırılan her ingest ÜRETİMİN revalidate endpoint'ini vurur.** Sırlar
+aynıysa yerel bir deneme üretimin önbelleğini temizler.
+
+Kural: betiklerde env'e bağlı değeri sabitten okuma, **kullanım anında**
+`process.env`'den oku. Örnek `scripts/revalidate/index.ts` →
+`revalidateBaseUrl()`. Import sırasına güvenme — linter import'ları yeniden
+sıralayabilir ve sıra sessizce bozulur.
+
+İlgili: env yüklemesi eskiden `shared/db.ts` içindeydi, yani env'in gelmesi o
+modülü import etmeye bağlıydı. Veritabanına dokunmayan betikler env'siz
+kalıyordu — `npm run revalidate` bu yüzden **hiç çalışmamıştı**, her
+çalıştırmada "REVALIDATE_SECRET yok" deyip sessizce çıkıyordu. Yükleme
+`scripts/shared/env.ts`'e alındı.
 
 ---
 
@@ -206,9 +504,14 @@ seçildi ki makinedeki başka bir Postgres'le çakışmasın.
 
 ```bash
 npm run dev
-npm run db:reset      # şemayı sıfırla + fixture'lardan tohumla
-npm test              # 48 test
+npm test              # 67 test
 ```
+
+⚠️ **`npm run db:reset` artık veri yok ediyor.** Şemayı sıfırlayıp
+`fixtures/issues/*.txt` içindeki UYDURMA sayılarla tohumluyor — yani gerçek
+taramayla gelen 262 sayıyı siler ve yerine 2 sahte sayı koyar. Sahte kayıtlar
+zaten temizlendi (§2); geri getirme. Şema değişikliği gerekiyorsa `db:reset`
+sonrası `npm run ingest:crawl 2025` ile gerçek veriyi geri çek.
 
 `db:migrate`, Supabase'de hazır gelen `auth` şemasını ve `auth.uid()`
 fonksiyonunu yerelde bulamazsa geçici gölge kuruyor (yalnızca yerel; Supabase'de
@@ -222,14 +525,23 @@ Dev server bu oturumda **açık bırakıldı** (port 3000).
 
 Öncelik sırasıyla, spec §15 yol haritasına göre:
 
-1. **Gerçek arşiv HTML'ini doğrula.** `parseArchiveHtml`'in tek gerçek
-   sınavı. İzin alındıktan sonra `npm run ingest:crawl 2025`. Yapı farklıysa
-   ayrıştırıcı ve fixture'lar buna göre güncellenmeli.
-2. **Gerçek fixture'lar.** Spec §7.3 "25 gerçek RG sayısı" istiyor; şu an 2
-   uydurma sayı var. Gerçek veri gelince fixture'ları onlarla değiştir.
-3. **PDF metin çıkarma denemesi.** `pdftotext` yolu 2018+ sayılarda, OCR yolu
-   2015 öncesinde. `estimateQuality` eşiği (0.55) gerçek OCR çıktısına göre
-   kalibre edilmeli — şu an tahmin.
+1. **Kayıtları gerçekle doldur — sıradaki asıl iş.** Aşama 1 bitti, `issues`
+   gerçek ve `records` boş. `processIssue` hazır: `parseIndexTable` İÇERİK
+   dökümünü doğru ayrıştırıyor, `extractPdfText` gövdeyi getiriyor, taranmış
+   sayılar `failed` damgasıyla kuyruğa düşüyor (§3.6). 262 sayı × ~15 kayıt
+   ≈ 4.000 kayıt bekleniyor.
+   Çalıştırmadan önce: kaynak siteye 262 PDF isteği gidecek, saniyede bir.
+2. **Fixture'ları çoğalt.** `fixtures/real/` altında dört gerçek sayı var
+   (dönem başına bir tane, hepsi elle doğrulandı). Spec §7.3 25 istiyor.
+   Yeni fixture eklerken beklenen çıktıyı ayrıştırıcıdan üretip ham hücreye
+   karşı **gözle doğrula** — üretip doğrulamadan koymak testi kendini
+   onaylayan bir aynaya çevirir.
+3. **OCR kararı.** `ocrmypdf` + `tesseract-ocr-tur` kurulu değil, o yüzden
+   taranmış sayıların gövdesi yok. Kurulursa: (a) kaç sayının taranmış
+   olduğunu ölç — OCR bütçesi ve depolama tahmini (§2.2) buna bağlı,
+   (b) `estimateQuality` eşiği (0.55) gerçek OCR çıktısına göre kalibre
+   edilmeli, şu an tahmin. Metin PDF'lerinde ölçülen kalite 0.98–0.99, yani
+   eşik oralarda değil; OCR çıktısı görülmeden ayarlanamaz.
 4. **Supabase'e bağlan.** Auth akışı (magic link → `/auth/callback` → alarm
    yazımı) hiç uçtan uca denenmedi.
 5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
@@ -258,7 +570,8 @@ Değiştirmeden önce okunması gereken dosyalar:
 | `src/lib/db/queries/shared.ts` | `inList` / `arrayParam` — dizi tuzağı |
 | `scripts/summarize/rules.ts` | Özet kalıpları; sonuç bildirmeme kuralı |
 | `scripts/shared/turkish-suffix.ts` | Türkçe ek uyumu, I harfi kararı |
-| `scripts/parse-records/parser.ts` | Birincil/ikincil referans ayrımı |
+| `scripts/parse-records/parser.ts` | `parseIndexTable` (birincil yol) + metin yedeği |
+| `fixtures/real/` | Gerçek arşiv hücreleri + elle doğrulanmış beklenen çıktı |
 
 ### Genişlik kuralı
 
