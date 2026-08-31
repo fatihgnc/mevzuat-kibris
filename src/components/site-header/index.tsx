@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { SearchBox } from '@/components/search-box';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
 import { cn } from '@/lib/utils';
 
@@ -89,6 +90,10 @@ export function SiteHeader({
             </Link>
           </nav>
         )}
+
+        {/* Her iki varyantta da en sağda; arama kutusu flex-1 olduğu için
+            kutunun genişliğini daraltmadan yanına oturuyor. */}
+        <ThemeToggle />
       </div>
     </header>
   );

@@ -2,9 +2,12 @@ import type { Config } from 'tailwindcss';
 
 /**
  * Renk ve ölçek değerleri src/styles/globals.css içindeki CSS değişkenlerinden gelir.
- * Tasarım tek açık temaya bağlı; darkMode kapalı.
+ * Koyu tema tamamen CSS değişkenlerinin yeniden tanımlanmasıyla çalışıyor
+ * (globals.css). `dark:` yardımcı sınıfı kullanan bileşen yok; yine de
+ * gerekirse diye seçici tanımlı.
  */
 const config: Config = {
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -35,6 +38,7 @@ const config: Config = {
           ink: 'hsl(var(--accent-ink))',
         },
         mark: 'hsl(var(--mark))',
+        link: 'hsl(var(--link))',
         notice: {
           DEFAULT: 'hsl(var(--notice))',
           border: 'hsl(var(--notice-border))',

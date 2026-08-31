@@ -4,7 +4,8 @@
 
 /*
  * Tasarım jetonları — "Mevzuat Kıbrıs.dc.html" artboard'larından birebir alındı.
- * Tasarım tek bir açık temaya bağlanıyor; koyu tema varyantı yok.
+ * Tasarım açık tema için çizildi; koyu tema aynı jetonların yeniden
+ * tanımlanmasıyla türetildi (aşağıda). Bileşenler ikisini de bilmiyor.
  * Buradaki değerler tek kaynak; hiçbir bileşen ham hex yazmaz.
  */
 @layer base {
@@ -75,6 +76,73 @@
     --danger-ink: 8 62% 38%;       /* #9C3325 */
 
     --radius: 0.25rem;             /* 4px — tasarımın taban yarıçapı */
+
+    /*
+     * Bağlantı metni rengi. Açık temada vurgu renginin ta kendisi, ama AYRI
+     * bir token olmak zorunda: koyu temada vurgu iki farklı iş yapıyor ve tek
+     * değer ikisini birden karşılayamıyor. Buton ZEMİNİ olarak koyu kalmalı
+     * (üstündeki beyaz yazı okunsun), bağlantı METNİ olarak açık olmalı (koyu
+     * zeminde okunsun). Aynı tokenden ikisini istemek, birini mutlaka
+     * okunmaz yapıyordu.
+     */
+    --link: var(--accent);
+  }
+
+  /*
+   * KOYU TEMA
+   *
+   * Bileşenlerin hiçbiri değişmiyor: bütün renkler zaten bu değişkenlerden
+   * besleniyor, burada yalnızca değerler yeniden tanımlanıyor.
+   *
+   * Zemin #171A1B = hsl(195 8% 10%) — ürün sahibinin verdiği değer.
+   *
+   * Metin ölçeği açık temadaki gibi kontrast eşiğine göre kuruldu; zemin
+   * koyulaştığı için yön ters, sınır da farklı yerde. En açık İÇERİK rengi
+   * (--ink-fainter) bu zeminde 5.4:1, --ink-muted 8.7:1. --ink-placeholder
+   * yine yalnızca devre dışı öğeler için (3.0:1) — içerik metninde kullanma.
+   */
+  :root[data-theme='dark'] {
+    --canvas: 195 9% 7%;
+    --surface: 195 8% 9.8%;        /* #171A1B — tam değer; %10 rgb(23,27,28) veriyor */
+    --surface-muted: 195 7% 14%;
+    --surface-hover: 195 7% 13%;
+
+    --border: 200 6% 22%;
+    --border-soft: 200 6% 17%;
+    --border-strong: 200 6% 34%;
+    --border-dashed: 200 6% 27%;
+
+    --ink: 200 6% 96%;
+    --ink-body: 200 5% 87%;
+    --ink-muted: 200 5% 68%;
+    --ink-faint: 200 5% 63%;
+    --ink-fainter: 200 5% 57%;
+    --ink-placeholder: 200 6% 40%;
+
+    /*
+     * Vurgu ikiye ayrılıyor (bkz. --link). Zemin olarak kullanılan --accent
+     * koyu kalıyor ki üstündeki --accent-ink beyaz okunsun; bağlantı metni
+     * --link ile açılıyor ki koyu zeminde okunsun.
+     */
+    --accent: 190 42% 34%;
+    --accent-hover: 190 44% 40%;
+    --accent-ink: 0 0% 100%;
+    --link: 190 52% 62%;
+
+    /*
+     * Vurgu sarısı KOYULAŞMAK zorunda. Sınıf çifti `bg-mark text-ink` ve koyu
+     * temada --ink neredeyse beyaz; açık sarı zemin bırakılsaydı beyaz üstüne
+     * beyaz olurdu. Arama eşleşmesi tam da görülmesi gereken şey.
+     */
+    --mark: 48 42% 26%;
+
+    --notice: 46 26% 16%;
+    --notice-border: 46 22% 28%;
+    --notice-ink: 46 45% 76%;
+
+    --danger: 8 32% 17%;
+    --danger-border: 8 30% 30%;
+    --danger-ink: 8 70% 76%;
   }
 
   * {
@@ -96,7 +164,8 @@
   }
 
   a {
-    @apply text-accent no-underline;
+    color: hsl(var(--link));
+    @apply no-underline;
   }
 
   /*
@@ -124,6 +193,12 @@
     text-underline-offset: 3px;
   }
 
+  /* ::selection ile arama vurgusu aynı sarıyı paylaşıyor; koyu temada ikisi de
+     koyulaştığı için seçili metnin rengi de zeminle birlikte dönmeli. */
+  :root[data-theme='dark'] ::selection {
+    color: hsl(var(--ink));
+  }
+
   h1,
   h2,
   h3 {
@@ -133,8 +208,10 @@
 
   /* Klavye odağı her yerde görünür kalsın; tasarımda odak halkası tanımlı değil,
      erişilebilirlik için vurgu rengiyle türetildi. */
+  /* --link kullanılıyor, --accent değil: koyu temada vurgu buton zemini olarak
+     koyu kalıyor ve odak halkası koyu zeminde görünmezdi. */
   :focus-visible {
-    outline: 2px solid hsl(var(--accent));
+    outline: 2px solid hsl(var(--link));
     outline-offset: 2px;
     border-radius: 2px;
   }
