@@ -30,11 +30,12 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
 | Alarm/e-posta | ⚠️ Kod yazıldı, Resend anahtarı yok, gönderim denenmedi |
-| Supabase | ⚠️ Veri taşındı ve uygulama çalışıyor, ama `next build` düşüyor — bkz. §6.4 |
+| Supabase | ✅ Veri taşındı, uygulama çalışıyor, `next build` geçiyor — bkz. §6.4 |
 | Auth (magic link) | ⚠️ Kod yazıldı; Supabase Auth artık gerçek ama akış uçtan uca denenmedi |
 
-Doğrulama: `tsc` temiz, `eslint` temiz, **103 test** geçiyor,
-`next build` 59 sayfa üretiyor, First Load JS 103 kB (spec hedefi <120 kB).
+Doğrulama: `tsc` temiz, `eslint` temiz, **107 test** geçiyor,
+`next build` Supabase'e karşı **3.399 sayfa** üretiyor (13 dk, tek işçi),
+First Load JS 103 kB (spec hedefi <120 kB).
 
 ---
 
@@ -482,6 +483,9 @@ Kabul edilen sınır: "ASLIHAN" → "Aslihan" (Türkçe ama işaret yok).
   `parseSearchParams()` düzleştiriyor.
 - Dev server çalışırken `next build` çalıştırma — `.next` dizinini ezip dev
   sunucusunu bozuyor. Önce dev'i durdur.
+- Prerender işçilerinde `process.env.NEXT_PHASE === 'phase-production-build'`
+  ayarlı. Derleme ile çalışma zamanını ayırmanın güvenilir yolu bu; `NODE_ENV`
+  ikisinde de `production` olduğu için ayırt etmiyor (§6.4 pooler seçimi).
 
 ### 4.6 Bu ortama özgü
 
@@ -622,10 +626,13 @@ Kalan işler, öncelik sırasıyla:
    yapılmıştı, artık üretiyor (§6.1). **Özet maliyetini de hesaba kat:** yılda
    ~4.000 kayıt × 19 yıl ≈ 76.000 kayıt, kural katmanı düştükten sonra ~67.000
    LLM çağrısı — bu oturumdaki doldurmanın ~11 katı.
-3. **`next build`'i geçir — TEK ENGEL BU.** §6.4. Veri Supabase'de, uygulama
-   sayfaları doğru render ediyor, ama derleme prerender ortasında rastgele bir
-   sayfada düşüyor. Elenmiş şıkların listesi §6.4'te; tekrar denemeye değmez.
-   Bu geçmeden Vercel'e çıkılamaz.
+3. ~~**`next build`'i geçir**~~ — **YAPILDI**, §6.4. Sebep: transaction pooler
+   cevap kaybediyordu. Derleme artık session pooler'a bağlanıyor
+   (`poolUrl()`, `NEXT_PHASE`) ve `experimental.cpus: 1` ile tek işçide kalıyor.
+   3.399 sayfa, 13 dk, exit 0. **Vercel'e çıkmadan önce oradaki ortam
+   değişkenlerini denetle:** derlemenin `DATABASE_URL`'i (session pooler, 5432)
+   de tanımlı olmalı; yalnızca `DATABASE_URL_POOLED` konursa derleme sessizce
+   transaction pooler'a düşer ve eski arıza geri gelir.
 4. **Auth akışını uçtan uca dene.** Magic link → `/auth/callback` → alarm yazımı
    hiç denenmedi. Supabase Auth artık gerçek (`auth.uid()` çalışıyor).
 5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
@@ -939,59 +946,82 @@ transaction pooler'da **0 bozulma**. Yani pooler bu yük altında sağlam.
 `src/lib/db/client.ts` artık `DATABASE_URL_POOLED`'ı tercih ediyor, yoksa
 `DATABASE_URL`'e düşüyor — yerelde pooler olmadığı için doğrusu da bu.
 
-### ⚠️ AÇIK SORUN: `next build` prerender'da düşüyor
+### ✅ ÇÖZÜLDÜ: `next build` prerender'da düşüyordu
 
-Derleme, sayfa üretiminin ortasında rastgele bir sayfada patlıyor. **Her
-çalıştırmada FARKLI sayfa ve FARKLI hata:**
+**Kök sebep: transaction pooler CEVABI KAYBEDİYOR.** Sorgu gidiyor, Postgres
+çalıştırıyor ve `idle`'a düşüyor, ama cevap postgres-js'e hiç ulaşmıyor. Soket
+açık kaldığı için postgres-js reddetmiyor da — sorgu sonsuza kadar asılı kalıyor
+ve havuzun dört yuvasından birini KALICI olarak yakıyor.
+
+Belirtilerin hepsi bundan çıkıyor: Next sayfayı 60 saniyede öldürüp hayatta kalan
+bir yuvada yeniden deniyor (aynı sayfanın bir kez düşüp sonra geçmesi bu),
+patlayan sayfa rastgele görünüyor (yuva biten kim olursa o) ve yeterince yuva
+gidince derleme ölüyor.
+
+**Ölçüm zinciri — sırayla:**
+
+1. **Tek işçiyle derleme SONUNA KADAR koşturuldu** (geçen oturumda yarıda
+   kalmıştı). 22 dakika, 3.399 sayfanın 3.039'u üretildi, sonra düştü. Ama
+   ARIZA BİÇİMİ DEĞİŞTİ: çökme yok, istisna yok — sayfalar **60 saniyeyi aşıyor**
+   ve Next 3 denemeden sonra pes ediyor. Yani asıl olay bir ÇÖKME değil, ASILMA;
+   çok işçili koşumlardaki rastgele istisnalar bunun ikincil belirtisiydi.
+   `cpus: 1` tek başına ÇÖZMÜYOR — ama teşhisi mümkün kıldı.
+2. **`2026-x-158-4-...` sayfası 1. denemede asıldı, 2. denemede GEÇTİ.** Aynı
+   sayfa, aynı veri. Verinin suçsuzluğu bir kez daha, bu sefer aynı koşum içinde.
+3. **Uygulamanın havuzuna geçici bir prob takıldı** (`sql.unsafe` sarmalandı,
+   5 sn'yi aşan sorgular ve 15 sn'yi aşan asılmalar loglanıyor). Derlemenin
+   **15. sorgusu** asıldı ve bir daha asla dönmedi — 7+ dakika sonra hâlâ açıktı,
+   bu sırada başka sorgular normal tamamlanıyordu. Yani yavaşlık ya da havuz
+   tıkanması değil: TEK bir sorgu ölü.
+4. **Asılıyken `pg_stat_activity`'ye bağımsız bir bağlantıdan bakıldı.** O sorguyu
+   çalıştıran hiçbir backend YOK; ilgili backend `idle` ve `Client/ClientRead`'de
+   bekliyor, boşta kalma yaşı asılma yaşıyla birebir örtüşüyor (2m40s / 154s).
+   **Postgres cevabı üretmiş.** Kaybolan yer istemci tarafı.
+5. **Soket kopması elendi.** postgres-js kapanan bir bağlantıda bekleyen
+   sorguları `CONNECTION_CLOSED` ile REDDEDER (`connection.js`, `closed()`).
+   Prob hiç red görmedi → soket açık, sadece cevap gelmiyor.
+6. **A/B: tek değişken pooler portu.** Aynı kod, aynı `cpus: 1`, aynı prob:
+
+| pooler | sonuç |
+| --- | --- |
+| transaction 6543 | ~25. sayfada ilk asılma, derleme düşüyor (2 koşum, 2 başarısız) |
+| session 5432 | **3.399/3.399, exit 0, 13 dk, 5 sn'yi aşan tek sorgu bile yok** |
+
+**Çözüm: derleme SESSION pooler'a, çalışma zamanı TRANSACTION pooler'a bağlanıyor.**
+
+İkisi zıt şeyler istiyor: Vercel'de çalışma zamanı çok sayıda kısa ömürlü lambda
+demek (session pooler'ın 15 istemci tavanı buna yetmez), derleme ise tek makinede
+sınırlı sayıda işçi demek (transaction pooler cevap kaybediyor).
+
+`src/lib/db/client.ts` içindeki `poolUrl()` ayrımı `NEXT_PHASE` ile yapıyor —
+prerender işçilerinde `phase-production-build` olduğu ölçülerek doğrulandı:
 
 ```
-1. /karar/...kozmetik-urunleri...   Server Components hatası (üretimde mesaj gizli)
-2. /karar/...mesarya-belediyesi...  invalid input syntax for type bigint: "NaN"
-3. /karar/...2026-uki-564...        TypeError: Cannot read properties of
-                                    undefined (reading 'replace')
+NEXT_PHASE="phase-production-build" NODE_ENV=production port=5432
+  argv1=...next/dist/compiled/jest-worker/processChild.js
 ```
 
-Deterministik değil, veriye bağlı değil: patlayan kayıtlar tek tek incelendi,
-hiçbirinde anormallik yok (NULL yok, öksüz FK yok, diğer kayıtlarla yapı olarak
-aynı). `.replace` hatası, satırın `title` alanının undefined gelmesi anlamına
-geliyor — yani sorgu eksik satır döndürüyor.
+`next.config.ts`'teki **`experimental.cpus: 1` KALICI ve zorunlu** — hız için
+değil, bağlantı tavanı için: session pooler 15 istemcilik, varsayılan ~8 işçi ×
+`max: 4` = ~32 bağlantı EMAXCONNSESSION veriyordu (yukarıdaki bölüm). Tek işçiyle
+~8 bağlantı açılıyor. **İkisi tek bir karar; birini tek başına değiştirmek
+derlemeyi kırar.** Değiştirmek isteyen önce ikisini birlikte ölçsün.
 
-**ELENENLER — bunları tekrar deneme, ölçüldü:**
+### ⚠️ Bu hata çalışma zamanında da vardır — sadece derlemede ölümcül değil
 
-- ~~Session pooler bağlantı tavanı~~ → transaction pooler'a geçildi, EMAXCONN bitti.
-- ~~DNS (ENOTFOUND)~~ → bir kez göründü, sonra hiç; `nslookup` ve tsx bağlantısı temiz.
-- ~~Transaction pooler yükü kaldıramıyor~~ → 600 sorgu, 0 hata, session'dan hızlı.
-- ~~Cevapların birbirine karışması (pipelining)~~ → sonuç doğruluğu denetlendi,
-  600 sorguda 0 bozulma.
-- ~~Yavaş sorgu~~ → kayıt sayfasının 4 sorgusu 97–336 ms.
-- ~~Belirli bir kaydın verisi~~ → her koşumda başka sayfa.
+Kaybolan cevap transaction pooler'ın davranışı; derleme onu 60 saniyelik
+zaman aşımıyla yakalayıp yeniden denediği için görünür oldu. Çalışma zamanında
+(dinamik `/ara`, `/takip`, ISR yenilemesi) aynı şey olursa lambda, Vercel
+zaman aşımına kadar asılı kalır — postgres-js'te istemci tarafı sorgu zaman
+aşımı YOK ve `client.ts`'te `statement_timeout` de ayarlı değil (kıyas:
+`scripts/shared/db.ts` 120 sn koyuyor, ama o da sunucu tarafı — sunucu zaten
+cevabı üretmiş olduğu için bu vakayı yakalamaz).
 
-**TUZAK — dev sunucusu ölçümü bozuyor.** Dev sunucusu açıkken sayfalar 120 sn
-asılıyor ve bağımsız ölçümler de onun arkasına kuyruğa giriyor; kapatınca aynı
-sorgular 310 ms. Dev sunucusu `globalThis.__mkDb` ile TEK havuz paylaşıyor
-(`max: 4`) ve preview aracının 2 saniyede bir attığı `HEAD /` istekleriyle
-doyuyor. Pooler'ı suçlamadan önce dev sunucusunu kapat.
-
-**Sıradaki adım — TEK İŞÇİYLE DERLEME. Denendi ama SONUÇSUZ kaldı:** oturum
-biterken `next.config.ts`'e `experimental.cpus: 1` konup çalıştırıldı, 15+
-dakikada tek bir ilerleme satırı bile üretmedi ve süre dolduğu için durduruldu.
-Yapılandırma commit'e girmedi (doğrulanmamış deneme commit'lenmez), yani ilk iş
-onu yeniden koyup **sonuna kadar bekletmek**.
-
-Neyi ayırt edeceği: geçerse sorun eşzamanlılıktadır ve kalıcı çözüm işçi
-sayısını sınırlamak ya da uygulama havuzunu küçültmektir (`max: 1`); geçmezse
-prerender yolunda veriden bağımsız bir hata var demektir — ve tek işçiyle hata
-mesajı da (worker'lar arası karışmadan) net gelir.
-
-İkinci bir ipucu daha var, izlenmeye değer: `Cannot read properties of undefined
-(reading 'replace')` hatası, bir kayıt satırının `title` alanının undefined
-gelmesi demek. `getRecordBySlug` satırı bulduysa `title` NOT NULL bir sütun;
-yani satır eksik dönmüş oluyor. Bu, `db.execute` sonucunun beklenen şekilde
-gelmediği bir durumu işaret edebilir — sorgu katmanının dönüş şeklini (drizzle
-`execute` + postgres-js) doğrulamak üçüncü adım olsun.
-
-**Yerel veritabanı olduğu gibi duruyor** (Docker `mk-pg`, 39 MB). Aktarım tek
-yönlüydü; bir terslik olursa bozulmamış kopya orada.
+Ölçülen sıklık düşük: bağımsız bir betikle 4.500 sorgu (8 paralel × 3 render,
+uygulamanın sorgularının birebir aynısı) transaction pooler'da **0 asılma**
+verdi. Yani günlük trafikte nadir. Yine de kayıtlı bir risk:
+gerçek kullanıcı yükü altında izlenmeli. Çözüm istenirse yön, postgres-js'in
+üstüne istemci tarafı bir zaman aşımı + o bağlantıyı atma sarmalayıcısıdır.
 
 ### ⚠️ RLS uygulamanın sorgularında devreye girmiyor
 
