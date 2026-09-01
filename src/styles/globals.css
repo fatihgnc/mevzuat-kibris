@@ -239,6 +239,41 @@
     outline-offset: 2px;
     border-radius: 2px;
   }
+
+  /*
+   * Sayfa içerik kısa olsa da en az bir ekranı doldursun.
+   *
+   * body'de zaten `min-h-dvh` vardı ama o yalnızca body'yi uzatıyordu; footer
+   * normal akışta içeriğin hemen altında kalıp ekranın ortasında asılı
+   * duruyordu (içerik yokken /takip bunun en belirgin hâliydi).
+   *
+   * Tek yerden çözülüyor çünkü sayfaların HEPSİ <SiteHeader /> <main>
+   * <SiteFooter /> sırasını bir FRAGMENT içinde döndürüyor — yani üçü de
+   * body'nin DOĞRUDAN çocuğu. Alternatif 13 ayrı sayfaya `flex-1` eklemekti;
+   * eklemeyi unutan bir sayfa sessizce eski hâline dönerdi.
+   */
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * `width: 100%` KASITLI, süs değil. main'lerde `mx-auto max-w-6xl` var ve
+   * flex item'da otomatik margin `align-items: stretch`'i EZER — öğe içeriği
+   * kadar daralır, geniş tablolar ve ızgaralar bozulurdu. Genişliği açıkça
+   * vermek eski blok davranışını birebir geri getiriyor: max-width'e kadar uza,
+   * artan boşluğu otomatik margin'ler ortalasın.
+   */
+  body > main {
+    flex: 1 0 auto;
+    width: 100%;
+  }
+
+  /* Uzun sayfalarda header ve footer sıkışmasın (flex-shrink varsayılanı 1). */
+  body > header,
+  body > footer {
+    flex-shrink: 0;
+  }
 }
 
 /*

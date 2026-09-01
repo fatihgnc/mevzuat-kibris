@@ -123,7 +123,17 @@ export function FollowCard({
           ) : null}
         </div>
         {message ? <p className="mt-3 text-sm text-notice-ink">{message}</p> : null}
+        {/*
+          * The user is about to leave for their inbox — this is the moment the
+          * same-browser rule decides whether the flow works. See the note by the
+          * form below for why the rule exists.
+          */}
         <p className="mt-3 border-t border-line pt-3 text-sm leading-[1.5] text-ink-muted">
+          <span className="font-semibold text-ink">Bağlantıyı bu tarayıcıda açın.</span>{' '}
+          E-postayı telefonunuzda ya da başka bir tarayıcıda açarsanız doğrulama başarısız
+          olur.
+        </p>
+        <p className="mt-2 text-sm leading-[1.5] text-ink-muted">
           Gelmediyse önce gereksiz klasörüne bakın.
         </p>
       </div>
@@ -178,6 +188,21 @@ export function FollowCard({
           {phase === 'sending' ? 'Gönderiliyor…' : 'Takibe al'}
         </button>
       </form>
+
+      {/*
+        * Said BEFORE submitting, not only afterwards on the error screen.
+        *
+        * Verification is PKCE (`code_challenge_method: s256`): the `code_verifier`
+        * is written as a cookie on this POST's response and /auth/callback needs
+        * that same cookie back. So the link only works in the browser that
+        * submitted this form — and filling a form on a laptop while reading mail
+        * on a phone is the ordinary way people behave. Warning them here costs one
+        * line; finding out from an error screen costs them the whole flow.
+        */}
+      <p className="mt-2.5 text-sm leading-[1.5] text-ink-muted">
+        Doğrulama bağlantısını bu tarayıcıda açmanız gerekir; e-postayı başka bir cihazda
+        açarsanız bağlantı çalışmaz.
+      </p>
 
       {/*
         An error and a notice cannot share a colour: when both are yellow, "could
