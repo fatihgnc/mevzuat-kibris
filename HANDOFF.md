@@ -1100,6 +1100,25 @@ güvenli tarafa düşüyor.
 - **`generateStaticParams`'ı 12 aydan kısaltmak.** Doğrudan çarpan ama spec 11.1
   kararı ve ürün tercihi: prerender edilmeyen sayfa ilk isteğinde yavaş açılır.
 
+### `/kurum`, `/sirket`, `/yer` prerender ETMİYOR — DÜZELTME, ürün sahibi kararı
+
+Sayfa sayısı denetlenirken çıktı: bu üç rotanın `generateStaticParams`'ı var
+(`entitySlugs(kind).slice(0, 2000)`) ama **diske tek sayfa yazmıyorlar** —
+`.next/server/app/yer` altında yalnızca `[slug]` şablonu var. Sebep: sayfa
+`searchParams`'tan `sayfa` parametresini okuyor, bu da Next'i istek anında
+render'a zorluyor. Yani `entitySlugs()` build'de çalışıp listeyi üretiyor ve
+sonuç çöpe gidiyor.
+
+Maliyeti önemsiz (3 sorgu) ama niyet belli ki prerender etmekmiş.
+
+**KARAR: düzeltilmeyecek.** Ürün sahibi "kurum/şirket/yer path'leri muhtemelen
+olmayacak, şimdilik dursun" dedi. Yani bu keşfedilmemiş bir eksik DEĞİL, bilinen
+ve bilerek bırakılmış bir durum — rotalar kalkacaksa düzeltmek boşa iş olur.
+
+Fikir değişir de prerender istenirse yol: sayfalamayı `searchParams` yerine rota
+segmentine taşımak (`/yer/lefkosa/2`). Bunu yapmadan `generateStaticParams`
+eklemenin bir faydası yok.
+
 ---
 
 ## 7. Yön bulma
