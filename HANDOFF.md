@@ -34,7 +34,7 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Auth (magic link) | ✅ Uçtan uca gerçek e-postayla doğrulandı (§6.6) |
 
 Doğrulama: `tsc` temiz, `eslint` temiz, **107 test** geçiyor,
-`next build` Supabase'e karşı **3.399 sayfa** üretiyor (**2m49s**, bkz. §6.5),
+`next build` Supabase'e karşı **3.399 sayfa** üretiyor (**4m37s**, bkz. §6.5),
 First Load JS 103 kB (spec hedefi <120 kB).
 
 ---
@@ -629,7 +629,7 @@ Kalan işler, öncelik sırasıyla:
 3. ~~**`next build`'i geçir**~~ — **YAPILDI**, §6.4. Sebep: transaction pooler
    cevap kaybediyordu. Derleme artık session pooler'a bağlanıyor
    (`poolUrl()`, `NEXT_PHASE`) ve `experimental.cpus` ile işçi sayısı pinli.
-   3.399 sayfa, **2m49s**, exit 0 — süre ölçümü §6.5. **Vercel'e çıkmadan önce
+   3.399 sayfa, **4m37s**, exit 0 — süre ölçümü §6.5. **Vercel'e çıkmadan önce
    build bölgesini `fra1` yap (§6.5) ve oradaki ortam
    değişkenlerini denetle:** derlemenin `DATABASE_URL`'i (session pooler, 5432)
    de tanımlı olmalı; yalnızca `DATABASE_URL_POOLED` konursa derleme sessizce
@@ -637,9 +637,8 @@ Kalan işler, öncelik sırasıyla:
 4. ~~**Auth akışını dene**~~ — **YAPILDI, uçtan uca çalışıyor** (§6.6). Magic
    link → callback → alarm → onay ekranı, 2,7 sn. Listeleme/silme/oturumlu
    oluşturma da geçti. SMTP olarak Resend kuruldu.
-   **AMA ÇIKAN ENGEL AÇIK:** transaction pooler çalışma zamanında da cevap
-   kaybediyor ve `createAlert`'i sonsuza asıyor — §6.6'daki karar maddesi.
-   Vercel'e çıkmadan kapatılmalı.
+   Akış sırasında çıkan transaction pooler arızası da kapatıldı: çalışma zamanı
+   artık session pooler'da (§6.6 karar maddesi).
 5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
    dağıtım mantığı test edilmedi.
 6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
@@ -1010,7 +1009,7 @@ NEXT_PHASE="phase-production-build" NODE_ENV=production port=5432
 bağlantı tavanı için: session pooler 15 istemcilik. Ayar olmadığında Next çekirdek
 sayısı kadar işçi açıyor (bu makinede 16 çekirdek → **15+ işçi ölçüldü**), her işçi
 kendi havuzunu açtığı için 60+ bağlantı isteniyor ve EMAXCONNSESSION geliyor.
-`cpus: 3` × `max: 4` = 12 bağlantı. **İkisi tek bir karar; birini tek başına
+`cpus: 3` × `max: 3` = 9 bağlantı. **İkisi tek bir karar; birini tek başına
 değiştirmek derlemeyi kırar.** Değeri yükseltmek isteyen önce hesabı yapsın:
 işçi × 4 < 15.
 
@@ -1055,7 +1054,7 @@ VARKEN bile şema üzerinde CREATE yetkisi istiyor; Supabase'de `auth` şeması
 gerçekten yokken kuruluyor.
 
 
-### 6.5 Derleme süresi: 13m36s → 2m49s
+### 6.5 Derleme süresi: 13m36s → 2m49s → 4m37s (bağlantı bütçesi için)
 
 Derleme yeşile döndükten sonra ölçüldü, çünkü `cpus: 1` ile 13 dakika sürüyordu ve
 bu her Vercel dağıtımında ödenecek bir bedeldi.
@@ -1075,6 +1074,7 @@ gidiş-dönüş. Bu, iki kaldıracın da neden işe yaradığını açıklıyor.
 | `cpus: 1`, cache yok | 13m36s | taban |
 | `cpus: 1` + `cache()` | 6m59s | sorgular yarıya indi |
 | **`cpus: 3` + `cache()`** | **2m49s / 2m47s / 2m50s** | üç ardışık koşum, 3.035 sayfa, 0 hata |
+| `cpus: 3` + `cache()`, havuz `max: 3` | **4m37s** | ŞU ANKİ HÂL — bkz. aşağıdaki not |
 
 **Kaldıraç 1 — `getRecordBySlug` React `cache()` ile sarıldı.**
 `generateMetadata` ile sayfa AYNI render pass'te çalışıyor, yani ikinci çağrı
@@ -1095,12 +1095,22 @@ zorunda. `cpus: 3` seçildi çünkü 3 × 4 = 12, tavanın 3 altında, ve sayı 
 SINIR olduğu için daha az çekirdekli makinelerde (Vercel) kendiliğinden daha
 güvenli tarafa düşüyor.
 
+**Sonradan bilerek yavaşlatıldı: 2m49s → 4m37s.** Derlemenin havuzu `max: 4`'ten
+`max: 3`'e indirildi (9 bağlantı). Sebep hız değil, bağlantı bütçesi: §6.4'teki
+karar sonrası çalışma zamanı da session pooler'a geçti ve **dağıtım sırasında
+derleme ile eski sürümün lambda'ları aynı 15'lik tavanı paylaşıyor.** 12 bağlantı
+alan bir derleme geriye 3 lambda bırakıyordu; 9 bırakınca 6 oluyor.
+
+1m48s'lik derleme süresi, dağıtım penceresinde kullanıcıya 500 döndürmemek için
+verildi. Trafik arttığında ya da tavan yükseltilirse `max: 4`'e dönmek serbest —
+ama önce toplamı yeniden hesapla.
+
 **Daha ileri gitmek isteyen için, ölçülmemiş iki şık:**
 
 - **Vercel build bölgesi.** Veritabanı `eu-central-1`. Vercel'in varsayılanı
   `iad1` (Washington); orada her sorgu Atlantik'i geçer ve buradaki sayılar
   bozulur. `fra1`'e almak bedava. **Vercel'e çıkıldığında İLK ölçülecek şey bu** —
-  buradaki 2m49s bu makinenin Frankfurt'a olan gecikmesiyle çıktı.
+  buradaki süre bu makinenin Frankfurt'a olan gecikmesiyle çıktı.
 - **`generateStaticParams`'ı 12 aydan kısaltmak.** Doğrudan çarpan ama spec 11.1
   kararı ve ürün tercihi: prerender edilmeyen sayfa ilk isteğinde yavaş açılır.
 
@@ -1181,24 +1191,52 @@ Yani arıza sorgu şekline göre değişiyor ve tam karakterize EDİLMEDİ. Ama
 uygulamanın kendi yolu (`unsafe`) yük testinde temiz çıkarken dev sunucusunda
 asıldığına göre, "drizzle yolu güvenli" demek YANLIŞ olur.
 
-**KARAR GEREKİYOR — ürün sahibinin.** Kod şu an değiştirilmedi: çalışma zamanı
-hâlâ transaction pooler'ı tercih ediyor (`poolUrl()`), çünkü bunu değiştirmek
-mimari bir karar. Seçenekler:
+**KARAR VERİLDİ — çalışma zamanı da SESSION pooler'a alındı.** Ürün sahibi
+"nasıl ücretsizse öyle olsun" dedi; seçilen yol hiçbir ücretli ayar gerektirmiyor,
+tamamı kodda.
 
-1. **Çalışma zamanını da session pooler'a al.** Ölçülen tek güvenilir seçenek.
-   Bedeli: session pooler 15 istemcilik ve Vercel'de her lambda kendi bağlantısını
-   açar. `max: 1` ile ~15 eşzamanlı lambda demek — bu ürünün trafiği için
-   muhtemelen yeter, ama ölçülmedi.
-2. **Transaction pooler'da kal, üstüne istemci tarafı zaman aşımı koy.** Asılan
-   sorgu sonsuza kadar beklemek yerine reddedilir, bağlantı atılır, istek yeniden
-   denenir. postgres-js'te hazır bir seçenek YOK, sarmalayıcı yazmak gerekir.
-3. **Supabase'e aç.** Bu Supavisor tarafında bir arıza gibi duruyor; proje
-   ücretsiz katmanda. Destek kaydı açmadan önce yukarıdaki 12 sorgulu test
-   tekrarlanabilir bir repro olarak verilebilir.
+`poolUrl()` yerine `poolConfig()` var (`src/lib/db/client.ts`): hem URL'i hem
+havuz boyutu veriyor. Bağlantı bütçesi, session pooler'ın **15 istemci** tavanına
+karşı:
 
-**Vercel'e çıkmadan bu kapatılmalı.** Çıkılırsa belirtisi şu olur: `/ara`,
-`/takip` ve ISR yenilemesi rastgele lambda zaman aşımına düşer, log'da hata
-görünmez — sadece yavaşlık.
+| | hesap | bağlantı |
+| --- | --- | --- |
+| derleme | 3 işçi × `max: 3` | 9 |
+| çalışma zamanı | lambda başına `max: 1` | kalan 6 |
+
+**İkisi TOPLANARAK hesaplanmalı, ayrı ayrı değil** — dağıtım sırasında derleme
+koşarken eski sürüm hâlâ trafiği karşılıyor. Bunu kaçırırsak dağıtım penceresinde
+lambda'lar bağlanamaz ve kullanıcı 500 görür.
+
+Neden lambda'da `max: 1`: Vercel'de bir lambda aynı anda tek istek işliyor, daha
+büyük havuz boşta duracaktı. Bedeli açıkça söylenmeli — `getRecordBySlug`'ın
+`Promise.all`'daki dört sorgusu sıraya giriyor, yani cache'e düşmeyen bir render
+bir yerine yaklaşık dört gidiş-dönüş ödüyor. Takas bilinçli: gecikme nazikçe
+bozulur, `EMAXCONNSESSION` bozulmaz.
+
+Ölçüldü (dev sunucusu, `max: 1`):
+
+```
+/                      1,00 sn        /konu/munhal      1,79 sn
+/ara?q=münhal          2,27 sn        /sayilar          0,52 sn
+/karar/<slug>          0,76 sn        /api/alerts       401 (oturumsuz, doğru)
+```
+
+Kıyas: aynı sayfa transaction pooler'dayken `/konu/munhal` **335 saniye**
+sürüyordu. Derleme de yeniden koşturuldu: 3.035 sayfa, exit 0, `EMAXCONNSESSION`
+yok, 4m37s (§6.5).
+
+**Değerlendirilip seçilmeyen iki şık:**
+
+- *Transaction pooler'da kalıp istemci tarafı zaman aşımı sarmalayıcısı yazmak.*
+  postgres-js'te hazır seçenek yok, elle yazmak gerekirdi — ve asıl arızayı
+  düzeltmiyor, sadece maskeliyor.
+- *Session pooler'ın havuz boyutunu yükseltmek.* Panelden yapılabilir
+  (`max_connections` 60, tavan 15) ama gerekmedi; bütçe zaten sığdı.
+
+Transaction pooler geri istenirse: `poolConfig()`'te URL'i `DATABASE_URL_POOLED`'a
+çevirmek yeter, `prepare: false` bu yüzden duruyor. Ama önce §6.6'daki ölçümü
+tekrarla — sorun Supavisor tarafındaydı ve düzeldiğine dair bir kanıt yok.
 
 ### Diğer notlar
 

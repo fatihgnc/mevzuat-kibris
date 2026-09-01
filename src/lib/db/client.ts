@@ -9,24 +9,28 @@ import * as schema from './schema';
  * The read connection. Record and list pages are entirely server components
  * (spec 13), so every query goes through here.
  *
- * IT USES THE TRANSACTION POOLER, not the same URL as migrations and ingest.
- * Those two need session mode: migrations run DDL, ingest holds long
- * transactions. The app needs the opposite — many short-lived connections, one
- * per lambda on Vercel — and Supabase's session pooler caps that at 15 clients.
+ * IT USES THE SESSION POOLER (port 5432) — the same URL as migrations and
+ * ingest. Those two need session mode anyway: migrations run DDL and ingest
+ * holds long transactions. This client ended up there for a different reason.
  *
- * That cap is not theoretical. Pointing this client at the session pooler made
- * `next build` fail outright, because prerendering 3,399 pages runs ~8 workers
- * that each open their own pool:
+ * WHY NOT THE TRANSACTION POOLER (6543), WHICH IS THE USUAL SERVERLESS ADVICE:
+ * it loses responses. A query goes out, Postgres runs it and returns to `idle`
+ * (confirmed in `pg_stat_activity` — no backend was still executing it, no lock,
+ * nothing in `pg_blocking_pids`), but the answer never arrives. The socket stays
+ * open, so postgres-js never rejects either — a connection that CLOSES does
+ * reject its pending queries, and no rejection was ever logged. The query hangs
+ * forever and burns a pool slot permanently.
  *
- *   (EMAXCONNSESSION) max clients reached in session mode
- *                     max clients are limited to pool_size: 15
+ * Measured twice, in both phases:
  *
- * So `DATABASE_URL_POOLED` (port 6543) is preferred and `DATABASE_URL` is only a
- * fallback — for local Postgres, where one URL serves everything and there is no
- * pooler at all. `prepare: false` is what transaction mode requires; it is not
- * optional.
+ *   build      3.399 pages died mid-prerender on 6543; on 5432 it completed
+ *              with no query even exceeding 5 s.
+ *   runtime    `createAlert` in /auth/callback hung forever on 6543 (two runs,
+ *              cut off at 120 s and 300 s). Changing ONLY the port to 5432 made
+ *              the same work take 460 ms.
  *
- * BUILD IS THE EXCEPTION — IT USES SESSION MODE. See `poolUrl()` below.
+ * `prepare: false` stays: it costs nothing here and keeps the transaction pooler
+ * usable as a fallback if this is ever revisited.
  *
  * RLS NOTE — do not rely on it here. This connects as the `postgres` role, which
  * has `rolbypassrls = true`, so the policies in migration 0006 never apply to
@@ -40,39 +44,41 @@ declare global {
 }
 
 /**
- * Which URL to connect on. Runtime and build want OPPOSITE poolers.
+ * The connection budget. Everything here is arithmetic against ONE number:
+ * the session pooler allows 15 clients, and that is a free-tier limit we are
+ * deliberately staying inside rather than paying to raise.
  *
- * Runtime (Vercel): the transaction pooler, for the reason above — many
- * short-lived lambdas against a 15-client session cap.
+ *   build     3 prerender workers (experimental.cpus in next.config.ts)
+ *             x max 3  =  9 clients
+ *   runtime   1 per lambda; a Vercel lambda serves one request at a time, so a
+ *             bigger pool would only sit idle
  *
- * Build (`next build`): the SESSION pooler. Measured, not guessed. Prerendering
- * against the transaction pooler loses responses: a query is sent, Postgres runs
- * it and goes `idle` (confirmed in `pg_stat_activity` — no backend was still
- * executing it), but the answer never reaches postgres-js. The socket stays open,
- * so postgres-js never rejects — a connection that closes DOES reject its pending
- * queries, and no rejection was ever logged. The query hangs forever and burns one
- * of the four pool slots permanently. Next kills the page at 60 s, retries it on a
- * surviving slot (which is why the same page can fail once and pass next time, and
- * why the failing page looked random and data-independent), and once enough slots
- * are gone the build dies. Two full single-worker runs failed this way; the same
- * build on the session pooler produced 3.399/3.399 pages with no query even
- * exceeding 5 s.
+ * The two have to be added together, not considered separately: during a deploy
+ * the build runs while the PREVIOUS deployment is still serving traffic. 9 for
+ * the build leaves 6 for concurrent lambdas. Most page views never reach a
+ * lambda at all — record and list pages are prerendered and ISR-cached (spec
+ * 11.1), so only /ara, /takip and cache misses draw from this budget.
  *
- * The session pooler's 15-client cap is what `experimental.cpus` in
- * next.config.ts is for — it pins the prerender worker count so the build opens
- * 12 clients (3 workers x max 4) instead of the 60+ that an unpinned build asks
- * for on a 16-core machine. The two settings are one decision; changing either
- * alone breaks the build.
+ * The cost of max 1 at runtime, stated plainly: the four queries in
+ * getRecordBySlug's Promise.all are serialised, so a cache-miss render pays
+ * about four round-trips instead of one. That is the trade for not failing
+ * outright at the cap — latency degrades gracefully, EMAXCONNSESSION does not.
+ *
+ * If you raise any of these, redo the sum. If it exceeds 15 the build dies with
+ * EMAXCONNSESSION and lambdas start failing to connect.
  */
-function poolUrl(): string | undefined {
+function poolConfig(): { url: string | undefined; max: number } {
   const build = process.env.NEXT_PHASE === 'phase-production-build';
-  return build
-    ? process.env.DATABASE_URL || process.env.DATABASE_URL_POOLED
-    : process.env.DATABASE_URL_POOLED || process.env.DATABASE_URL;
+  return {
+    // DATABASE_URL_POOLED is only a fallback now — see the note above. Local
+    // Postgres has no pooler at all, where either name resolves to the one URL.
+    url: process.env.DATABASE_URL || process.env.DATABASE_URL_POOLED,
+    max: build ? 3 : 1,
+  };
 }
 
 function createClient() {
-  const url = poolUrl();
+  const { url, max } = poolConfig();
   if (!url) {
     throw new Error(
       'DATABASE_URL_POOLED / DATABASE_URL tanımlı değil. .env.example dosyasına bakın; ' +
@@ -81,7 +87,7 @@ function createClient() {
   }
 
   const sql = postgres(url, {
-    max: 4,
+    max,
     idle_timeout: 20,
     connect_timeout: 10,
     prepare: false,
