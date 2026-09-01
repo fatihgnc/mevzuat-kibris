@@ -29,9 +29,9 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | OCR | ✅ Çalışıyor. 33 taranmış sayının 32'si kurtarıldı; kalite 0,887–0,999 — bkz. §6.1 |
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
-| Alarm/e-posta | ⚠️ Kod yazıldı, Resend anahtarı yok, gönderim denenmedi |
+| Alarm/e-posta | ⚠️ Resend anahtarı var ve Supabase SMTP'sine bağlandı; `dispatch-alerts` hâlâ hiç koşmadı |
 | Supabase | ✅ Veri taşındı, uygulama çalışıyor, `next build` geçiyor — bkz. §6.4 |
-| Auth (magic link) | ⚠️ Kod yazıldı; Supabase Auth artık gerçek ama akış uçtan uca denenmedi |
+| Auth (magic link) | ✅ Uçtan uca gerçek e-postayla doğrulandı (§6.6) |
 
 Doğrulama: `tsc` temiz, `eslint` temiz, **107 test** geçiyor,
 `next build` Supabase'e karşı **3.399 sayfa** üretiyor (**2m49s**, bkz. §6.5),
@@ -634,10 +634,12 @@ Kalan işler, öncelik sırasıyla:
    değişkenlerini denetle:** derlemenin `DATABASE_URL`'i (session pooler, 5432)
    de tanımlı olmalı; yalnızca `DATABASE_URL_POOLED` konursa derleme sessizce
    transaction pooler'a düşer ve eski arıza geri gelir.
-4. **Auth akışını bitir — %80'i denendi, son adım kaldı.** Ayrıntı §6.6.
-   Doğrulandı: e-posta gidiyor, `profiles` trigger'ı çalışıyor, PKCE değişimi
-   başarılı, oturum açılıyor. Kalan: callback içindeki `createAlert` ve onay
-   ekranı. **Önce SMTP lazım** — Supabase'in dahili SMTP'si saatte 2 e-posta.
+4. ~~**Auth akışını dene**~~ — **YAPILDI, uçtan uca çalışıyor** (§6.6). Magic
+   link → callback → alarm → onay ekranı, 2,7 sn. Listeleme/silme/oturumlu
+   oluşturma da geçti. SMTP olarak Resend kuruldu.
+   **AMA ÇIKAN ENGEL AÇIK:** transaction pooler çalışma zamanında da cevap
+   kaybediyor ve `createAlert`'i sonsuza asıyor — §6.6'daki karar maddesi.
+   Vercel'e çıkmadan kapatılmalı.
 5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
    dağıtım mantığı test edilmedi.
 6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
@@ -1122,66 +1124,125 @@ segmentine taşımak (`/yer/lefkosa/2`). Bunu yapmadan `generateStaticParams`
 eklemenin bir faydası yok.
 
 
-### 6.6 Auth akışı — gerçek e-postayla denendi, iki gerçek engel çıktı
+### 6.6 Auth akışı — UÇTAN UCA ÇALIŞTI, ama bir engel açtı
 
-Gerçek bir adrese (`fathgnc.dev@gmail.com`) magic link gönderilerek denendi.
-**Adımların çoğu çalışıyor.** Akış: `POST /api/alerts` → `signInWithOtp` →
-e-posta → `/auth/callback` → `exchangeCodeForSession` → `createAlert` →
-`/takip?durum=onay`.
+Gerçek bir adrese (`fathgnc.dev@gmail.com`) magic link gönderilerek, gerçek
+Supabase'e karşı, uçtan uca doğrulandı. **Akışın tamamı çalışıyor.**
+
+Son koşumun ölçümü (`/auth/callback` içine geçici zamanlama konarak):
+
+```
+exchange bitti     +281ms   error=yok user=var
+createAlert bitti  +741ms   id=2
+toplam istek       2,7 sn   -> /takip?durum=onay&takip=2&gun=3&siklik=weekly
+```
 
 | adım | durum |
 | --- | --- |
-| `signInWithOtp`, e-posta gönderimi | ✅ `confirmation_sent_at` doldu |
-| `auth.users` satırı | ✅ oluştu |
-| `on_auth_user_created` → `profiles` | ✅ **çalıştı** — en büyük bilinmezdi |
-| Redirect izin listesi | ✅ `label`/`topic`/`frequency` callback'e ulaştı |
-| Türkçe karakter round-trip | ✅ `label=M%C3%BCnhal+ilanlar%C4%B1` bozulmadan |
-| PKCE `exchangeCodeForSession` | ✅ `auth.sessions` satırı oluştu |
-| Kota aşımında hata yolu | ✅ 502 + Türkçe mesaj, sessizce yutmuyor |
-| `createAlert` + onay ekranı | ⬜ **kalan tek adım** |
+| `signInWithOtp`, e-posta gönderimi | ✅ |
+| `auth.users` satırı | ✅ |
+| `on_auth_user_created` → `profiles` | ✅ trigger gerçekten çalışıyor |
+| Redirect izin listesi, parametreler | ✅ |
+| Türkçe karakter round-trip | ✅ `Münhal ilanları` bozulmadan DB'ye yazıldı |
+| PKCE `exchangeCodeForSession` | ✅ 281 ms |
+| `createAlert` + `assign_weekday` | ✅ 460 ms, `preferred_weekday = 3` |
+| Onay ekranı | ✅ **"Çarşamba"** yazıyor — spec 10.3 kural 2 tutuyor |
+| `GET /api/alerts` (listeleme) | ✅ |
+| `DELETE /api/alerts?id=` | ✅ |
+| `POST` oturum açıkken (magic link'siz dal) | ✅ `verified:true` döndü |
+| Kota aşımında hata yolu | ✅ 502 + Türkçe mesaj |
 
-Son adım mantık hatasından değil, ortamdan dolayı bitirilemedi: dev sunucusunun
-havuzu tıkalıyken callback 180 sn asıldı, sonra e-posta kotası doldu.
+### ⚠️ ASIL BULGU: transaction pooler ÇALIŞMA ZAMANINDA da cevap kaybediyor
 
-**ENGEL 1 — Supabase'in dahili SMTP'si saatte 2 e-posta.** Ölçüldü:
-`429 over_email_send_rate_limit`. Üründe kullanılamaz; **gerçek SMTP kurulmadan
-auth akışı canlıya çıkamaz.** Resend zaten alarm gönderimi için planda (§6 madde
-5) — aynı sağlayıcı Supabase Auth'un SMTP'si olarak da tanımlanmalı. Bu iki iş
-tek işe indi.
+§6.4'te "çalışma zamanında da mümkün, ölçülen sıklık düşük" diye not düşülmüştü.
+**Ölçüm bunu çürüttü — sıklık düşük değil.**
 
-**ENGEL 2 — PKCE akışı TEK TARAYICIYA bağlı.** `code_challenge_method: s256`
-ölçüldü. `code_verifier` çerezini `POST /api/alerts` yanıtı yazıyor ve
-`exchangeCodeForSession` onu istiyor. Yani **formu masaüstünde doldurup e-postayı
-telefonda açan kullanıcı `durum=hata` alır** — ki magic link ürünlerinde en sık
-davranış budur. Şu an kullanıcı hiçbir açıklama da görmüyor, sadece "hata".
+Dev sunucusu `DATABASE_URL_POOLED` (transaction pooler, 6543) ile koşarken
+`createAlert` **iki ayrı koşumda da sonsuza asıldı** (120 sn ve 300 sn, curl'ün
+zaman aşımıyla kesildi). Asılıyken bakıldı:
 
-Çözüm yönü: ya PKCE yerine implicit/token_hash akışına geçmek, ya da
-`durum=hata` ekranında "linki, formu doldurduğun tarayıcıda aç" demek. İkincisi
-bir saatlik iş ve en azından kullanıcıyı kör bırakmaz. **Karar ürün sahibinin.**
+- `pg_locks` boş, `idle in transaction` yok, `pg_blocking_pids` boş → **kilit değil**
+- O sorguyu çalıştıran backend yok → **Postgres'e varmamış ya da cevabı kaybolmuş**
+- Hiç red (exception) gelmiyor → soket açık, sonsuz bekleme
+- Aynı anda `HEAD /` istekleri 2 sn'de dönmeye devam ediyor → havuz komple ölü değil
 
-**Gözlem, kanıtlanmadı — link'i bir tarayıcı önden çekiyor olabilir.** İlk
-denemede `confirmation_sent_at` 17:38:54, `/auth/callback` isteği 17:39:06 —
-12 saniye sonra, ve o isteği ne ben ne kullanıcı yaptı. Gmail'in link tarayıcısı
-buna uyuyor. Ama karşı kanıt da var: ikinci linkin jetonu kullanıcı bana
-yapıştırdıktan sonra hâlâ geçerliydi. SMTP kurulunca tekrar bakılmalı; eğer
-tarayıcı jetonu tüketiyorsa kullanıcı linke tıkladığında "expired" alır.
+`.env.local`'de yalnızca portu 5432'ye (session pooler) çevirip aynı akış
+tekrarlandı: **createAlert 460 ms, istek 2,7 sn.** Tek değişken pooler'dı.
 
-**Tekrar denerken — test yöntemi tuzakları (ikisine de düşüldü):**
+Ayrıca bağımsız bir yük testi (dev sunucusu kapalıyken, 12 eşzamanlı sorgu,
+`max: 4`):
 
-1. **Çerez kavanozu şart.** `curl` ile denenecekse `-c jar.txt -b jar.txt`
-   kullan; `code_verifier` çerezi atılırsa `exchangeCodeForSession` sessizce
-   başarısız olur ve `durum=hata` gelir — uygulamada hata yokken.
+| sorgu şekli | transaction 6543 | session 5432 |
+| --- | --- | --- |
+| tagged template, parametresiz | **9/12 tamam, 3 sonsuz asılı** (3 turda da aynı) | 12/12, ~450 ms |
+| `unsafe(text, params)` — drizzle'ın yolu | 12/12, ~670 ms | 12/12, ~630 ms |
+
+Yani arıza sorgu şekline göre değişiyor ve tam karakterize EDİLMEDİ. Ama
+uygulamanın kendi yolu (`unsafe`) yük testinde temiz çıkarken dev sunucusunda
+asıldığına göre, "drizzle yolu güvenli" demek YANLIŞ olur.
+
+**KARAR GEREKİYOR — ürün sahibinin.** Kod şu an değiştirilmedi: çalışma zamanı
+hâlâ transaction pooler'ı tercih ediyor (`poolUrl()`), çünkü bunu değiştirmek
+mimari bir karar. Seçenekler:
+
+1. **Çalışma zamanını da session pooler'a al.** Ölçülen tek güvenilir seçenek.
+   Bedeli: session pooler 15 istemcilik ve Vercel'de her lambda kendi bağlantısını
+   açar. `max: 1` ile ~15 eşzamanlı lambda demek — bu ürünün trafiği için
+   muhtemelen yeter, ama ölçülmedi.
+2. **Transaction pooler'da kal, üstüne istemci tarafı zaman aşımı koy.** Asılan
+   sorgu sonsuza kadar beklemek yerine reddedilir, bağlantı atılır, istek yeniden
+   denenir. postgres-js'te hazır bir seçenek YOK, sarmalayıcı yazmak gerekir.
+3. **Supabase'e aç.** Bu Supavisor tarafında bir arıza gibi duruyor; proje
+   ücretsiz katmanda. Destek kaydı açmadan önce yukarıdaki 12 sorgulu test
+   tekrarlanabilir bir repro olarak verilebilir.
+
+**Vercel'e çıkmadan bu kapatılmalı.** Çıkılırsa belirtisi şu olur: `/ara`,
+`/takip` ve ISR yenilemesi rastgele lambda zaman aşımına düşer, log'da hata
+görünmez — sadece yavaşlık.
+
+### Diğer notlar
+
+**SMTP kuruldu.** Supabase Auth → Custom SMTP → Resend (`smtp.resend.com:587`,
+kullanıcı `resend`, şifre API anahtarı), gönderen `onboarding@resend.dev`.
+Rate limit ayrı alandan yükseltildi — custom SMTP açmak onu kendiliğinden
+yükseltmiyor.
+
+**Aynı adrese 60 saniyelik yeniden gönderim beklemesi var.** Saatlik kotadan
+ayrı; arka arkaya iki istek atılırsa ikincisi `429 over_email_send_rate_limit`
+alır. Test ederken araya bekleme koy.
+
+**Mail SPAM'e düşüyor.** `onboarding@resend.dev` ortak sandbox alan adı, marka
+hizalaması yok. Gerçek alan adı doğrulanınca tekrar bakılmalı.
+
+**ALAN ADI ALINMAMIŞ.** `mevzuatkibris.com` → NXDOMAIN (dns.google). Bu yalnızca
+e-postayı değil `SITE_URL` varsayılanını, sitemap/JSON-LD mutlak URL'lerini ve
+üretimdeki `emailRedirectTo`'yu da etkiliyor. Vercel'den önce çözülmeli.
+
+**PKCE akışı TEK TARAYICIYA bağlı.** `code_challenge_method: s256` ölçüldü.
+`code_verifier` çerezini `POST /api/alerts` yanıtı yazıyor, `exchangeCodeForSession`
+onu istiyor. **Formu masaüstünde doldurup e-postayı telefonda açan kullanıcı
+`durum=hata` alır** ve hiçbir açıklama görmez. En azından hata ekranına "linki,
+formu doldurduğun tarayıcıda aç" yazılmalı. Karar ürün sahibinin.
+
+**`docTypes` magic link yolunda sessizce düşüyor.** `createSchema` kabul ediyor,
+oturumlu dal `createAlert`'e geçiriyor, ama `emailRedirectTo`'nun query string'ine
+konmuyor ve callback okumuyor. Şu an latent: hiçbir sayfa `docTypes` göndermiyor.
+Belge türü filtreli bir takip kartı eklenirse sessizce kaybolur.
+
+**Test yöntemi tuzakları — üçüne de düşüldü:**
+
+1. **Çerez kavanozu şart.** `curl -c jar.txt -b jar.txt`. `code_verifier` çerezi
+   atılırsa `exchangeCodeForSession` başarısız olur ve uygulamada hata yokken
+   `durum=hata` gelir. Link'i formu gönderen İSTEMCİ takip etmeli.
 2. **Komut satırına Türkçe yazma.** Git Bash altında argümanlar `curl.exe`'ye
-   geçerken Win32 ANSI kod sayfasına (CP1254) çevriliyor: `ü` → `0xFC`, `ı` →
-   `0xFD`. Node bunları UTF-8 sanıp okuyunca U+FFFD çıkıyor ve uygulamada
-   olmayan bir kodlama hatası varmış gibi görünüyor. İstek gövdesini dosyaya
-   yaz (`--data-binary @payload.json`), dosyayı da UTF-8 yazdığından emin ol.
-   `echo ... | xxd` bu tuzağı GÖSTERMEZ, çünkü `echo` kabuk builtin'i ve
-   argüman Win32 sınırını hiç geçmez.
-3. **Dev sunucusunun havuzunu tıkatma.** Preview aracının 2 saniyede bir attığı
-   `HEAD /` istekleri `max: 4`'lük havuzu doyuruyor (§6.4). Ölçüldü: bu hâldeyken
-   `/konu/munhal` 335 sn, `/api/status` 562 sn sürdü. Sekmeyi kapat.
-
+   geçerken Win32 ANSI kod sayfasına (CP1254) çevriliyor: `ü` → `0xFC`. Node
+   bunları UTF-8 sanınca U+FFFD çıkıyor ve olmayan bir kodlama hatası varmış gibi
+   görünüyor. Gövdeyi UTF-8 dosyaya yaz, `--data-binary @dosya` ile gönder.
+   `echo ... | xxd` bunu GÖSTERMEZ — `echo` builtin, argüman Win32 sınırını
+   geçmez.
+3. **Preview aracı dev sunucusunu 2 saniyede bir yokluyor** (`HEAD /`) ve bu
+   sekmeyi kapatınca DURMUYOR, sunucu çalıştığı sürece sürüyor. Havuzu meşgul
+   ediyor (§6.4).
 ---
 
 ## 7. Yön bulma
