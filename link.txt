@@ -1,0 +1,1 @@
+https://mnlcclviwztxrxxjsmoa.supabase.co/auth/v1/verify?token=pkce_2e8ff241a0a619af4ea07af98c43362870f5d46f2d6e66b6886421df&type=magiclink&redirect_to=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback%3Flabel%3DM%25C3%25BCnhal%2Bilanlar%25C4%25B1%26frequency%3Dweekly%26topic%3Dmunhal

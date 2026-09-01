@@ -634,8 +634,10 @@ Kalan işler, öncelik sırasıyla:
    değişkenlerini denetle:** derlemenin `DATABASE_URL`'i (session pooler, 5432)
    de tanımlı olmalı; yalnızca `DATABASE_URL_POOLED` konursa derleme sessizce
    transaction pooler'a düşer ve eski arıza geri gelir.
-4. **Auth akışını uçtan uca dene.** Magic link → `/auth/callback` → alarm yazımı
-   hiç denenmedi. Supabase Auth artık gerçek (`auth.uid()` çalışıyor).
+4. **Auth akışını bitir — %80'i denendi, son adım kaldı.** Ayrıntı §6.6.
+   Doğrulandı: e-posta gidiyor, `profiles` trigger'ı çalışıyor, PKCE değişimi
+   başarılı, oturum açılıyor. Kalan: callback içindeki `createAlert` ve onay
+   ekranı. **Önce SMTP lazım** — Supabase'in dahili SMTP'si saatte 2 e-posta.
 5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
    dağıtım mantığı test edilmedi.
 6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
@@ -1118,6 +1120,67 @@ ve bilerek bırakılmış bir durum — rotalar kalkacaksa düzeltmek boşa iş 
 Fikir değişir de prerender istenirse yol: sayfalamayı `searchParams` yerine rota
 segmentine taşımak (`/yer/lefkosa/2`). Bunu yapmadan `generateStaticParams`
 eklemenin bir faydası yok.
+
+
+### 6.6 Auth akışı — gerçek e-postayla denendi, iki gerçek engel çıktı
+
+Gerçek bir adrese (`fathgnc.dev@gmail.com`) magic link gönderilerek denendi.
+**Adımların çoğu çalışıyor.** Akış: `POST /api/alerts` → `signInWithOtp` →
+e-posta → `/auth/callback` → `exchangeCodeForSession` → `createAlert` →
+`/takip?durum=onay`.
+
+| adım | durum |
+| --- | --- |
+| `signInWithOtp`, e-posta gönderimi | ✅ `confirmation_sent_at` doldu |
+| `auth.users` satırı | ✅ oluştu |
+| `on_auth_user_created` → `profiles` | ✅ **çalıştı** — en büyük bilinmezdi |
+| Redirect izin listesi | ✅ `label`/`topic`/`frequency` callback'e ulaştı |
+| Türkçe karakter round-trip | ✅ `label=M%C3%BCnhal+ilanlar%C4%B1` bozulmadan |
+| PKCE `exchangeCodeForSession` | ✅ `auth.sessions` satırı oluştu |
+| Kota aşımında hata yolu | ✅ 502 + Türkçe mesaj, sessizce yutmuyor |
+| `createAlert` + onay ekranı | ⬜ **kalan tek adım** |
+
+Son adım mantık hatasından değil, ortamdan dolayı bitirilemedi: dev sunucusunun
+havuzu tıkalıyken callback 180 sn asıldı, sonra e-posta kotası doldu.
+
+**ENGEL 1 — Supabase'in dahili SMTP'si saatte 2 e-posta.** Ölçüldü:
+`429 over_email_send_rate_limit`. Üründe kullanılamaz; **gerçek SMTP kurulmadan
+auth akışı canlıya çıkamaz.** Resend zaten alarm gönderimi için planda (§6 madde
+5) — aynı sağlayıcı Supabase Auth'un SMTP'si olarak da tanımlanmalı. Bu iki iş
+tek işe indi.
+
+**ENGEL 2 — PKCE akışı TEK TARAYICIYA bağlı.** `code_challenge_method: s256`
+ölçüldü. `code_verifier` çerezini `POST /api/alerts` yanıtı yazıyor ve
+`exchangeCodeForSession` onu istiyor. Yani **formu masaüstünde doldurup e-postayı
+telefonda açan kullanıcı `durum=hata` alır** — ki magic link ürünlerinde en sık
+davranış budur. Şu an kullanıcı hiçbir açıklama da görmüyor, sadece "hata".
+
+Çözüm yönü: ya PKCE yerine implicit/token_hash akışına geçmek, ya da
+`durum=hata` ekranında "linki, formu doldurduğun tarayıcıda aç" demek. İkincisi
+bir saatlik iş ve en azından kullanıcıyı kör bırakmaz. **Karar ürün sahibinin.**
+
+**Gözlem, kanıtlanmadı — link'i bir tarayıcı önden çekiyor olabilir.** İlk
+denemede `confirmation_sent_at` 17:38:54, `/auth/callback` isteği 17:39:06 —
+12 saniye sonra, ve o isteği ne ben ne kullanıcı yaptı. Gmail'in link tarayıcısı
+buna uyuyor. Ama karşı kanıt da var: ikinci linkin jetonu kullanıcı bana
+yapıştırdıktan sonra hâlâ geçerliydi. SMTP kurulunca tekrar bakılmalı; eğer
+tarayıcı jetonu tüketiyorsa kullanıcı linke tıkladığında "expired" alır.
+
+**Tekrar denerken — test yöntemi tuzakları (ikisine de düşüldü):**
+
+1. **Çerez kavanozu şart.** `curl` ile denenecekse `-c jar.txt -b jar.txt`
+   kullan; `code_verifier` çerezi atılırsa `exchangeCodeForSession` sessizce
+   başarısız olur ve `durum=hata` gelir — uygulamada hata yokken.
+2. **Komut satırına Türkçe yazma.** Git Bash altında argümanlar `curl.exe`'ye
+   geçerken Win32 ANSI kod sayfasına (CP1254) çevriliyor: `ü` → `0xFC`, `ı` →
+   `0xFD`. Node bunları UTF-8 sanıp okuyunca U+FFFD çıkıyor ve uygulamada
+   olmayan bir kodlama hatası varmış gibi görünüyor. İstek gövdesini dosyaya
+   yaz (`--data-binary @payload.json`), dosyayı da UTF-8 yazdığından emin ol.
+   `echo ... | xxd` bu tuzağı GÖSTERMEZ, çünkü `echo` kabuk builtin'i ve
+   argüman Win32 sınırını hiç geçmez.
+3. **Dev sunucusunun havuzunu tıkatma.** Preview aracının 2 saniyede bir attığı
+   `HEAD /` istekleri `max: 4`'lük havuzu doyuruyor (§6.4). Ölçüldü: bu hâldeyken
+   `/konu/munhal` 335 sn, `/api/status` 562 sn sürdü. Sekmeyi kapat.
 
 ---
 
