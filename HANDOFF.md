@@ -1252,15 +1252,29 @@ alır. Test ederken araya bekleme koy.
 **Mail SPAM'e düşüyor.** `onboarding@resend.dev` ortak sandbox alan adı, marka
 hizalaması yok. Gerçek alan adı doğrulanınca tekrar bakılmalı.
 
-**ALAN ADI ALINMAMIŞ.** `mevzuatkibris.com` → NXDOMAIN (dns.google). Bu yalnızca
-e-postayı değil `SITE_URL` varsayılanını, sitemap/JSON-LD mutlak URL'lerini ve
-üretimdeki `emailRedirectTo`'yu da etkiliyor. Vercel'den önce çözülmeli.
+**ALAN ADI YOK, VE `mevzuatkibris.com` YALNIZCA YER TUTUCU.** Doğrulandı:
+NXDOMAIN (dns.google). Ürün sahibinin ifadesiyle "hiçbir şey alınmadı, tamamen
+localhost'tayız, spec'teki alan adı da geçici". Yani bu bir eksik değil, henüz
+gelmemiş bir karar — **isim de değişebilir.**
 
-**PKCE akışı TEK TARAYICIYA bağlı.** `code_challenge_method: s256` ölçüldü.
-`code_verifier` çerezini `POST /api/alerts` yanıtı yazıyor, `exchangeCodeForSession`
-onu istiyor. **Formu masaüstünde doldurup e-postayı telefonda açan kullanıcı
-`durum=hata` alır** ve hiçbir açıklama görmez. En azından hata ekranına "linki,
-formu doldurduğun tarayıcıda aç" yazılmalı. Karar ürün sahibinin.
+Sonucu şu: koda gömülü hiçbir yerde bu ada bel bağlama. `SITE_URL`
+(`src/lib/seo/config.ts`) `NEXT_PUBLIC_SITE_URL`'den okuyor ve varsayılanı
+`https://mevzuatkibris.com`; sitemap/JSON-LD mutlak URL'leri, RSS ve magic
+link'in `emailRedirectTo`'su hep oradan geliyor. Alan adı belli olunca
+değiştirilecek TEK yer bu env değişkeni — varsayılanı da o zaman güncelle.
+
+**PKCE akışı TEK TARAYICIYA bağlı — kısıt duruyor, ekran DÜZELTİLDİ.**
+`code_challenge_method: s256` ölçüldü. `code_verifier` çerezini
+`POST /api/alerts` yanıtı yazıyor, `exchangeCodeForSession` onu geri istiyor.
+Formu bilgisayarda doldurup e-postayı telefonda açan kullanıcı `durum=hata`
+alıyor — ki insanların e-posta okuma biçimi tam olarak budur.
+
+Kısıtın kendisi kaldırılmadı (implicit/`token_hash` akışına geçmek gerekirdi,
+ayrı bir iş). Ama kullanıcı artık körlemesine kalmıyor: `/takip`'teki hata
+kutusuna en olası sebebi ve ne yapması gerektiğini söyleyen iki cümle eklendi
+(`src/app/takip/page.tsx`). Öncesinde ekran yalnızca "bağlantı geçersiz"
+diyordu; kullanıcı aynı bölünmüş biçimde tekrar deniyor ve yine başarısız
+oluyordu.
 
 **`docTypes` magic link yolunda sessizce düşüyor.** `createSchema` kabul ediyor,
 oturumlu dal `createAlert`'e geçiriyor, ama `emailRedirectTo`'nun query string'ine

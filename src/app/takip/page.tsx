@@ -76,11 +76,26 @@ export default async function FollowPage({ searchParams }: Props) {
           </div>
         ) : null}
 
+        {/*
+          * The most common cause is NOT an expired link — it is opening the link in a
+          * different browser from the one that submitted the form. Verification is PKCE
+          * (`code_challenge_method: s256`): the `code_verifier` is written as a cookie on
+          * the POST /api/alerts response, and /auth/callback needs that same cookie back.
+          * Filling the form on a laptop and opening the mail on a phone therefore fails,
+          * which is the ordinary way people read email. Without this sentence the user
+          * sees only "invalid", retries in the same split way, and fails again.
+          */}
         {status === 'hata' ? (
           <div className="mt-6 rounded-md border border-notice-border bg-notice p-5 text-base text-notice-ink">
             <p className="m-0 font-semibold">Bağlantı geçersiz ya da süresi dolmuş.</p>
             <p className="m-0 mt-1.5">
+              En sık sebebi şudur: bağlantıyı, takibi kurduğunuz tarayıcıdan başka bir yerde
+              açmak. Formu bilgisayarda doldurup e-postayı telefonunuzda açtıysanız bağlantı
+              çalışmaz — doğrulama, isteği başlatan tarayıcıya bağlıdır.
+            </p>
+            <p className="m-0 mt-1.5">
               Takibi aşağıdan yeniden kurabilirsiniz; yeni bir doğrulama bağlantısı göndeririz.
+              Gelen e-postayı, formu doldurduğunuz tarayıcıda açın.
             </p>
           </div>
         ) : null}
