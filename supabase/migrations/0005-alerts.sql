@@ -1,4 +1,4 @@
--- 0005 — kullanıcı, alarm, gönderim (spec 6 ve 10)
+-- 0005 — users, alerts, deliveries (spec 6 and 10)
 
 create table if not exists profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
@@ -15,11 +15,11 @@ create table if not exists alerts (
   topics       text[]   not null default '{}',
   doc_types    text[]   not null default '{}',
   entity_ids   bigint[] not null default '{}',
-  -- instant spec 10.3 madde 6 uyarınca kapalı; enum'a hiç girmiyor ki
-  -- arayüzden yanlışlıkla seçilemesin.
+  -- instant is disabled per spec 10.3 rule 6; it is kept out of the enum entirely
+  -- so it cannot be picked by accident from the UI.
   frequency    text not null default 'weekly' check (frequency in ('daily','weekly')),
-  -- Haftalık aboneler haftanın gününe dağıtılır (spec 10.3 madde 2).
-  -- Varsayılan hash(user_id) % 7; kullanıcı değiştirebilir.
+  -- Weekly subscribers are spread across the days of the week (spec 10.3 rule 2).
+  -- Defaults to hash(user_id) % 7; the user can change it.
   preferred_weekday smallint not null default 1 check (preferred_weekday between 0 and 6),
   is_active    boolean not null default true,
   last_sent_at timestamptz,
@@ -38,11 +38,11 @@ create table if not exists alert_deliveries (
   provider_id text
 );
 
--- Kota bekçisi (spec 10.3 madde 4) günlük gönderim sayısını buradan okur.
+-- The quota guard (spec 10.3 rule 4) reads the daily dispatch count from here.
 create index if not exists alert_deliveries_sent_idx on alert_deliveries (sent_at desc);
 create index if not exists alert_deliveries_alert_idx on alert_deliveries (alert_id, sent_at desc);
 
--- Yeni kullanıcıya haftanın gününü dağıtarak atar (spec 10.3 madde 2).
+-- Assigns a new user a day of the week, spreading the load (spec 10.3 rule 2).
 create or replace function assign_weekday(uid uuid)
 returns smallint
 language sql
@@ -51,7 +51,7 @@ as $$
   select (abs(hashtext(uid::text)) % 7)::smallint;
 $$;
 
--- profiles satırını auth.users'tan otomatik oluştur
+-- create the profiles row automatically from auth.users
 create or replace function handle_new_user()
 returns trigger
 language plpgsql

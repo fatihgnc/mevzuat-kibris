@@ -9,30 +9,30 @@ import type { RecordListItem } from '@/types/record';
 
 interface RecordCardProps {
   record: RecordListItem;
-  /** Konu akışında konu zaten belli; noktayı tekrar basmıyoruz. */
+  /** In a topic feed the topic is already known; we do not repeat the dot. */
   hideTopic?: boolean;
-  /** Münhal akışında başvuru bitiş tarihi öne çıkar (spec 3.9). */
+  /** In the vacancy feed the application deadline is brought forward (spec 3.9). */
   showDeadline?: boolean;
   /**
-   * `full`    — arama ve konu akışı (artboard 1b/1e): referans, alıntı, künye satırı
-   * `compact` — ana sayfa (artboard 1d): yalnızca tarih, özet ve konu
+   * `full`    — search and topic feeds (artboards 1b/1e): reference, excerpt, meta line
+   * `compact` — the home page (artboard 1d): date, summary and topic only
    *
-   * Tasarımda ana sayfa satırı bilerek daha sade: orada amaç taramak, karşılaştırmak
-   * değil.
+   * The home page row is deliberately plainer in the design: there the point is to
+   * scan, not to compare.
    */
   variant?: 'full' | 'compact';
   className?: string;
 }
 
 /**
- * Liste satırı — artboard 1b/1d/1e'deki tek biçim.
+ * The list row — the single form used in artboards 1b/1d/1e.
  *
- * Sol sütun 92px sabit: tarih ve referans numarası. Sabit genişlik, satırlar
- * arasında dikey bir hizanın oluşmasını sağlıyor; tarihler farklı uzunlukta
- * olduğunda bile göz tek bir sütunu tarıyor.
+ * The left column is a fixed 92px: date and reference number. The fixed width
+ * creates a vertical alignment between rows, so the eye scans a single column even
+ * when the dates differ in length.
  *
- * Özet (summary) ana metin, ham başlık değil. Ham başlık yalnızca gövde metni
- * çıkarılamadığında ve o zaman da maskelenmiş hâliyle görünüyor (spec 3.8).
+ * The summary is the main text, not the raw title. The raw title appears only when
+ * no body text could be extracted, and even then in its masked form (spec 3.8).
  */
 export function RecordCard({
   record,
@@ -78,13 +78,14 @@ export function RecordCard({
           </span>
         ) : !record.hasBody && heading ? (
           /*
-           * Gövde metni GERÇEKTEN yok. Tasarımın kararı: satırı boş bırakmak
-           * yerine gazetedeki ham başlığı maskelenmiş hâliyle göstermek ve bunu
-           * açıkça söylemek.
+           * There REALLY is no body text. The design's decision: rather than leave
+           * the row empty, show the gazette's raw title in its masked form and say
+           * so plainly.
            *
-           * Koşul record.hasBody'ye bakıyor, snippet'e değil: liste sayfalarında
-           * ts_headline hiç çalışmıyor, snippet null oluyor ve yalnızca snippet'e
-           * bakılırsa gövdesi olan kayıtlara da "çıkarılamadı" yazılıyor.
+           * The condition looks at record.hasBody, not at the snippet: on list
+           * pages ts_headline never runs, the snippet is null, and looking only at
+           * the snippet would print "could not be extracted" on records that do
+           * have a body.
            */
           <span className="flex flex-col gap-1 border-l-2 border-line-dashed pl-2.5">
             <span className="text-2xs text-ink-fainter">
@@ -114,8 +115,9 @@ export function RecordCard({
             </span>
           ) : null}
           {/*
-           * Belge türü konu adıyla başlıyorsa tekrar basmıyoruz: "Münhal · Münhal
-           * ilanı" gibi bir satır bilgi taşımıyor. Tasarımdaki showTur kuralı bu.
+           * If the document type starts with the topic name we do not print it
+           * twice: a line like "Münhal · Münhal ilanı" carries no information. This
+           * is the design's showTur rule.
            */}
           {shouldShowDocType(record) ? <span>{record.docTypeLabel}</span> : null}
           {record.institution ? (

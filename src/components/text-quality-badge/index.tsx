@@ -1,8 +1,8 @@
 import type { TextStatus } from '@/types/record';
 
 const LABELS: Record<TextStatus, string | null> = {
-  // Sorunsuz çıkarılmış metinde rozet göstermiyoruz: her sayfada duran bir
-  // "her şey yolunda" rozeti gürültü, bilgi değil.
+  // No badge on cleanly extracted text: an "everything is fine" badge on every
+  // page is noise, not information.
   extracted: null,
   pending: 'Metin henüz işlenmedi',
   ocr: 'Metin taramadan okundu',

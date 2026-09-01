@@ -3,8 +3,8 @@
 import { createBrowserClient } from '@supabase/ssr';
 
 /**
- * Tarayıcı istemcisi yalnızca magic link akışında ve takip yönetiminde kullanılıyor.
- * Liste ve kayıt sayfalarına hiç girmiyor; JS bütçesi (spec 13) bunun üzerine kurulu.
+ * The browser client is used only in the magic-link flow and in follow management.
+ * It never enters list or record pages; the JS budget (spec 13) is built on that.
  */
 export function createSupabaseBrowserClient() {
   return createBrowserClient(

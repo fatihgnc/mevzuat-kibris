@@ -4,13 +4,14 @@ import { SITE_NAME, SITE_URL } from '../../src/lib/seo/config';
 import { formatDateShort } from '../../src/lib/text/dates';
 
 /**
- * Digest e-posta şablonu — spec 10.3.
+ * Digest email template — spec 10.3.
  *
- * Sade HTML: kayıt başına başlık + künye + bağlantı. Maksimum 15 kayıt,
- * fazlası "ve N kayıt daha" bağlantısıyla. Reklam yok, takip görüntüsü yok.
+ * Plain HTML: title, meta line and link per record. At most 15 records, with the
+ * rest behind an "and N more records" link. No ads, no tracking pixel.
  *
- * Gösterilen başlık records.summary — liste, detay, RSS ve og:title ile
- * birebir aynı metin (spec 3.8 kural 4). E-postaya özel yeniden üretim yok.
+ * The headline shown is records.summary — the exact same text as the list, the
+ * detail page, RSS and og:title (spec 3.8 rule 4). There is no email-specific
+ * regeneration.
  */
 
 export const MAX_RECORDS_PER_EMAIL = 15;
@@ -51,7 +52,7 @@ export interface DigestInput {
   alertId: number;
   label: string;
   records: DigestRecord[];
-  /** Eşleşen toplam kayıt; 15'ten fazlaysa "ve N kayıt daha" satırı için. */
+  /** Total matching records; if more than 15, drives the "ve N kayıt daha" line. */
   totalMatched: number;
 }
 

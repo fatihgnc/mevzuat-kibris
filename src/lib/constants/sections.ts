@@ -1,6 +1,7 @@
 /**
- * Resmî Gazete bölüm taksonomisi — spec 3.2.
- * Sayı sayfasında kayıtlar bu sırayla gruplanır; sıra gazetenin kendi sırasıdır.
+ * The gazette's section taxonomy — spec 3.2.
+ * Records are grouped in this order on the issue page; the order is the gazette's
+ * own.
  */
 export const SECTIONS = [
   'MAIN',
@@ -17,7 +18,7 @@ export const SECTIONS = [
 
 export type Section = (typeof SECTIONS)[number];
 
-/** Künyede görünen kısa ad: "Sayı 262, Ek III" */
+/** The short name shown in the meta bar: "Sayı 262, Ek III" */
 export const SECTION_SHORT: Record<Section, string> = {
   MAIN: 'Ana bölüm',
   EK_I_B_I: 'Ek I Bölüm I',
@@ -31,7 +32,7 @@ export const SECTION_SHORT: Record<Section, string> = {
   EK_VI: 'Ek VI',
 };
 
-/** Sayı sayfasındaki grup başlığı — ne içerdiğini söyler. */
+/** The group heading on the issue page — it says what the section contains. */
 export const SECTION_DESCRIPTION: Record<Section, string> = {
   MAIN: 'Kararnameler, münhal ilanları ve duyurular',
   EK_I_B_I: 'Yasalar',
@@ -46,21 +47,22 @@ export const SECTION_DESCRIPTION: Record<Section, string> = {
 };
 
 /**
- * Arşiv HTML'indeki ham bölüm başlığı → enum.
+ * Raw section heading in the archive HTML -> enum.
  *
- * `\s*` bilerek gevşek: kaynakta "EK IV BÖLÜMI" (boşluksuz), "EK  VI" ve
- * "EK IV BÖLÜM    I" gibi yazımlar var. Bunlar veri girişi kiri, ayrı bölüm
- * değil.
+ * The `\s*` is deliberately loose: the source contains spellings such as "EK IV
+ * BÖLÜMI" (no space), "EK  VI" and "EK IV BÖLÜM    I". These are data-entry dirt,
+ * not separate sections.
  *
- * MAIN burada olmak zorunda: iç tabloda bölüm hücresi yalnızca blok başında
- * dolu ve aşağıya taşınıyor (bkz. parseIndexTable). Kaynak ana bölüme dönerken
- * hücreye düz "MAIN" yazıyor; bunu tanımazsak bir önceki EK başlığı yapışıp
- * kalır ve kayıtlar yanlış bölüme düşer. "MAİN" (Türkçe İ) kaynakta gerçekten
- * geçiyor ve /i bayrağı İ↔I eşleştirmediği için açıkça yazılı.
+ * MAIN has to be here: in the inner table the section cell is filled only at the
+ * start of a block and carries downward (see parseIndexTable). When the source
+ * returns to the main section it writes a plain "MAIN" into the cell; if we did not
+ * recognise it, the previous EK heading would stick and records would land in the
+ * wrong section. "MAİN" (with a Turkish İ) really does occur in the source, and it
+ * is written out explicitly because the /i flag does not equate İ with I.
  *
- * Tanınmayan hücre (tek başına "EK V", ya da klavye kazası "hljkhljhljkhljkhlj")
- * bilerek eşleşmiyor: taşınan bölüm korunuyor. Tahmin etmek yanlış bölüme
- * yazmaktan iyi değil.
+ * An unrecognised cell (a bare "EK V", or a keyboard accident like
+ * "hljkhljhljkhljkhlj") deliberately does not match: the carried-down section is
+ * preserved. Guessing is no better than writing the wrong section.
  */
 export const SECTION_HEADINGS: Array<[RegExp, Section]> = [
   [/^MA[İI]N$/i, 'MAIN'],

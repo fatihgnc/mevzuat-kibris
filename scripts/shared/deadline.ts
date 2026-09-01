@@ -1,13 +1,13 @@
 /**
- * Başvuru bitiş tarihi çıkarımı — spec 3.9.
+ * Application deadline extraction — spec 3.9.
  *
- * İki yerde kullanılıyor ve ikisi de önemli:
- *   1. Ürün: /konu/munhal akışında "başvurusu açık" filtresi ve her kayıtta
- *      vurgulanmış bitiş tarihi. Segmentin gerçek sorusu bu.
- *   2. SEO: JobPosting yapılandırılmış verisinin zorunlu validThrough alanı.
+ * Used in two places, both of which matter:
+ *   1. Product: the "applications open" filter in the /konu/munhal flow, and a
+ *      highlighted deadline on every record. That is the segment's real question.
+ *   2. SEO: the mandatory validThrough field of JobPosting structured data.
  *
- * BELİRSİZSE ALAN BOŞ BIRAKILIR, TAHMİN EDİLMEZ. Yanlış bir son başvuru
- * tarihi, tarih olmamasından çok daha zararlı: kullanıcı hakkını kaybediyor.
+ * IF IT IS AMBIGUOUS THE FIELD IS LEFT EMPTY, NEVER GUESSED. A wrong deadline is
+ * far more harmful than no deadline: the user loses their right to apply.
  */
 
 const MONTHS: Record<string, number> = {
@@ -31,7 +31,7 @@ const MONTHS: Record<string, number> = {
   aralik: 12,
 };
 
-/** Bitiş tarihini işaret eden ifadeler; tarih bunların yakınında aranıyor. */
+/** Phrases that signal a deadline; the date is looked for near one of these. */
 const CUES = [
   'son başvuru',
   'başvuru süresi',
@@ -92,16 +92,16 @@ function findDates(text: string): Found[] {
 
 export interface DeadlineResult {
   deadlineAt: string | null;
-  /** "Yazılı sınav 14 Şubat 2026, altı kadro" gibi ek bağlam */
+  /** Extra context such as "Yazılı sınav 14 Şubat 2026, altı kadro" */
   note: string | null;
 }
 
 /**
- * Gövde metninden son başvuru tarihini çıkarır.
+ * Extracts the application deadline from the body text.
  *
- * Yöntem: ipucu ifadesinin geçtiği yerin yakınındaki tarihi al. Birden çok
- * aday varsa ve hepsi aynı değilse alan boş bırakılır — hangisinin doğru
- * olduğunu bilmediğimiz bir durumda tahmin etmiyoruz.
+ * Method: take the date nearest an occurrence of a cue phrase. If there are
+ * several candidates and they are not all the same, the field is left empty — we
+ * do not guess when we do not know which one is right.
  */
 export function extractDeadline(bodyText: string | null): DeadlineResult {
   if (!bodyText) return { deadlineAt: null, note: null };
@@ -128,15 +128,15 @@ export function extractDeadline(bodyText: string | null): DeadlineResult {
   }
 
   if (candidates.size !== 1) {
-    // Sıfır aday: ipucu yok. Birden çok farklı aday: hangisi olduğu belirsiz.
-    // İki durumda da boş bırakıyoruz (spec 3.9).
+    // Zero candidates: no cue. Several differing candidates: which one is unclear.
+    // In both cases we leave it empty (spec 3.9).
     return { deadlineAt: null, note: extractNote(text) };
   }
 
   return { deadlineAt: [...candidates][0]!, note: extractNote(text) };
 }
 
-/** Sınav tarihi ve kadro sayısı gibi ikincil bilgi — vurgulanmaz, yanına yazılır. */
+/** Secondary detail such as exam date and number of posts — shown alongside, not highlighted. */
 function extractNote(text: string): string | null {
   const exam = /(?:yazılı\s+)?sınav[^.]{0,60}?(\d{1,2}\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\s+\d{4})/i.exec(text);
   const positions = /(\b(?:bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on|on iki|on dört|yirmi bir)\b|\d+)\s+kadro/i.exec(

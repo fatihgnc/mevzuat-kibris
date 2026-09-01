@@ -10,7 +10,7 @@ import type { AlertFrequency } from '@/types/alert';
 interface FollowCardProps {
   title: string;
   description: string;
-  /** Alarmın neyi takip ettiği — API'ye aynen gider. */
+  /** What the alert follows — passed to the API verbatim. */
   subject: {
     label: string;
     topic?: string;
@@ -18,9 +18,9 @@ interface FollowCardProps {
     entityId?: number;
     docTypes?: string[];
   };
-  /** RSS eşdeğeri varsa e-postayla eşit ağırlıkta sunulur (spec 10.4). */
+  /** If an RSS equivalent exists it is offered with equal weight to email (spec 10.4). */
   rssHref?: string;
-  /** Sıklık seçimi gösterilsin mi (konu akışında var, kayıt sayfasında yok). */
+  /** Whether to show the frequency choice (present in topic feeds, absent on record pages). */
   showFrequency?: boolean;
   className?: string;
 }
@@ -28,11 +28,13 @@ interface FollowCardProps {
 type Phase = 'idle' | 'sending' | 'sent' | 'error';
 
 /**
- * Takip kurma kartı — artboard 1a/1d/1e yan sütunu ve 1h akışının 1. adımı.
+ * The follow card — the side column of artboards 1a/1d/1e and step 1 of the 1h
+ * flow.
  *
- * Akış tasarımdaki dört durumu izliyor: kurma -> doğrulama -> onay -> çıkış.
- * Doğrulama adımı Supabase magic link; bağlantıya tıklanana kadar takip
- * başlamıyor ve adres başkasına aitse hiçbir şey olmuyor.
+ * The flow follows the design's four states: set up -> verify -> confirm ->
+ * unsubscribe. The verification step is a Supabase magic link; the follow does not
+ * start until the link is clicked, and nothing happens at all if the address
+ * belongs to someone else.
  */
 export function FollowCard({
   title,
@@ -48,10 +50,11 @@ export function FollowCard({
   const [message, setMessage] = useState<string | null>(null);
 
   /*
-   * Spec 10.3 madde 2: onay ekranında kullanıcıya atanan GERÇEK gün gösterilir.
-   * Herkese sabit "pazartesi" yazmak dağıtımın anlamını bitirir ve verilen sözü
-   * tutmaz. Gün sunucuda hash(user_id) % 7 ile atanıyor; burada gösterilen tarih
-   * API'nin döndürdüğü güne göre yazılıyor, tahminle değil.
+   * Spec 10.3 rule 2: the confirmation screen shows the user the ACTUAL day they
+   * were assigned. Writing a fixed "pazartesi" for everyone defeats the point of
+   * spreading the load and breaks the promise made. The day is assigned server-side
+   * as hash(user_id) % 7; the date shown here is written from the day the API
+   * returned, not from a guess.
    */
   const [assignedWeekday, setAssignedWeekday] = useState<number | null>(null);
 
@@ -80,8 +83,8 @@ export function FollowCard({
         return;
       }
 
-      // Sunucu günlük kotayı doldurduysa haftalığa düşürmüş olabilir (spec 10.3
-      // madde 5). Kullanıcıya ne olduğunu söylüyoruz, sessizce değiştirmiyoruz.
+      // If the server has filled its daily quota it may have downgraded this to weekly
+      // (spec 10.3 rule 5). We tell the user what happened; we do not change it silently.
       if (data.frequency && data.frequency !== frequency) {
         setMessage(
           'Günlük özet kontenjanı dolu olduğu için haftalık özete kaydedildik. Dilediğiniz zaman değiştirebilirsiniz.',
@@ -177,10 +180,10 @@ export function FollowCard({
       </form>
 
       {/*
-        Hata ile bilgi aynı renkte olamaz: ikisi de sarıyken "gönderilemedi"
-        bir dipnot gibi okunuyor ve kullanıcı işlemin başarısız olduğunu
-        fark etmiyor. role="alert" da şart — mesaj JS ile sonradan
-        belirdiği için ekran okuyucu aksi hâlde hiç duyurmuyor.
+        An error and a notice cannot share a colour: when both are yellow, "could
+        not be sent" reads like a footnote and the user does not notice the
+        operation failed. role="alert" is essential too — because the message
+        appears later via JS, a screen reader would otherwise never announce it.
       */}
       {message ? (
         <p

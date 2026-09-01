@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 /** Arama dinamik; ISR yok (spec 11.1). */
 export const dynamic = 'force-dynamic';
 
-/** Sonuç sayfası noindex, follow (spec 8.1). */
+/** The results page is noindex, follow (spec 8.1). */
 export const metadata: Metadata = {
   title: 'Arama',
   robots: { index: false, follow: true },
@@ -52,9 +52,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   ]);
 
   /*
-   * Arama logu boş-sonuç oranını ölçmek için (spec 16 riski: Postgres arama
-   * kalitesi yetersiz kalırsa %15 eşiğinde Meilisearch'e geçilir). Sonucu
-   * beklemiyoruz; log yazımı sayfanın yanıt süresine girmemeli.
+   * The search log exists to measure the empty-result rate (spec 16's risk: if
+   * Postgres search quality proves insufficient, we move to Meilisearch at a 15%
+   * threshold). We do not await it; writing the log must not enter the page's
+   * response time.
    */
   if (built.raw) void logSearch(built.raw, result.total);
 
@@ -68,15 +69,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-8 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-search">
           {/*
-            `self-start` KULLANMA. Sezgi tersini söylüyor ama sticky için hücre
-            GERİLMİŞ olmak zorunda: yapışan öğe yalnızca kendi kapsayıcısının
-            kutusu içinde hareket edebiliyor. `self-start` hücreyi formun
-            yüksekliğine indiriyor (632px), ikisi eşitlenince kayacak alan
-            kalmıyor ve `position: sticky` hiçbir etki göstermiyor — öğe
-            sayfayla birlikte akıp gidiyor.
+            DO NOT USE `self-start`. Intuition says otherwise, but for sticky to work
+            the cell has to be STRETCHED: a sticky element can only move within its
+            own container's box. `self-start` shrinks the cell to the form's height
+            (632px), and once the two are equal there is no room to scroll and
+            `position: sticky` has no effect at all — the element just flows away
+            with the page.
 
-            Ölçüldü: self-start ile hücre 632px, onsuz 3172px; ilkinde form
-            kaydırmayı birebir takip ediyor, ikincisinde 72px'te sabitleniyor.
+            Measured: with self-start the cell is 632px, without it 3172px; in the
+            first the form tracks scrolling exactly, in the second it pins at 72px.
           */}
           <div className="min-w-0">
             {empty ? (
@@ -152,11 +153,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 }
 
 /**
- * Boş sonuç — artboard 1f.
+ * Empty results — artboard 1f.
  *
- * Tasarımın kararı: "sonuç bulunamadı" deyip durmak yerine dört çıkış yolu
- * göstermek. Sırayla: yazım önerisi (trigram), filtre kaldırma, konudan giriş,
- * referans numarasıyla arama. En altta aramayı alarma çevirme.
+ * The design's decision: rather than stop at "no results found", offer four ways
+ * out. In order: a spelling suggestion (trigram), clearing filters, entering by
+ * topic, searching by reference number. At the bottom, turning the search into an
+ * alert.
  */
 async function EmptyResults({
   query,

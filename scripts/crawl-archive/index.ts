@@ -7,12 +7,13 @@ import { closeDb, sql } from '../shared/db';
 import { log } from '../shared/logger';
 
 /**
- * Aşama 1 — arşiv sayfasını çek, sayı listesini çıkar, yeni olanları issues'a yaz.
+ * Stage 1 — fetch the archive page, extract the issue list, write new ones to
+ * issues.
  *
- * Her aşama idempotent (spec 7.1): yeniden çalıştırmak zarar vermiyor.
- * Burada bunu (year, number) unique kısıtı ve ON CONFLICT sağlıyor. raw_index_html
- * her çalıştırmada güncelleniyor çünkü kaynak site içindekiler dökümünü sonradan
- * düzeltebiliyor.
+ * Every stage is idempotent (spec 7.1): re-running does no harm. Here that is
+ * guaranteed by the (year, number) unique constraint and ON CONFLICT.
+ * raw_index_html is refreshed on every run, because the source site sometimes
+ * corrects the contents dump after the fact.
  */
 
 export interface CrawledIssue {
@@ -38,15 +39,15 @@ const TR_MONTHS: Record<string, number> = {
   aralık: 12,
 };
 
-/** "31.12.2025", "31/12/2025" ya da "31 Aralık 2025" */
+/** "31.12.2025", "31/12/2025" or "31 Aralık 2025" */
 export function parseTurkishDate(raw: string): string | null {
   const text = raw.replace(/\s+/g, ' ').trim();
 
   /*
-   * Ayraç TEKRARLANABİLİR: kaynakta "22..04.2026" gibi yazım hataları var
-   * (2026 sayı 78). Tek ayraç şart koşulduğunda tarih çözülemiyor ve kayıt
-   * `publishedAt` null olduğu için tamamen düşüyordu — bir yazım hatası
-   * yüzünden koca bir gazete sayısını kaybetmek doğru değil.
+   * The separator is REPEATABLE: the source contains typos such as "22..04.2026"
+   * (2026 issue 78). Requiring a single separator left the date unparsed, and
+   * because `publishedAt` was null the record was dropped entirely — losing a
+   * whole gazette issue over one typo is not acceptable.
    */
   const numeric = /(\d{1,2})[./]+(\d{1,2})[./]+(\d{4})/.exec(text);
   if (numeric) {
@@ -70,22 +71,23 @@ function isoOrNull(year: number, month: number, day: number): string | null {
 }
 
 /**
- * Bir yılda makul en büyük sayı numarası. 2025'te 262 çıktı; 999 rahat bir
- * tavan. Amaç sınırlamak değil, biçim değişikliğini sessiz bozulma yerine
- * gürültülü hataya çevirmek (spec 16).
+ * The largest plausible issue number in a year. 2025 reached 262; 999 is a
+ * comfortable ceiling. The point is not to impose a limit but to turn a format
+ * change into a loud error rather than silent corruption (spec 16).
  */
 const MAX_ISSUE_NUMBER = 999;
 
 /**
- * SAYI hücresinden sayı numarasını okur.
+ * Reads the issue number out of the SAYI cell.
  *
- * Hücre her zaman yalın bir numara DEĞİL: birleşik yayımlanan sayılarda
- * "195/1 195/2 195/3 195/4" gibi çok parçalı oluyor (2018'de iki kez).
- * Eski hâl bütün rakamları yapıştırıyordu — 1.95e+23. Bu sayı `Number.isInteger`
- * denetiminden GEÇİYOR (kesirsiz her kayan nokta sayısı gibi), yani koruma
- * devreye girmeden bigint sütununa çöp yazılacaktı.
+ * The cell is NOT always a bare number: for jointly published issues it comes as
+ * several parts, e.g. "195/1 195/2 195/3 195/4" (twice in 2018). The old code
+ * concatenated all the digits — 1.95e+23. That number PASSES the
+ * `Number.isInteger` check (as every whole-valued float does), so garbage would
+ * have been written to a bigint column with the guard never firing.
  *
- * İlk numarayı alıyoruz: parçalar tek sayının bölümleri ve tek PDF'e bakıyorlar.
+ * We take the first number: the parts are sections of one issue and point at a
+ * single PDF.
  */
 export function parseIssueNumber(raw: string): number | null {
   const match = /\d+/.exec(raw);
@@ -98,8 +100,8 @@ export function parseIssueNumber(raw: string): number | null {
 }
 
 /**
- * Arşiv HTML'ini ayrıştırır. Tablo kolonları: SAYI | TARİH | İÇERİK.
- * Sayı numarası PDF'e link (spec 3.1).
+ * Parses the archive HTML. Table columns: SAYI | TARİH | İÇERİK.
+ * The issue number links to the PDF (spec 3.1).
  */
 export function parseArchiveHtml(html: string, year: number): CrawledIssue[] {
   const $ = cheerio.load(html);
@@ -122,7 +124,7 @@ export function parseArchiveHtml(html: string, year: number): CrawledIssue[] {
       number,
       publishedAt,
       pdfUrl: absolutize(link),
-      // İÇERİK hücresi düz metin dökümü; ayrıştırmanın omurgası bu (spec 3.1).
+      // The İÇERİK cell is a flat text dump; it is the backbone of parsing (spec 3.1).
       rawIndexHtml: cells.eq(2).html() ?? cells.eq(2).text(),
     });
   });
@@ -137,22 +139,23 @@ async function fetchHtml(url: string): Promise<string> {
 }
 
 /**
- * Bir yılın sayı listesini bulur.
+ * Finds the issue list for a year.
  *
- * İÇİNDE BULUNULAN YIL ARŞİV SAYFASINDA DEĞİL. Kaynak site `/ARŞİV/<yıl>`
- * sayfasını yalnızca yıl kapandıktan sonra dolduruyor; yürüyen yılın sayıları
- * ANA SAYFADA duruyor. 2026 için `/ARŞİV/2026` HTTP 200 dönüyor ama içinde tek
- * tablo yok (24 KB'lık boş kabuk), oysa ana sayfada 1–160 arası sayılar aynı
- * `SAYI | TARİH | İÇERİK` yapısıyla listeli. Sitenin arşiv menüsü de 2026'yı
- * hiç saymıyor.
+ * THE CURRENT YEAR IS NOT ON THE ARCHIVE PAGE. The source site only fills in
+ * `/ARŞİV/<year>` once the year has closed; the current year's issues live on the
+ * HOME PAGE. For 2026, `/ARŞİV/2026` returns HTTP 200 but contains no table at
+ * all (a 24 KB empty shell), while the home page lists issues 1-160 with the same
+ * `SAYI | TARİH | İÇERİK` structure. The site's own archive menu does not list
+ * 2026 either.
  *
- * Bu, günlük ingest'i de etkiliyordu: `daily` her gün yürüyen yılı tarıyor,
- * yani boş sayfaya bakıp "hiç sayı bulunamadı" diye hata veriyordu.
+ * This affected the daily ingest too: `daily` crawls the current year every day,
+ * so it was looking at the empty page and failing with "no issues found".
  *
- * Yedek yol KÖR DEĞİL. Ana sayfadan gelen satırlar TARİH sütunundaki yıla göre
- * süzülüyor. Bu şart: süzme olmadan `/ARŞİV/2019` boş çıktığında ana sayfadaki
- * 2026 sayıları 2019 diye kaydedilirdi. Yıl artık istenen değere göre
- * doğrulanıyor, `parseArchiveHtml`in damgaladığı değere göre değil.
+ * The fallback path is NOT BLIND. Rows coming from the home page are filtered by
+ * the year in the TARİH column. That is essential: without the filter, when
+ * `/ARŞİV/2019` came back empty the 2026 issues from the home page would have
+ * been stored as 2019. The year is now validated against the requested value
+ * rather than against whatever `parseArchiveHtml` stamped on it.
  */
 async function findIssues(year: number): Promise<CrawledIssue[]> {
   const url = archiveUrl(year);
@@ -175,9 +178,9 @@ export async function crawlYear(year: number): Promise<{ seen: number; inserted:
   const issues = await findIssues(year);
 
   /*
-   * Sağlık kontrolü — spec 16: kaynak site yapısını değiştirirse ingest sessizce
-   * kırılmasın. Bir yıl için sıfır sayı bulmak normal değil; hata fırlatıyoruz
-   * ki workflow kırmızıya dönsün ve alarm maili gitsin.
+   * Health check — spec 16: if the source site changes its structure, ingest must
+   * not break silently. Finding zero issues for a year is not normal; we throw so
+   * the workflow turns red and an alert email goes out.
    */
   if (issues.length === 0) {
     throw new Error(

@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server';
 import { siteStatus } from '@/lib/db/queries/records';
 
 /**
- * Durum uç noktası — spec 11.2.
+ * The status endpoint — spec 11.2.
  *
- * Statik render'ın donmasını engellemek için var: ana sayfadaki "bugün eklenen
- * N kayıt" satırı ISR ile geliyor ama istemci mount'tan sonra buradan bir kez
- * daha okuyup düzeltiyor. Payload kasıtlı olarak küçük.
+ * It exists to stop static rendering going stale: the "N records added today" line
+ * on the home page comes from ISR, but after mount the client reads from here once
+ * more and corrects it. The payload is deliberately small.
  *
- * Aynı uç nokta ingest sonrası tutarlılık testinde de kullanılıyor (spec 11.3).
+ * The same endpoint is also used in the post-ingest consistency test (spec 11.3).
  */
 export const dynamic = 'force-dynamic';
 

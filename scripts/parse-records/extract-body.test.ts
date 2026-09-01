@@ -3,17 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { extractBody } from './parser';
 
 /**
- * Gövde sınırları — gerçek veride ölçülen hatanın regresyon bekçisi.
+ * Body boundaries — a regression guard for a bug measured on real data.
  *
- * `extractBody` gövdeyi kaydın referansından başlatıp bir sonraki referansta
- * bitiriyor. Bitiş eskiden YALNIZCA içindekiler sırasındaki bir sonraki kaydın
- * etiketine bakıyordu; o etiket PDF metninde bulunamazsa gövde dosyanın sonuna
- * kadar uzuyordu.
+ * `extractBody` starts a body at the record's reference and ends it at the next
+ * reference. The end used to be found by looking ONLY at the label of the next
+ * record in contents order; if that label was not present in the PDF text, the
+ * body ran to the end of the file.
  *
- * 2025+2026 verisinde ölçüldü: 3.646 gövdeli kaydın 184'ü (%5) başka kayıtlara
- * taşıyordu, taşan kayıt başına ortalama 7,9 yabancı referans. Bu metin aramada
- * da indekslendiği için kayıt, kendisiyle ilgisi olmayan kelimelerle
- * bulunabiliyordu.
+ * Measured on 2025+2026 data: of 3,646 records with a body, 184 (5%) spilled into
+ * other records, with an average of 7.9 foreign references per overflowing
+ * record. Since that text is also indexed for search, a record could be found by
+ * words that had nothing to do with it.
  */
 
 const PDF = [
@@ -40,13 +40,14 @@ describe('extractBody', () => {
   });
 
   /*
-   * Asıl hata buydu. Eski kod bitişi yalnızca içindekiler sırasındaki BİR
-   * SONRAKİ kaydın etiketiyle arıyordu. O sıra PDF sırasıyla aynı olmak
-   * zorunda değil: burada içindekiler 2489'dan sonra 2477'yi listeliyor, ama
-   * 2477 PDF'te DAHA ÖNCE geçiyor. Eski kod başlangıçtan sonra onu bulamayıp
-   * gövdeyi dosyanın sonuna kadar uzatıyordu.
+   * This was the actual bug. The old code looked for the end using only the label
+   * of the NEXT record in contents order. That order need not match the PDF
+   * order: here the contents list 2477 after 2489, but 2477 occurs EARLIER in the
+   * PDF. The old code could not find it after the start and stretched the body to
+   * the end of the file.
    *
-   * Artık bitişi en yakın DİĞER referans belirliyor, verilme sırası önemsiz.
+   * The end is now the nearest OTHER reference, regardless of the order they are
+   * given in.
    */
   it('etiketlerin sırası karışık verilse de en yakınında durur', () => {
     const karisik = ['Ü(K-I) 2497-2025', 'Ü(K-I) 2477-2025'];

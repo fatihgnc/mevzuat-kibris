@@ -3,34 +3,34 @@ import type { TopicSlug } from '../../src/lib/constants/topics';
 import { turkishUpper } from '../../src/lib/text/turkish-lower';
 
 /**
- * Sınıflandırma — spec 7.1 adım 5 ve 3.5 tablosu.
+ * Classification — spec 7.1 step 5 and the table in 3.5.
  *
- * Tamamen kural tabanlı. LLM yalnızca özet üretiminde ve orada da kural
- * tutmazsa devreye giriyor (spec 3.8): sınıflandırmayı LLM'e vermek hem
- * pahalı hem de denetlenemez olurdu.
+ * Entirely rule based. The LLM is used only for summary generation, and even
+ * there only when no rule matches (spec 3.8): handing classification to an LLM
+ * would be both expensive and unauditable.
  */
 
 interface DocTypeRule {
   type: DocType;
-  /** Referans tipi eşleşmesi — en güçlü sinyal */
+  /** Reference type match — the strongest signal */
   refTypes?: string[];
-  /** Bölüm eşleşmesi */
+  /** Section match */
   sections?: string[];
-  /** Başlıkta geçmesi gereken ifadelerden biri */
+  /** One of the phrases that must occur in the title */
   keywords?: string[];
 }
 
-/** Sıra önemli: özelden genele, ilk eşleşen kazanır. */
+/** Order matters: specific to general, first match wins. */
 const DOC_TYPE_RULES: DocTypeRule[] = [
   { type: 'duzeltme', keywords: ['DÜZELTME:'] },
   { type: 'rekabet_kurulu_karari', refTypes: ['rekabet'] },
   /*
-   * Rekabet ve Eski Eserler kararları çoğunlukla bir A.E. numarasıyla
-   * yayımlanıyor ve kurul numarası başlığın içinde kalıyor (parser.ts,
-   * birincil/ikincil referans ayrımı). O yüzden referans tipine ek olarak
-   * başlık kalıbına da bakıyoruz.
+   * Competition Board and Antiquities decisions are mostly published under an
+   * A.E. number, with the board's own number left inside the title (parser.ts,
+   * the primary/secondary reference distinction). So in addition to the
+   * reference type we also look at the title pattern.
    */
-  // Kaynak iki biçim kullanıyor: "REKABET KURULU KARARI" ve "... KARAR FORMU".
+  // The source uses two forms: "REKABET KURULU KARARI" and "... KARAR FORMU".
   { type: 'rekabet_kurulu_karari', keywords: ['REKABET KURULU KARAR'] },
   { type: 'eski_eserler_karari', refTypes: ['eskieser'] },
   { type: 'eski_eserler_karari', keywords: ['ESKİ ESERLER YÜKSEK KURULU'] },
@@ -51,30 +51,31 @@ const DOC_TYPE_RULES: DocTypeRule[] = [
     ],
   },
   /*
-   * EK V BÖLÜM I tanımı gereği şirket sicil işlemleri (bkz. SECTION_DESCRIPTION),
-   * EK V BÖLÜM II ise ticaret markaları. Anahtar kelime listesi kaynağın bütün
-   * kalıplarını tutmuyor: 2012 arşivinde kayıtlar doğrudan şirket adıyla
-   * başlıyor ("ALPAR TEKSTİL ... LİMİTED ŞİRKETİ, ..."), 2006'da EK V BÖLÜM II
-   * kayıtlarının M.T. numarası yok. İkisi de 'diger'e düşüyordu. Bölüm zaten
-   * belgenin ne olduğunu söylüyor; kelime kalıbı tutmadığında ona güveniyoruz.
+   * EK V BÖLÜM I is by definition company registry business (see
+   * SECTION_DESCRIPTION), and EK V BÖLÜM II is trade marks. The keyword list
+   * does not cover all of the source's patterns: in the 2012 archive records
+   * begin directly with the company name ("ALPAR TEKSTİL ... LİMİTED ŞİRKETİ,
+   * ..."), and in 2006 the EK V BÖLÜM II records have no M.T. number. Both fell
+   * to 'diger'. The section already says what the document is; when the keyword
+   * pattern does not match, we trust it.
    */
   { type: 'sirket_duyurusu', sections: ['EK_V_B_I'] },
   { type: 'marka_ilani', sections: ['EK_V_B_II'] },
   { type: 'kamulastirma', keywords: ['ZORLA MAL İKTİSABI', 'KAMULAŞTIRMA', 'İSTİMLAK'] },
   { type: 'munhal_ilani', keywords: ['MÜNHAL İLANI', 'MÜNHAL İLAN', 'İLK ATAMA KADROSU'] },
   /*
-   * "NETİCELERİ" eski kullanım ama kaynak hâlâ kullanıyor: 2018'in
-   * "AVUKATLAR YASASI - BARO SINAV NETİCELERİ" kaydı bu kelime olmadan
-   * en sondaki 'YASASI' kuralına düşüp yasa sanılıyordu. EK III kayıtları
-   * "<DAYANAK YASA> - <asıl belge>" diye adlandığı için baştaki yasa adı
-   * sınıflandırmayı kaçırmaya çok müsait.
+   * "NETİCELERİ" is dated usage but the source still uses it: without this word,
+   * 2018's "AVUKATLAR YASASI - BARO SINAV NETİCELERİ" record fell through to the
+   * final 'YASASI' rule and was taken for a law. Because EK III records are named
+   * "<ENABLING LAW> - <actual document>", the leading law name makes it very easy
+   * to miss the classification.
    */
   { type: 'sinav_sonucu', keywords: ['SINAV SONUÇLARI', 'SINAV SONUCU', 'SINAV NETİCELERİ'] },
   { type: 'anayasa_mahkemesi_karari', sections: ['EK_II_B_I'] },
   { type: 'yasa', sections: ['EK_I_B_I'] },
   { type: 'yasa_gucunde_kararname', sections: ['EK_I_B_II'] },
   { type: 'meclis_karari', sections: ['EK_IV_B_II'] },
-  // Kaynak "GÖREVDEN ALINMA KARARNAMESİ" yazıyor; "ALMA" biçimi hiç geçmiyor.
+  // The source writes "GÖREVDEN ALINMA KARARNAMESİ"; the "ALMA" form never occurs.
   {
     type: 'gorevden_alma',
     keywords: ['GÖREVDEN ALINMA', 'GÖREVDEN ALMA', 'GÖREVİNE SON VERİLMESİ'],
@@ -104,7 +105,7 @@ export function classifyDocType(input: {
     if (rule.sections && !rule.sections.includes(input.section)) continue;
     if (rule.keywords && !rule.keywords.some((keyword) => upper.includes(keyword))) continue;
 
-    // Kuralın en az bir koşulu olmalı; koşulsuz kural her şeyi yakalardı.
+    // A rule must have at least one condition; a condition-less rule would catch everything.
     if (rule.refTypes || rule.sections || rule.keywords) return rule.type;
   }
 
@@ -112,11 +113,11 @@ export function classifyDocType(input: {
 }
 
 /**
- * Konu ataması — spec 3.5. Bir kayıt birden fazla konuya ait olabilir.
+ * Topic assignment — spec 3.5. A record may belong to more than one topic.
  *
- * Hem doc_type hem anahtar kelime bakılıyor: doc_type belgenin türünü,
- * anahtar kelime konusunu söylüyor. "Ödenek aktarma" bir Bakanlar Kurulu
- * kararı ama konusu vergi-mali.
+ * Both doc_type and keywords are considered: doc_type says what kind of document
+ * it is, the keywords say what it is about. An appropriation transfer is a
+ * Council of Ministers decision, but its topic is tax and finance.
  */
 const TOPIC_BY_DOC_TYPE: Partial<Record<DocType, TopicSlug[]>> = {
   munhal_ilani: ['munhal'],
@@ -152,18 +153,18 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
       'SİCİLDEN KAYIT SİLİNMESİ',
       'DENİZAŞIRI YABANCI ŞİRKET TESCİLİ',
       'LİMİTED',
-      // Serbest bölgede faaliyet izni — gayrimenkul değil, şirket işlemi.
+      // A free-zone operating permit — company business, not real estate.
       'İŞLETME İZNİ',
     ],
   },
   {
     topic: 'gayrimenkul',
     /*
-     * Kelimeler gerçek arşiv ölçülerek genişletildi. Eski liste fazla dardı:
-     * "TAŞINMAZ MAL SATIN ALMA" arıyordu ama kaynakta çoğunlukla yalın
-     * "TAŞINMAZ" geçiyor, "YOL AYRILMASI" arıyordu ama "KAMU YOLU İLAN
-     * EDİLMESİ" yazıyor. 2025'te 240'tan fazla gayrimenkul kaydı bu yüzden
-     * konusuz kalıyordu.
+     * The word list was widened by measuring the real archive. The old list was
+     * far too narrow: it looked for "TAŞINMAZ MAL SATIN ALMA" while the source
+     * mostly says a bare "TAŞINMAZ", and for "YOL AYRILMASI" while it writes
+     * "KAMU YOLU İLAN EDİLMESİ". That left more than 240 real-estate records in
+     * 2025 with no topic at all.
      */
     keywords: [
       'TAŞINMAZ',
@@ -197,12 +198,12 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
       'ZORUNLU KARŞILIK',
       'GÜMRÜK',
       /*
-       * Bakanlar Kurulu kararlarının büyük bölümü kamu harcaması: masraf ve
-       * gider karşılama, katkı, muafiyet, devlet kefaleti. Hepsi mali karar
-       * ama hiçbiri eski listeye uymuyordu.
+       * Most Council of Ministers decisions are public spending: covering costs
+       * and expenses, contributions, exemptions, state guarantees. All are
+       * financial decisions, and none of them fitted the old list.
        *
-       * "GİDERLER" bilerek çoğul: yalın "GİDER" öneki "GİDERİLMESİ" gibi
-       * ilgisiz sözcükleri de yakalardı.
+       * "GİDERLER" is plural deliberately: a bare "GİDER" prefix would also catch
+       * unrelated words such as "GİDERİLMESİ".
        */
       'MASRAF',
       'GİDERLER',
@@ -219,9 +220,9 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
   {
     topic: 'atama',
     /*
-     * 'GÖREVLENDİR' öneki bilerek: kaynak 'GÖREVLENDİRME' kadar sık
-     * 'GÖREVLENDİRİLECEK' / 'GÖREVLENDİRİLMESİ' de yazıyor ve tam sözcük
-     * araması bunları kaçırıyordu.
+     * The 'GÖREVLENDİR' prefix is deliberate: the source writes
+     * 'GÖREVLENDİRİLECEK' / 'GÖREVLENDİRİLMESİ' as often as 'GÖREVLENDİRME', and
+     * a whole-word search was missing those.
      */
     keywords: [
       'SÖZLEŞMELİ PERSONEL',
@@ -235,11 +236,12 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
   {
     topic: 'yurttaslik',
     /*
-     * 'YURTTAŞL' öneki ŞART. Kaynakta üç yazım var ve ikisi hatalı:
+     * The 'YURTTAŞL' prefix is ESSENTIAL. The source has three spellings and two
+     * of them are wrong:
      *   YURTTAŞLIĞINA ALINMASI   525
-     *   YURTTAŞLAĞINA ALINMASI    29   (kaynaktaki yazım hatası)
+     *   YURTTAŞLAĞINA ALINMASI    29   (a typo in the source)
      *   YURTTAŞLIĞNA ALINMASI      1
-     * 'YURTTAŞLIĞINA' aransaydı 30 kayıt kaçardı.
+     * Searching for 'YURTTAŞLIĞINA' would have missed 30 records.
      */
     keywords: ['YURTTAŞL'],
   },
@@ -257,8 +259,9 @@ export function classifyTopics(input: { title: string; docType: DocType }): Topi
 }
 
 /**
- * Kişisel veri işareti — spec 3.7 madde 2.
- * Bu kayıtlarda gövde metni render edilmiyor, orijinal PDF'e yönlendiriliyor.
+ * Personal-data flag — spec 3.7 rule 2.
+ * The body text of these records is not rendered; the user is sent to the
+ * original PDF instead.
  */
 export function detectPersonalData(input: { title: string; docType: DocType }): boolean {
   if (input.docType === 'sinav_sonucu') return true;

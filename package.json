@@ -28,6 +28,7 @@
     "revalidate": "tsx scripts/revalidate/index.ts",
     "db:migrate": "tsx scripts/migrate/index.ts",
     "reclassify": "tsx scripts/reclassify/index.ts",
+    "summarize": "tsx scripts/summarize/index.ts",
     "db:seed": "tsx scripts/seed/index.ts",
     "db:reset": "tsx scripts/migrate/index.ts --reset && tsx scripts/seed/index.ts"
   },

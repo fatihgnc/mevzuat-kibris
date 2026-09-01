@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const KINDS: EntityKind[] = ['institution', 'company', 'place'];
 
-/** Filtre rayındaki "kurum ara" / "yer ara" kutularını besler (artboard 1b). */
+/** Feeds the "search institution" / "search place" boxes in the filter rail (artboard 1b). */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = (url.searchParams.get('q') ?? '').trim();

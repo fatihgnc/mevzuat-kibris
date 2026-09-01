@@ -2,12 +2,12 @@ import type { Token, TokenLevel } from '@/types/record';
 import { normalizeForSearch } from '@/lib/text/turkish-lower';
 
 /**
- * Vurgulama — spec 5.4 adım 6 ve artboard 1b.
+ * Highlighting — spec 5.4 step 6 and artboard 1b.
  *
- * ts_headline'a HTML yerine kendi ayraçlarımızı veriyoruz. Gazete metni içinde
- * <b> gibi bir dizgeye rastlama ihtimali sıfır değil ve HTML ayrıştırmak
- * dangerouslySetInnerHTML gerektirirdi; kontrol karakteri + split ile jeton
- * üretmek hem güvenli hem de tasarımın jeton modeline birebir oturuyor.
+ * We give ts_headline our own delimiters instead of HTML. The chance of hitting a
+ * string like <b> inside gazette text is not zero, and parsing HTML would require
+ * dangerouslySetInnerHTML; producing tokens with a control character plus split
+ * is both safe and an exact fit for the design's token model.
  */
 export const HEADLINE_START = '\u0001';
 export const HEADLINE_STOP = '\u0002';
@@ -22,9 +22,9 @@ export const HEADLINE_OPTIONS = [
 ].join(', ');
 
 /**
- * ts_headline çıktısını jetonlara böler. Eşleşen parçalar seviye 3 (sarı zemin),
- * gerisi alıntı seviyesi. Alıntıda maskeleme yok: gövde metni okunur kalmalı,
- * yalnızca eşleşme öne çıkmalı.
+ * Splits ts_headline output into tokens. Matching fragments get level 3 (yellow
+ * background), the rest get the excerpt level. There is no masking in an excerpt:
+ * body text must stay readable, and only the match should stand out.
  */
 export function parseHeadline(headline: string | null | undefined): Token[] | null {
   if (!headline) return null;
@@ -56,11 +56,12 @@ export function parseHeadline(headline: string | null | undefined): Token[] | nu
 }
 
 /**
- * Maskelenmiş başlık üzerine arama eşleşmesini bindirir.
+ * Overlays the search match onto a masked title.
  *
- * Maske seviyesi korunmaz, eşleşen parça seviye 3 olur: tasarımda sarı zemin
- * her zaman en üstte, çünkü kullanıcının aradığı şeyin nerede geçtiğini görmesi
- * kalıp/ayırt edici ayrımından daha önemli.
+ * The mask level is not preserved; a matching fragment becomes level 3. In the
+ * design the yellow background is always on top, because seeing where the thing
+ * you searched for occurs matters more than the boilerplate/distinctive
+ * distinction.
  */
 export function overlayMatches(tokens: Token[], query: string): Token[] {
   const terms = matchTerms(query);
@@ -88,9 +89,9 @@ export function overlayMatches(tokens: Token[], query: string): Token[] {
 }
 
 /**
- * Aranabilir terimler. Tırnaklı ifadeler bütün olarak, gerisi sözcük sözcük.
- * Üç harften kısa sözcükler atılıyor: "ve", "bir" gibi bağlaçları vurgulamak
- * satırı okunmaz hale getiriyor.
+ * Searchable terms. Quoted phrases stay whole, everything else goes word by
+ * word. Words shorter than three letters are dropped: highlighting conjunctions
+ * like "ve" or "bir" makes the line unreadable.
  */
 function matchTerms(query: string): string[] {
   const terms: string[] = [];
@@ -124,12 +125,12 @@ const FOLD: Record<string, string> = {
 };
 
 /**
- * Uzunluğu bozmadan küçült + aksan düşür.
+ * Lowercase and strip accents without changing the length.
  *
- * normalizeForSearch boşlukları da sıkıştırdığı için indeksleri kaydırır ve
- * burada kullanılamaz — vurgulama aralıkları orijinal metnin indekslerine
- * karşılık gelmek zorunda. Birleşen nokta boşlukla değiştiriliyor (silinmiyor)
- * ki karakter sayısı sabit kalsın.
+ * normalizeForSearch also collapses whitespace, which shifts indices and makes it
+ * unusable here — highlight ranges have to line up with indices into the original
+ * text. The combining dot is replaced by a space (not removed) so the character
+ * count stays fixed.
  */
 function foldPreservingLength(text: string): string {
   return text
@@ -138,7 +139,7 @@ function foldPreservingLength(text: string): string {
     .replace(/[çğıöşüâîû]/g, (ch) => FOLD[ch] ?? ch);
 }
 
-/** Eşleşme aralıklarını bulur; indeksler orijinal metne aittir. */
+/** Finds the match ranges; the indices refer to the original text. */
 function findRanges(text: string, terms: string[]): Array<[number, number]> {
   const haystack = foldPreservingLength(text);
   const ranges: Array<[number, number]> = [];
@@ -149,7 +150,7 @@ function findRanges(text: string, terms: string[]): Array<[number, number]> {
       const index = haystack.indexOf(term, from);
       if (index === -1) break;
 
-      // Sözcük başında mı — "ihale" araması "muhalefet" içinde vurgulanmasın.
+      // At a word start — searching "ihale" must not highlight inside "muhalefet".
       const before = index === 0 ? ' ' : (haystack[index - 1] ?? ' ');
       if (/[a-z0-9]/.test(before)) {
         from = index + 1;
@@ -177,30 +178,32 @@ function findRanges(text: string, terms: string[]): Array<[number, number]> {
 }
 
 /**
- * Jeton seviyesini sınıf adına çevirir.
+ * Maps a token level to a class name.
  *
- * Sınıflar TAM METİN olarak yazılı; 'tok-' + level gibi birleştirilmiyor.
- * Tailwind içerik taraması kaynak dosyalarda sınıf adını birebir arıyor,
- * dinamik birleştirilen adları göremiyor ve kuralları eleyip atıyor. Maskeleme
- * bu yüzden sayfada hiç görünmüyordu: bütün jetonlar aynı ağırlıkta basılıyordu.
+ * The classes are written out IN FULL; they are not composed as 'tok-' + level.
+ * Tailwind's content scan looks for the class name verbatim in the source files,
+ * cannot see dynamically composed names, and strips those rules. That is why the
+ * masking never appeared on the page at all: every token rendered at the same
+ * weight.
  */
 /*
- * Seviye 0 eskiden `text-ink-placeholder` idi: beyaz üstünde 2.2:1, yani
- * okunmuyordu. Kalıp sözcükler geri plana düşmeli ama METİN, ve bütün metin
- * okunabilir olmak zorunda. Tamamı kalıp sayılan bir başlık ("SÖZLEŞMELİ
- * PERSONEL") tümüyle o renge düşünce satır tamamen kayboluyordu.
+ * Level 0 used to be `text-ink-placeholder`: 2.2:1 on white, i.e. unreadable.
+ * Boilerplate words should recede, but they are TEXT, and all text has to be
+ * readable. When a title counted as entirely boilerplate ("SÖZLEŞMELİ PERSONEL")
+ * dropped to that colour, the whole line disappeared.
  *
- * Ayrım artık renkten çok AĞIRLIKLA kuruluyor: 0 ile 1 arasında font-light ile
- * font-semibold farkı var ve ikisi de okunabilir tonda.
+ * The distinction is now carried by WEIGHT more than colour: between 0 and 1
+ * there is a font-light / font-semibold difference, and both are in a readable
+ * tone.
  */
 const MASK_CLASS: Record<TokenLevel, string> = {
-  0: 'font-light text-ink-fainter', // kalıp — 4.9:1
-  1: 'font-semibold text-ink', //          ayırt edici
+  0: 'font-light text-ink-fainter', // boilerplate — 4.9:1
+  1: 'font-semibold text-ink', //          distinctive
   2: 'font-normal text-ink-muted', //      ara bilgi
-  3: 'rounded-sm bg-mark font-semibold text-ink', // arama eşleşmesi
+  3: 'rounded-sm bg-mark font-semibold text-ink', // search match
 };
 
-/** Alıntıda maskeleme yok; yalnızca eşleşme vurgulanıyor. */
+/** No masking in an excerpt; only the match is highlighted. */
 const QUOTE_CLASS: Record<TokenLevel, string> = {
   0: 'font-normal text-ink-muted',
   1: 'font-normal text-ink-muted',

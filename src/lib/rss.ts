@@ -5,12 +5,12 @@ import type { RecordListItem } from '@/types/record';
 /**
  * RSS — spec 10.4.
  *
- * E-posta kotasından bağımsız, sınırsız ve sıfır maliyetli bildirim kanalı.
- * Ücretsiz ürün modelinde bu onu ikincil bir özellik olmaktan çıkarıyor;
- * tasarımda da e-postayla eşit ağırlıkta sunuluyor.
+ * A notification channel independent of the email quota: unlimited and free. In a
+ * free product model that makes it more than a secondary feature; the design gives
+ * it equal weight with email.
  *
- * Başlıkta özet cümle kullanılıyor — liste, detay, e-posta ve RSS aynı metni
- * gösteriyor (spec 3.8 kural 4).
+ * The headline uses the summary sentence — the list, detail page, email and RSS all
+ * show the same text (spec 3.8 rule 4).
  */
 function escapeXml(value: string): string {
   return value
@@ -88,7 +88,7 @@ export function rssResponse(body: string): Response {
   return new Response(body, {
     headers: {
       'Content-Type': 'application/rss+xml; charset=utf-8',
-      // Akış okuyucular sık çekiyor; bir saat cache yeterli ve kaynak tasarrufu.
+      // Feed readers poll often; an hour of caching is enough and saves resources.
       'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
     },
   });

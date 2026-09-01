@@ -66,9 +66,9 @@ export default async function IssueYearPage({ params }: Props) {
         <p className="mt-3 text-base text-ink-muted">{issues.length} sayı</p>
 
         {/*
-         * Bir yılın ortalama metin kalitesi 0.6'nın altındaysa kullanıcıya
-         * söylüyoruz (spec 7.2). Sessizce kötü metin sunmak, yanlış sonuç
-         * döndüren bir aramadan daha çok güven kaybettirir.
+         * If a year's average text quality is below 0.6 we tell the user (spec 7.2).
+         * Serving bad text silently costs more trust than a search returning a wrong
+         * result.
          */}
         {quality !== null && quality < 0.6 ? (
           <p className="mt-4 rounded border border-notice-border bg-notice px-3.5 py-2.5 text-base text-notice-ink">

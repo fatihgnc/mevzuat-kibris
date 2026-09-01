@@ -1,41 +1,41 @@
 /**
- * Marka, domain ve kapsam için TEK kaynak (spec 8.4).
+ * THE single source for brand, domain and coverage (spec 8.4).
  *
- * Hiçbir bileşen marka adını, domaini ya da arşiv başlangıç yılını sabit metin
- * olarak yazmaz. Kapsam iddiası sayfadan sayfaya değişirse, kullanıcı kapsam dışı
- * bir yılı aratıp boş sonuç aldığında güven tek seferde biter.
+ * No component hardcodes the brand name, the domain or the archive start year. If
+ * the coverage claim varies from page to page, trust ends the moment a user
+ * searches a year outside coverage and gets nothing.
  */
 
 export const SITE_NAME = 'Mevzuat Kıbrıs';
 export const SITE_TAGLINE = 'KKTC Resmî Gazete arama ve takip';
 export const SITE_KICKER = 'bağımsız arşiv';
 
-/** Preview deployment'larda kendi origin'ini kullan; canonical üretimi buradan tek noktadan akar. */
+/** On preview deployments use their own origin; canonical generation flows from this one point. */
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || 'https://mevzuatkibris.com'
 ).replace(/\/$/, '');
 
 /**
- * Arşivin başladığı yıl.
+ * The year the archive starts.
  *
- * DİKKAT — tasarım artboard'ı bu değeri 1975 olarak gösteriyor (Kıbrıs Türk Federe
- * Devleti dönemi dahil iddiasıyla). Spec 3.1 ise kaynak arşivin basimevi.gov.ct.tr
- * üzerinde 2006'dan itibaren yayımlandığını söylüyor ve spec 8.4 kapsam yılının
- * gerçeğe uygun olmasını açıkça şart koşuyor. Elimizde 2006 öncesi veri yok, o yüzden
- * 2006 yazıyor. Backfill daha geriye giderse yalnızca bu satır değişir; bütün sayfalar,
- * arama boş-sonuç mesajı ve ana sayfa metni buradan besleniyor.
+ * CAUTION — the design artboard shows this as 1975 (claiming to include the
+ * Turkish Federated State of Cyprus period). Spec 3.1, however, says the source
+ * archive has been published on basimevi.gov.ct.tr from 2006 onward, and spec 8.4
+ * explicitly requires the coverage year to be truthful. We hold no pre-2006 data,
+ * so it says 2006. If backfill reaches further back, only this line changes; every
+ * page, the empty-search message and the home page copy all feed from here.
  */
 export const ARCHIVE_START_YEAR = 2006;
 
-/** Kaynak site — her kayıt sayfasında orijinale link verilir (spec 3.6). */
+/** The source site — every record page links back to the original (spec 3.6). */
 export const SOURCE_NAME = 'KKTC Resmî Gazete';
 export const SOURCE_BASE_URL = 'https://basimevi.gov.ct.tr';
 
 export const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'iletisim@mevzuatkibris.com';
 
 /**
- * Preview ve non-production deployment'lar indekslenmez (spec 8.4).
- * Vercel production dışındaki her ortam noindex.
+ * Preview and non-production deployments are not indexed (spec 8.4).
+ * Every environment other than Vercel production is noindex.
  */
 export const IS_PRODUCTION_DEPLOY =
   process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ||
@@ -43,22 +43,22 @@ export const IS_PRODUCTION_DEPLOY =
 
 export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || '';
 
-/** Liste sayfalarında sayfa başına kayıt. Tasarımdaki sayfalama bu değere göre. */
+/** Records per page on list pages. The design's pagination is built around this value. */
 export const PAGE_SIZE = 20;
 
 /**
- * Kaynak siteye kendini tanıtan User-Agent (spec 3.6).
+ * The self-identifying User-Agent sent to the source site (spec 3.6).
  *
- * SADECE ASCII — pazarlık konusu değil. HTTP başlık değerleri ByteString, yani
- * karakter başına en fazla 255. Marka adı olduğu gibi konunca ("Mevzuat Kıbrıs")
- * fetch daha isteği kurmadan patlıyordu:
+ * ASCII ONLY — not negotiable. HTTP header values are ByteStrings, i.e. at most
+ * 255 per character. Putting the brand name in verbatim ("Mevzuat Kıbrıs") made
+ * fetch fail before the request was even constructed:
  *
  *   TypeError: Cannot convert argument to a ByteString because the character
  *   at index 9 has a value of 305 which is greater than 255      ('ı')
  *
- * Bu hata politeFetch'in yeniden deneme döngüsüne yakalanıp sıradan bir ağ
- * hatası gibi görünüyordu; yani ingest boru hattı hiçbir zaman tek bir istek
- * bile atamazdı. Marka adını buraya bağlama, aksanları elle düşür.
+ * That error was caught by politeFetch's retry loop and looked like an ordinary
+ * network failure; the ingest pipeline could never have sent a single request. Do
+ * not wire the brand name in here — strip the accents by hand.
  */
 export const CRAWLER_USER_AGENT =
   'MevzuatKibris arsiv botu (+' + SITE_URL + '/hakkinda; ' + CONTACT_EMAIL + ')';

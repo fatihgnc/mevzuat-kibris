@@ -7,11 +7,11 @@ import { TR_WEEKDAYS } from '@/lib/text/dates';
 import type { AlertRow } from '@/types/alert';
 
 /**
- * Takip yönetimi — artboard 1h adım 4.
+ * Follow management — artboard 1h step 4.
  *
- * Sıklık satırında kullanıcının kendi günü yazıyor, sabit "pazartesi" değil
- * (spec 10.3 madde 2). Dağıtımın anlamı bu; herkese aynı günü göstermek
- * verilen sözü tutmamak olur.
+ * The frequency row shows the user's own day, not a fixed "pazartesi" (spec 10.3
+ * rule 2). That is the whole point of spreading the load; showing everyone the same
+ * day would break the promise made.
  */
 export function AlertList({ alerts }: { alerts: AlertRow[] }) {
   const router = useRouter();

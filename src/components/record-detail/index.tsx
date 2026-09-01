@@ -17,10 +17,10 @@ import { formatDateLong, formatDateShort, isDeadlinePassed } from '@/lib/text/da
 import type { RecordDetail as RecordDetailType } from '@/types/record';
 
 /**
- * Kayıt sayfası gövdesi — artboards 1a (metni var) ve 1g (metni yok).
+ * The record page body — artboards 1a (text present) and 1g (text missing).
  *
- * İki artboard aynı iskelet: künye, ham başlık kutusu, meta şerit, eylemler,
- * sonra iki sütun. Fark yalnızca gövde bloğunda. Bu yüzden tek bileşen, iki dal.
+ * Both artboards share a skeleton: meta line, raw title box, meta bar, actions,
+ * then two columns. Only the body block differs. Hence one component, two branches.
  */
 export function RecordDetail({ record }: { record: RecordDetailType }) {
   const primaryTopic = record.topics[0] ? TOPICS[record.topics[0]] : null;
@@ -34,7 +34,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
 
   return (
     <article>
-      {/* Künye şeridi — konu · belge türü · tarih */}
+      {/* The meta line — topic · document type · date */}
       <div className="mb-[18px] flex flex-wrap items-center gap-2.5 text-sm text-ink-muted">
         {primaryTopic ? (
           <Link
@@ -55,9 +55,9 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
       </h1>
 
       {/*
-       * Özetin üretilmiş olduğunu açıkça söylüyoruz (spec 3.8). Kullanıcı h1'de
-       * gördüğü cümlenin gazetede yazmadığını bilmeli; hemen altındaki kutuda da
-       * gazetenin kendi başlığı duruyor.
+       * We say plainly that the summary was generated (spec 3.8). The user must
+       * know the sentence they see in the h1 is not what the gazette says; the box
+       * immediately below carries the gazette's own title.
        */}
       {record.summary ? (
         <p className="mt-3 flex items-center gap-2 text-xs text-ink-faint">
@@ -120,9 +120,9 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
               ) : null}
 
               {/*
-               * Kişisel veri içeren kayıtlarda gövde render edilmiyor (spec 3.7
-               * madde 2): sınav sonuç listeleri ve benzeri belgeleri aranabilir
-               * bir kişi dizinine çevirmek istemiyoruz.
+               * The body is not rendered for records containing personal data (spec
+               * 3.7 rule 2): we do not want to turn exam result lists and similar
+               * documents into a searchable index of people.
                */}
               {record.hasPersonalData ? (
                 <PersonalDataNotice pdfUrl={record.issue.pdfUrl} />
@@ -169,7 +169,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             />
           ) : null}
 
-          {/* Reklam yalnızca içerik bittikten sonra (spec 14.4). */}
+          {/* Ads only after the content has ended (spec 14.4). */}
           <AdSlot kind="in-article" slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE} className="mt-8" />
         </div>
 
@@ -201,12 +201,12 @@ function Divider() {
 }
 
 /**
- * Gövde metni çıkarılamamış kayıt — artboard 1g.
+ * A record whose body text could not be extracted — artboard 1g.
  *
- * Tasarımın kararı: özür dilemek yerine ne olduğunu söylemek ve kaydın
- * geçerliliğini vurgulamak. Künye doğru, gazete yeri doğru; eksik olan yalnızca
- * gövde. Yeniden deneme sözü de veriliyor ve bunun kodda karşılığı var
- * (spec 7.2 yeniden deneme kuyruğu).
+ * The design's decision: state what happened rather than apologise, and emphasise
+ * that the record is still valid. The meta line is right, the gazette location is
+ * right; only the body is missing. A promise to retry is made too, and it is
+ * backed by code (spec 7.2's retry queue).
  */
 function MissingTextCard({ record }: { record: RecordDetailType }) {
   const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
@@ -303,9 +303,9 @@ function RelatedBlock({
 }
 
 /**
- * Gövde metnini paragraflara böler. PDF dökümünde satır sonları sözcük ortasında
- * olabiliyor, o yüzden tek satır sonu boşluğa çevriliyor; paragraf ayracı olarak
- * yalnızca boş satır sayılıyor.
+ * Splits the body text into paragraphs. In the PDF dump line breaks can fall
+ * mid-word, so a single line break becomes a space; only a blank line counts as a
+ * paragraph separator.
  */
 function splitParagraphs(text: string): string[] {
   return text

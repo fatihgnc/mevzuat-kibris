@@ -4,21 +4,21 @@ import { Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 /**
- * Açık/koyu tema anahtarı — başlıkta.
+ * The light/dark theme switch — in the header.
  *
- * Temayı `document.documentElement` üzerindeki `data-theme` özniteliği taşıyor
- * ve bütün renkler CSS değişkenlerinden geldiği için tek satır her şeyi
- * çeviriyor (globals.css).
+ * The theme is carried by the `data-theme` attribute on
+ * `document.documentElement`, and because every colour comes from CSS variables a
+ * single line flips everything (globals.css).
  *
- * İlk değeri BURASI belirlemiyor: layout'taki satır içi betik, sayfa
- * boyanmadan önce özniteliği kuruyor. Bu bileşen yalnızca o kararı okuyup
- * değiştiriyor. Sıra tersine olsaydı sayfa önce açık temayla boyanır, sonra
- * koyuya atlardı.
+ * THIS is not what sets the initial value: an inline script in the layout sets the
+ * attribute before the page paints. This component only reads and changes that
+ * decision. In the reverse order the page would paint light first and then jump to
+ * dark.
  *
- * `mounted` bekçisi hidrasyon uyuşmazlığını önlüyor: sunucu hangi temanın
- * seçili olduğunu bilemez (localStorage ve işletim sistemi tercihi yalnızca
- * tarayıcıda), o yüzden ilk render'da ikon yerine aynı boyutta boş bir kutu
- * basılıyor ve düzen zıplamıyor.
+ * The `mounted` guard prevents a hydration mismatch: the server cannot know which
+ * theme is selected (localStorage and the OS preference exist only in the
+ * browser), so on the first render an empty box of the same size is emitted
+ * instead of the icon and the layout does not jump.
  */
 const STORAGE_KEY = 'tema';
 
@@ -41,13 +41,14 @@ export function ThemeToggle() {
     document.documentElement.dataset.theme = next;
 
     /*
-     * Seçim kalıcı. try/catch şart: gizli sekmede ve site verisi engelliyken
-     * localStorage'a yazmak istisna atıyor ve tema değişimini götürürdü.
+     * The choice persists. The try/catch is essential: in a private window, or with
+     * site data blocked, writing to localStorage throws and would take the theme
+     * switch down with it.
      */
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // Saklanamadıysa tema yine de bu sekmede geçerli; sessizce devam.
+      // If it could not be stored, the theme still applies in this tab; carry on silently.
     }
   }
 
@@ -60,37 +61,37 @@ export function ThemeToggle() {
       aria-label={label}
       title={label}
       /*
-       * aria-pressed yerine aria-label: bu bir açma/kapama değil, iki durum
-       * arasında geçiş. Ekran okuyucuya "koyu tema açık mı" değil, "basınca ne
-       * olacak" söylemek daha anlaşılır.
+       * aria-label rather than aria-pressed: this is not a toggle but a switch
+       * between two states. Telling a screen reader "what will happen if you press
+       * this" is clearer than "is dark theme on".
        */
       /*
-       * Boyut, yanındaki "Ara" butonuyla birebir aynı olmak zorunda ve o buton
-       * yüksekliğini arama GİRDİSİNDEN alıyor (form `flex`, hizalama stretch).
-       * Girdinin dış kutusu `border px-3 py-2 text-md`, yani:
+       * The size has to match the "Ara" button next to it exactly, and that button
+       * takes its height from the search INPUT (the form is `flex`, alignment
+       * stretch). The input's box is `border px-3 py-2 text-md`, i.e.:
        *
-       *     2px kenarlık + 1rem dikey dolgu + 15px × 1.55 satır yüksekliği
+       *     2px border + 1rem vertical padding + 15px x 1.55 line height
        *
-       * Aşağıdaki calc tam olarak bu; sayı uydurulmadı, aynı jetonlardan
-       * türetildi. 2px terimi GİRDİNİN kenarlığı — bu butonun kendi kenarlığı
-       * yok, ama toplam yüksekliğin girdiyle eşleşmesi için sayılması gerekiyor.
-       * `aspect-square` genişliği yükseklikten alıyor.
+       * The calc below is exactly that; the number was not invented but derived
+       * from the same tokens. The 2px term is THE INPUT's border — this button has
+       * no border of its own, but it has to be counted for the total height to
+       * match the input. `aspect-square` takes the width from the height.
        *
-       * Kenarlık KALDIRILDI (ürün sahibinin kararı): dolu teal "Ara" butonunun
-       * yanında çerçeveli bir kutu, ölçüleri birebir aynı olsa bile farklı bir
-       * nesne gibi okunuyor ve hizasız duruyordu. Geri bildirim artık hover'da
-       * zemin rengiyle veriliyor.
+       * The border was REMOVED (the product owner's decision): next to the solid
+       * teal "Ara" button, a framed box read as a different kind of object and
+       * looked misaligned even with identical measurements. Feedback now comes from
+       * a background colour on hover.
        *
-       * `self-stretch` denendi ve yükseklik doğru geliyor ama genişlik içerik
-       * kadar (19px) kalıyor: esnetmeyle gelen yükseklik `aspect-ratio` için
-       * belirli sayılmıyor. Açık yükseklik verilince oran çalışıyor.
+       * `self-stretch` was tried and gives the right height, but the width stays at
+       * content size (19px): a height that comes from stretching does not count as
+       * definite for `aspect-ratio`. With an explicit height the ratio works.
        */
       className='inline-flex aspect-square h-[42px] shrink-0 items-center justify-center rounded p-0 text-ink-muted transition-colors hover:text-ink'
     >
       {/*
-        İkon boyutu kutuyla birlikte büyüdü. Kutu 36px'ken ikon 17px'ti (%47);
-        kutu "Ara" ile eşitlenip 41px olunca 17px ikon kutunun içinde kaybolup
-        boş bir çerçeve gibi duruyordu. 20px aynı oranı (%48) koruyor.
+        The icon grew with the box. At a 36px box the icon was 17px (47%); once the
+        box was matched to "Ara" at 41px, a 17px icon was lost inside it and the
+        control looked like an empty frame. 20px preserves the same ratio (48%).
       */}
       {mounted ? (
         theme === 'dark' ? (

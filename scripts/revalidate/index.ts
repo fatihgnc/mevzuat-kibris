@@ -1,32 +1,32 @@
 import { SITE_URL } from '../../src/lib/seo/config';
 
-// Bu betik veritabanına dokunmuyor, yani env'i kendisi yüklemeli.
+// This script never touches the database, so it has to load env itself.
 import '../shared/env';
 import { log } from '../shared/logger';
 
 /**
- * Aşama 8 — Next.js on-demand revalidation tetikle (spec 7.1, 11.2).
+ * Stage 8 — trigger Next.js on-demand revalidation (spec 7.1, 11.2).
  *
- * Etkilenen tüm tag'ler tek istekte gidiyor. Bu çağrı başarısız olursa
- * ingest'i durdurmuyoruz ama gürültülü biçimde logluyoruz: sayfalar bir
- * sonraki ISR penceresinde zaten tazelenecek, sadece geç.
+ * Every affected tag goes in a single request. If this call fails we do not stop
+ * the ingest, but we log it loudly: the pages will refresh in the next ISR window
+ * anyway, just later.
  */
 /**
- * Revalidation hedefi — env ÇAĞRI ANINDA okunuyor, modül yüklenirken değil.
+ * The revalidation target — env is read AT CALL TIME, not at module load.
  *
- * `seo/config.ts`'teki `SITE_URL` sabiti değerlendirildiği anda
- * `process.env.NEXT_PUBLIC_SITE_URL`'i okuyor. Betiklerde import zinciri
- * (`crawl-archive` → `shared/http` → `seo/config`) o modülü, dotenv'i
- * yükleyen `shared/db`'den ÖNCE değerlendiriyor. Sonuç: `.env.local`'de
- * `http://localhost:3000` yazılı olmasına rağmen sabit üretim domainine
- * donuyor.
+ * The `SITE_URL` constant in `seo/config.ts` reads
+ * `process.env.NEXT_PUBLIC_SITE_URL` the moment it is evaluated. In scripts the
+ * import chain (`crawl-archive` -> `shared/http` -> `seo/config`) evaluates that
+ * module BEFORE `shared/db`, which loads dotenv. The result: the constant freezes
+ * to the production domain even though `.env.local` says
+ * `http://localhost:3000`.
  *
- * Zararsız değil: domain yayına girdiğinde yerelde çalıştırılan her ingest
- * ÜRETİMİN revalidate endpoint'ini vurur. Sırlar aynıysa yerel bir deneme
- * üretimin önbelleğini temizler.
+ * That is not harmless: once the domain is live, every ingest run locally would
+ * hit PRODUCTION's revalidate endpoint. If the secrets match, a local experiment
+ * would purge production's cache.
  *
- * Buradaki okuma import sırasından bağımsız; `SITE_URL` yalnızca env hiç
- * verilmemişse yedek.
+ * The read here is independent of import order; `SITE_URL` is only a fallback for
+ * when env was never provided at all.
  */
 function revalidateBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL;
@@ -61,7 +61,7 @@ export async function triggerRevalidate(payload: {
     const data = (await response.json()) as { revalidated?: string[] };
     log.info('revalidation tamam', { count: data.revalidated?.length ?? 0, target });
   } catch (error) {
-    // `target` şart: hedefsiz "fetch failed" ağ hatası mı yanlış adres mi ayırt ettirmiyor.
+    // `target` is essential: a bare "fetch failed" cannot tell a network error from a wrong address.
     log.error('revalidation isteği başarısız', { message: String(error), target });
   }
 }

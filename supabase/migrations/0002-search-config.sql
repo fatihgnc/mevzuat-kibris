@@ -1,41 +1,41 @@
--- 0002 — Türkçe text search configuration
+-- 0002 — Turkish text search configuration
 --
--- ÖNEMLİ SAPMA: spec 5.2 `unaccent + rg_syn + turkish_stem` zinciri öneriyor ve
--- 5.1'de "PostgreSQL Türkçe stemmer'ı hazır getiriyor" diyor. Bu varsayım bu
--- korpusta ölçüldü ve TUTMADI.
+-- MAJOR DEVIATION: spec 5.2 proposes the `unaccent + rg_syn + turkish_stem` chain and
+-- 5.1 says "PostgreSQL ships a Turkish stemmer". That assumption was measured
+-- against this corpus and DID NOT HOLD.
 --
--- turkish_stem (snowball) ünlüyle biten gövdeleri aşırı kırpıyor ve iyelik ekini
--- yarım bırakıyor. Ölçülen örnekler:
+-- turkish_stem (snowball) over-trims stems ending in a vowel and leaves the
+-- possessive suffix half-cut. Measured examples:
 --
---   yasa     -> 'yas'      yasanın -> 'yasa'     yasası -> 'yasas'   (üçü ayrı)
---   ihale    -> 'ihal'     ihaleye -> 'ihale'                        (ayrı)
---   arsa     -> 'ar'       arsası  -> 'arsas'                        (ayrı)
---   fon      -> 'fon'      fonu    -> 'fo'                           (ayrı)
---   tasfiye  -> 'tasfi'    tasfiyesi -> 'tasfiyes'                   (ayrı)
---   emirname -> 'emirna'   emirnamesi -> 'emirnames'                 (ayrı)
+--   yasa     -> 'yas'      yasanın -> 'yasa'     yasası -> 'yasas'   (all three differ)
+--   ihale    -> 'ihal'     ihaleye -> 'ihale'                        (differ)
+--   arsa     -> 'ar'       arsası  -> 'arsas'                        (differ)
+--   fon      -> 'fon'      fonu    -> 'fo'                           (differ)
+--   tasfiye  -> 'tasfi'    tasfiyesi -> 'tasfiyes'                   (differ)
+--   emirname -> 'emirna'   emirnamesi -> 'emirnames'                 (differ)
 --
--- Ayrıca unaccent'i stemmer'dan ÖNCE koymak stemmer'ı bozuyor: snowball Türkçe
--- eki tanımak için ünlü uyumuna bakıyor, ı/i ve ü/u ayrımı silinince ek tanınmaz
--- oluyor (münhaller -> 'munhaller', tüzüğü -> 'tuzugu').
+-- Putting unaccent BEFORE the stemmer also breaks the stemmer: snowball relies on
+-- vowel harmony to recognise a Turkish suffix, and once the ı/i and ü/u distinction
+-- is erased the suffix is no longer recognised (münhaller -> 'munhaller', tüzüğü -> 'tuzugu').
 --
--- 18 gerçek sorgu/belge çifti üzerinde ölçülen isabet:
+-- Hit rate measured over 18 real query/document pairs:
 --   unaccent + turkish_stem (spec)      11/18
---   unaccent + simple, tam eşleşme       8/18
---   unaccent + simple, ÖNEK eşleşmesi   17/18   <- seçilen
+--   unaccent + simple, exact match       8/18
+--   unaccent + simple, PREFIX match      17/18   <- chosen
 --
--- Gerekçe: Türkçe eklemeli bir dil ve ekler SONA geliyor. Dolayısıyla önek
--- eşleşmesi, bu korpusta gövdelemenin yaptığı işi hem daha isabetli hem de
--- yıkıcı yan etkisiz yapıyor. Önek üretimi mk_tsquery() içinde (0007).
+-- Rationale: Turkish is agglutinative and suffixes come at the END. Prefix matching
+-- therefore does the job of stemming on this corpus both more accurately and
+-- without the destructive side effects. Prefix generation lives in mk_tsquery() (0007).
 --
--- Kalan bilinen boşluk: ünsüz yumuşaması (tüzük -> tüzüğü). Bunu search_synonyms
--- tablosundaki köprü kayıtları kapatıyor (0007).
+-- Known remaining gap: consonant softening (tüzük -> tüzüğü). Bridge rows in the
+-- search_synonyms table cover that (0007).
 --
--- Spec 5.1'in kendi çıkış kapısı burada geçerli: arama kalitesi search_logs ile
--- ölçülüyor, boş-sonuç oranı %15'i geçerse Meilisearch'e geçilir (spec 16).
+-- Spec 5.1's own escape hatch applies here: search quality is measured via search_logs,
+-- and if the empty-result rate exceeds 15% we move to Meilisearch (spec 16).
 
--- CASCADE YOK: tr_rg'yi düşürmek records.search_vector generated column'unu
--- ve GIN indeksini birlikte götürürdü. Config yoksa kuruluyor, varsa yalnızca
--- eşlemesi yeniden uygulanıyor (ALTER MAPPING idempotent).
+-- NO CASCADE: dropping tr_rg would take the records.search_vector generated column
+-- and the GIN index with it. The config is created if absent; if present, only the
+-- mapping is reapplied (ALTER MAPPING is idempotent).
 do $$
 begin
   if not exists (
@@ -52,12 +52,12 @@ alter text search configuration tr_rg
                     word, hword, hword_part
   with unaccent, simple;
 
--- Zorunlu kabul testleri (spec 5.3 amacı korunuyor, iddialar ölçülene göre
--- güncellendi). Config yanlış kurulduysa migration burada patlar; arama
+-- Mandatory acceptance tests (spec 5.3's intent is preserved; the assertions were
+-- updated to match what was measured). If the config was installed wrongly the migration
 -- sessizce bozulmaz.
 do $$
 begin
-  -- Büyük/küçük harf, Türkçe İ dahil
+  -- Case folding, including the Turkish İ
   if to_tsvector('tr_rg', 'İHALE') <> to_tsvector('tr_rg', 'ihale') then
     raise exception 'tr_rg: İHALE ve ihale aynı vektörü üretmiyor';
   end if;
@@ -73,7 +73,7 @@ begin
     raise exception 'tr_rg: ş/s katlanmıyor';
   end if;
 
-  -- Gövde YIKILMIYOR: eski zincirde 'arsa' -> 'ar', 'fonu' -> 'fo' oluyordu.
+  -- The stem is NOT DESTROYED: under the old chain 'arsa' became 'ar' and 'fonu' became 'fo'.
   if to_tsvector('tr_rg', 'arsa')::text not like '%arsa%' then
     raise exception 'tr_rg: arsa sözcüğü kırpılıyor';
   end if;

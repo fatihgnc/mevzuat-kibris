@@ -11,14 +11,14 @@ import { breadcrumbJsonLd, recordJsonLd } from '@/lib/seo/json-ld';
 import { buildMetadata, recordTitle } from '@/lib/seo/metadata';
 import { truncateAtSentence } from '@/lib/text/truncate';
 
-/** ISR, 30 gün. RG kaydı yayımlandıktan sonra değişmiyor (spec 11.1). */
+/** ISR, 30 days. A gazette record does not change once published (spec 11.1). */
 export const revalidate = 2592000;
 export const dynamicParams = true;
 
 /**
- * generateStaticParams yalnızca son 12 ayı döndürüyor (spec 11.1).
- * 100 bin sayfayı build time'da üretmek Vercel build süresini kabul edilemez
- * hale getirir; gerisi ilk istekte on-demand üretilip cache'leniyor.
+ * generateStaticParams returns only the last 12 months (spec 11.1).
+ * Building 100k pages at build time would make Vercel build times unacceptable; the
+ * rest are generated on demand on first request and cached.
  */
 export async function generateStaticParams() {
   const slugs = await recentRecordSlugs(12);
@@ -47,7 +47,7 @@ export default async function RecordPage({ params }: Props) {
   const { slug } = await params;
   const record = await getRecordBySlug(slug);
 
-  // İnce kayıtların kendi sayfası yok (spec 8.2 madde 2); slug'ları da yayımlanmıyor.
+  // Thin records have no page of their own (spec 8.2 rule 2); their slugs are not published either.
   if (!record || !record.hasOwnPage) notFound();
 
   const topic = record.topics[0] ? TOPICS[record.topics[0]] : null;

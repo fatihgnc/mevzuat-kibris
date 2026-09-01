@@ -25,11 +25,11 @@ const INTRO: Record<EntityKind, (name: string) => string> = {
 };
 
 /**
- * Kurum / şirket / yer sayfası — spec 9.6, üçü de aynı şablon.
+ * Institution / company / place page — spec 9.6; all three share one template.
  *
- * Boş varlık sayfası üretilmiyor: record_count < 2 olan varlıklar sorgudan
- * dönmüyor ve burada 404 alıyor (spec 8.2 madde 3). İnce içerik sayfası
- * üretmek 100 bin sayfalık bir sitede indekslenme riskini artırır.
+ * Empty entity pages are not generated: entities with record_count < 2 are not
+ * returned by the query and get a 404 here (spec 8.2 rule 3). Producing thin
+ * content pages raises the indexing risk on a 100k-page site.
  */
 export async function EntityPage({
   kind,

@@ -4,9 +4,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 /**
- * Auth yalnızca /takip ve /hesap için (spec 8.1'de ikisi de noindex, dinamik).
- * Kayıt ve liste sayfaları auth'a hiç dokunmuyor — dokunsalardı statik render
- * mümkün olmazdı (spec 11.1).
+ * Auth is only for /takip and /hesap (both noindex and dynamic in spec 8.1).
+ * Record and list pages never touch auth — if they did, static rendering would be
+ * impossible (spec 11.1).
  */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -23,8 +23,8 @@ export async function createSupabaseServerClient() {
               cookieStore.set(name, value, options);
             }
           } catch {
-            // Server component'ten çağrıldığında cookie yazılamaz; middleware
-            // oturumu zaten tazeliyor, burada sessizce geçmek doğru davranış.
+            // Cookies cannot be written when called from a server component; middleware
+            // already refreshes the session, so passing silently here is the right behaviour.
           }
         },
       },

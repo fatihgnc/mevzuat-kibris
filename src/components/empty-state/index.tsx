@@ -1,9 +1,10 @@
 import { cn } from '@/lib/utils';
 
 /**
- * Boş durum kabuğu. Tasarımda boş sonuç sayfası "üzgünüz" demiyor, bir sonraki
- * adımı veriyor: öneri, filtre kaldırma, konudan giriş, referansla arama.
- * Bu bileşen o yapının kabuğu; içeriği çağıran sayfa dolduruyor.
+ * The empty-state shell. In the design an empty results page does not say "sorry";
+ * it offers the next step: a suggestion, clearing filters, entering by topic,
+ * searching by reference. This component is the shell of that structure; the
+ * calling page fills in the content.
  */
 export function EmptyState({
   title,

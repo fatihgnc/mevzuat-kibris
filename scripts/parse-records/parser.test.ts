@@ -13,11 +13,11 @@ import { summarize } from '../summarize/rules';
 import { parseIndexCell, parseIndexTable } from './parser';
 
 /**
- * Ayrıştırma testi — spec 7.3, ZORUNLU.
+ * Parsing test — spec 7.3, MANDATORY.
  *
- * fixtures/ altında gerçek RG sayıları ve elle hazırlanmış beklenen kayıt
- * listesi tutuluyor. Her parse değişikliğinde CI'da çalışıyor.
- * Ölçülen: kayıt sayısı doğruluğu, ref_number doğruluğu, doc_type doğruluğu.
+ * fixtures/ holds real gazette issues together with a hand-written list of the
+ * expected records. It runs in CI on every parsing change. What is measured:
+ * record count accuracy, ref_number accuracy, doc_type accuracy.
  */
 
 const FIXTURE_DIR = join(process.cwd(), 'fixtures');
@@ -170,14 +170,16 @@ describe('özet üretimi — spec 3.8', () => {
     expect(result?.summary).toContain("Ltd'in");
     expect(result?.summary).toContain('Toronto Rent A Car Ltd');
     /*
-     * Kabul edilen sınır: "ASLIHAN" içinde Türkçeye özgü harf yok, o yüzden
-     * ifade yabancı sayılıyor ve I -> i oluyor ("Aslihan"). Tasarımın elle
-     * yazılmış örneğinde "Aslıhan" geçiyor ama bunu algoritmayla ayırt etmenin
-     * yolu yok: "ASLIHAN" ile "NICOSIA" büyük harfle birbirinden ayrılamıyor.
+     * An accepted limitation: "ASLIHAN" contains no distinctively Turkish
+     * letter, so the phrase counts as foreign and I becomes i ("Aslihan"). The
+     * design's hand-written example says "Aslıhan", but there is no algorithmic
+     * way to tell them apart: in uppercase, "ASLIHAN" and "NICOSIA" are
+     * indistinguishable.
      *
-     * Alternatif (ifadeyi kapsayan başlığın Türkçeliğine bakmak) daha kötü:
-     * kalıp metin hep Türkçe olduğu için "NICOSIA" da Türkçe sayılır ve
-     * "Nıcosıa" çıkar. Yanlış yazılmış bir ad, bozuk görünen bir addan iyidir.
+     * The alternative — judging Turkishness from the enclosing title — is worse:
+     * since the boilerplate text is always Turkish, "NICOSIA" would count as
+     * Turkish too and come out as "Nıcosıa". A misspelled name beats a name that
+     * looks corrupted.
      */
     expect(result?.summary).toMatch(/Asl[ıi]han Rent A Car Ltd/);
   });
@@ -238,16 +240,16 @@ describe('özet üretimi — kaynak metin tuzakları', () => {
 });
 
 /**
- * GERÇEK arşiv verisi — spec 7.3.
+ * REAL archive data — spec 7.3.
  *
- * Yukarıdaki .txt fixture'ları elle yazılmıştı ve İÇERİK hücresinin düz metin
- * dökümü olduğunu varsayıyordu. basimevi.gov.ct.tr'den gerçek sayfalar
- * çekildiğinde hücrenin sütunlu bir İÇ TABLO olduğu görüldü; metin yolu her
- * kaydı ikiye bölüyordu (2025 için 3.977 satırdan 7.170 sahte kayıt).
+ * The .txt fixtures above were written by hand and assumed the İÇERİK cell was a
+ * flat text dump. When real pages were fetched from basimevi.gov.ct.tr the cell
+ * turned out to be a columnar INNER TABLE, and the text path was splitting every
+ * record in two (7,170 bogus records out of 3,977 lines for 2025).
  *
- * Buradaki .html dosyaları arşivden olduğu gibi alınmış İÇERİK hücreleri,
- * beklenen çıktılar ham hücreye karşı satır satır elle doğrulandı. Dört
- * dönemin dördü de temsil ediliyor çünkü biçim yıllara göre değişiyor.
+ * The .html files here are İÇERİK cells taken verbatim from the archive, and the
+ * expected outputs were verified by hand, line by line, against the raw cell. All
+ * four periods are represented, because the format varies from year to year.
  */
 const REAL_DIR = join(FIXTURE_DIR, 'real');
 
@@ -302,12 +304,12 @@ describe('parseIndexTable — gerçek arşiv fixture uyumu', () => {
 
 describe('gerçek veride yakalanan hatalar', () => {
   /*
-   * Bunların hepsi gerçek arşiv çekildiğinde ortaya çıktı; elle yazılmış
-   * fixture'lar hiçbirini gösteremiyordu. Her biri bir regresyon bekçisi.
+   * All of these surfaced when the real archive was crawled; the hand-written
+   * fixtures could not show any of them. Each one is a regression guard.
    */
 
   it('bölüm başlığı blok boyunca aşağı taşınır', () => {
-    // 2006-193: bölüm hücresi 7 satırın yalnızca 4'ünde dolu.
+    // 2006-193: the section cell is filled on only 4 of 7 rows.
     const parsed = parseReal('2006-193')!;
     expect(parsed.map((record) => record.section)).toEqual([
       'MAIN',
@@ -321,13 +323,13 @@ describe('gerçek veride yakalanan hatalar', () => {
   });
 
   it('başlıktaki atıf kaydın kendi referansını gasbetmez', () => {
-    // 2012-190: başlık "K(II) 2476-2012 SAYI VE ... KARARIN TADİLİ", kayıt 2487-2012.
+    // 2012-190: the title is "K(II) 2476-2012 SAYI VE ... KARARIN TADİLİ", the record is 2487-2012.
     const record = parseReal('2012-190')!.find((item) => item.title.startsWith('K(II) 2476'));
     expect(record?.refNumber).toBe('2487-2012');
   });
 
   it('sütun sayısı yıla göre değişse de başlık bulunur', () => {
-    // 2018 üç sütunlu, 2025 dört; ikisinde de başlık dolu gelmeli.
+    // 2018 has three columns, 2025 four; the title must come out filled in both.
     for (const id of ['2018-130', '2025-175']) {
       for (const record of parseReal(id)!) {
         expect(record.title.length, id + ' / ' + record.title).toBeGreaterThan(10);
@@ -336,7 +338,7 @@ describe('gerçek veride yakalanan hatalar', () => {
   });
 
   it('yasa tasarısı numarası başlığın içinden okunur', () => {
-    // EK VI kayıtlarının ayrı referans sütunu yok.
+    // EK VI records have no separate reference column.
     const bills = parseReal('2018-130')!.filter((record) => record.section === 'EK_VI');
     expect(bills).toHaveLength(4);
     expect(bills.map((record) => record.refNumber)).toEqual([
@@ -354,9 +356,10 @@ describe('gerçek veride yakalanan hatalar', () => {
 
 describe('dönemsel Bakanlar Kurulu referansları', () => {
   /*
-   * S- / S(K-II) / K(II)- / TE(K-I) / Ü(K-I) aynı serinin dönemsel yazımları
-   * (bkz. REF_TYPES notu). Dördü de gerçek arşivde EK IV BÖLÜM I'de sayıldı.
-   * Ayrı tip olarak duruyorlar ki künyedeki atıf kaynağa sadık kalsın.
+   * S- / S(K-II) / K(II)- / TE(K-I) / Ü(K-I) are period-specific spellings of the
+   * same series (see the REF_TYPES note). All four were counted in EK IV BÖLÜM I
+   * in the real archive. They stay as separate types so that the citation in the
+   * meta bar remains faithful to the source.
    */
   const eras: Array<[string, string, string]> = [
     ['2006-193', 'skii', 'S(K-II) 314-2006'],
@@ -383,9 +386,9 @@ describe('parseTurkishDate — TARİH hücresi', () => {
   });
 
   /*
-   * Kaynakta gerçekten var: 2026 sayı 78'in tarihi "22..04.2026". Tek ayraç
-   * şart koşulduğunda tarih çözülemiyor, kayıt düşüyor ve bir gazete sayısı
-   * sessizce kayboluyordu.
+   * This really does occur in the source: the date of 2026 issue 78 is
+   * "22..04.2026". Requiring a single separator left the date unparsed, the
+   * record was dropped, and a gazette issue vanished silently.
    */
   it('tekrarlanan ayraçlı yazım hatasını tolere eder', () => {
     expect(parseTurkishDate('22..04.2026')).toBe('2026-04-22');
@@ -400,10 +403,10 @@ describe('parseTurkishDate — TARİH hücresi', () => {
 
 describe('kaynak siteye giden istek', () => {
   /*
-   * Bu tek satır ingest'in tamamını kilitlemişti: HTTP başlık değerleri
-   * ByteString ve marka adındaki 'ı' (305) sığmıyor. fetch daha isteği
-   * kurmadan TypeError atıyor, yani boru hattı tek istek bile atamıyor.
-   * Ucuz bekçi, pahalı hata.
+   * This single line once locked up the whole ingest: HTTP header values are
+   * ByteStrings and the 'ı' (305) in the brand name does not fit. fetch throws a
+   * TypeError before the request is even constructed, so the pipeline cannot send
+   * a single request. A cheap guard against an expensive failure.
    */
   it('User-Agent yalnızca ASCII içerir', () => {
     for (const char of CRAWLER_USER_AGENT) {
@@ -424,9 +427,10 @@ describe('parseIssueNumber — SAYI hücresi', () => {
   });
 
   /*
-   * Gerçek 2018 arşivinde iki satır böyle. Eski hâl bütün rakamları
-   * yapıştırıp 1.95e+23 üretiyordu ve bu değer Number.isInteger denetiminden
-   * GEÇİYORDU — koruma devreye girmeden bigint sütununa çöp yazılacaktı.
+   * Two rows in the real 2018 archive look like this. The old code concatenated
+   * all the digits and produced 1.95e+23, and that value PASSED the
+   * Number.isInteger check — garbage would have been written to a bigint column
+   * with the guard never firing.
    */
   it('birleşik sayıda ilk numarayı alır', () => {
     expect(parseIssueNumber('195/1\n 195/2\n 195/3\n 195/4\n')).toBe(195);

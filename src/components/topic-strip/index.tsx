@@ -5,26 +5,26 @@ import { formatCount } from '@/lib/db/queries/shared';
 import { cn } from '@/lib/utils';
 
 /**
- * Ana sayfa konu ızgarası — artboard 1d.
+ * The home page topic grid — artboard 1d.
  *
- * İki sütun, aralarında 1px boşluk ve arkada çizgi rengi: hücreler beyaz,
- * aradaki boşluk gri, yani ızgara kendi kenarlığını çiziyor. Kenarlık yerine
- * boşluk kullanmak hücre içindeki metnin hizasını bozmuyor.
+ * Two columns, a 1px gap between them and the line colour behind: the cells are
+ * white and the gap is grey, so the grid draws its own border. Using a gap instead
+ * of a border keeps the text inside the cells aligned.
  *
- * Bu tekniğin bedeli: son satır eksik kalırsa boşluk hücre kadar büyür ve
- * ızgaranın zemini koca bir blok olarak görünür. Konu sayısı sekizken (çift)
- * fark edilmiyordu; dokuzuncu konu eklenince ortaya çıktı. Boş hücreleri
- * yüzey renginde dolgular kapatıyor.
+ * The cost of that technique: when the last row is incomplete the gap grows to the
+ * size of a cell and the grid's backing shows as one large block. With eight topics
+ * (an even number) it went unnoticed; adding a ninth exposed it. Filler cells in
+ * the surface colour cover the empties.
  *
- * Sütun sayısı kırılım noktasına göre değiştiği için (2 → 3) eksik hücre
- * sayısı da değişiyor: dokuz konu iki sütunda bir boşluk bırakıyor, üç
- * sütunda hiç bırakmıyor. Dolgular bu yüzden sabit değil, her iki düzen için
- * ayrı hesaplanıp yalnızca gerektiği kırılımda görünüyor. Konu sayısı
- * değişince kendiliğinden doğru sonucu veriyor.
+ * Because the column count changes with the breakpoint (2 -> 3), the number of
+ * missing cells changes too: nine topics leave one gap in two columns and none in
+ * three. The fillers are therefore not fixed but computed separately for each
+ * layout and shown only at the breakpoint that needs them. It stays correct on its
+ * own when the topic count changes.
  *
- * Sıralama kayıt sayısına göre: kullanıcı en çok içerik olan konuyu önce görür.
+ * Ordering is by record count: the user sees the topic with the most content first.
  */
-/** Verilen sütun sayısında son satırı tamamlamak için kaç hücre eksik. */
+/** How many cells are missing to complete the last row at a given column count. */
 function missingCells(count: number, columns: number): number {
   return (columns - (count % columns)) % columns;
 }
@@ -64,10 +64,10 @@ export function TopicStrip({ counts }: { counts: Record<string, number> }) {
       ))}
 
       {/*
-        Tek sütunlu düzende (sm altı) boş hücre diye bir şey yok; dolgu orada
-        yalnızca ızgaranın altına sahte bir ayraç çizerdi. Bu yüzden hiçbir
-        dolgu varsayılan olarak görünmüyor, her biri yalnızca ihtiyaç duyulan
-        kırılımda açılıyor.
+        In the single-column layout (below sm) there is no such thing as an empty
+        cell; a filler there would only draw a fake separator under the grid. So no
+        filler is visible by default; each one opens only at the breakpoint that
+        needs it.
       */}
       {fillers.map((visibility, index) => (
         <div key={index} aria-hidden className={cn('hidden bg-surface', visibility)} />

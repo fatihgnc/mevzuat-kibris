@@ -5,12 +5,12 @@ import { truncateAtSentence, truncateTitle } from '@/lib/text/truncate';
 import { IS_PRODUCTION_DEPLOY, SITE_NAME, SITE_TAGLINE } from './config';
 
 /**
- * Metadata kuralları — spec 8.4.
+ * Metadata rules — spec 8.4.
  *
- * Hiçbir sayfa kendi canonical'ını elle kurmuyor: `metadataBase` root layout'ta
- * bir kez set ediliyor ve buradaki `alternates.canonical` göreli yol veriyor.
- * Next.js ikisini birleştirip mutlak URL üretiyor. Bu, kesintimivar.com'da
- * canonical'ın *.vercel.app'e kaçmasıyla ortaya çıkan hatanın tekrarını engelliyor.
+ * No page builds its own canonical by hand: `metadataBase` is set once in the root
+ * layout and `alternates.canonical` here supplies a relative path. Next.js
+ * combines the two into an absolute URL. This prevents a repeat of the bug on
+ * kesintimivar.com where the canonical escaped to *.vercel.app.
  */
 
 const NOINDEX: Metadata['robots'] = { index: false, follow: true };
@@ -24,9 +24,9 @@ export interface PageMetaInput {
   title: string;
   description: string;
   path: string;
-  /** Arama sonuçları, takip ve hesap sayfaları indekslenmez. */
+  /** Search results, follow and account pages are not indexed. */
   noindex?: boolean;
-  /** 2. sayfadan itibaren liste sayfaları noindex, follow (spec 8.2 madde 4). */
+  /** From page 2 onward, list pages are noindex, follow (spec 8.2 rule 4). */
   page?: number;
   type?: 'website' | 'article';
   publishedTime?: string;
@@ -55,7 +55,7 @@ export function buildMetadata(input: PageMetaInput): Metadata {
   };
 }
 
-/** Kayıt sayfası başlığı: "{başlık} — RG {sayı}/{yıl} | Mevzuat Kıbrıs" */
+/** Record page title: "{title} — RG {issue}/{year} | Mevzuat Kıbrıs" */
 export function recordTitle(summaryOrTitle: string, issueNumber: number, year: number): string {
   return truncateTitle(summaryOrTitle, 60) + ' — RG ' + issueNumber + '/' + year;
 }

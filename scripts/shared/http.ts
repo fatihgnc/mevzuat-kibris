@@ -3,11 +3,12 @@ import { CRAWLER_USER_AGENT, SOURCE_BASE_URL } from '../../src/lib/seo/config';
 import { log } from './logger';
 
 /**
- * Kaynak siteye nazik erişim — spec 3.6.
+ * Polite access to the source site — spec 3.6.
  *
- * Saniyede birden fazla istek göndermiyoruz ve User-Agent kendini tanıtıp
- * iletişim adresi içeriyor. Bu bir kibarlık değil, ürünün devam edebilmesinin
- * şartı: kaynak site erişimi engellerse ürün durur (spec 16).
+ * We never send more than one request per second, and the User-Agent identifies
+ * itself and carries a contact address. This is not courtesy but a condition of
+ * the product's survival: if the source site blocks access, the product stops
+ * (spec 16).
  */
 const MIN_INTERVAL_MS = 1000;
 let lastRequestAt = 0;
@@ -23,7 +24,7 @@ interface FetchOptions {
   timeoutMs?: number;
 }
 
-/** Üstel geri çekilmeli, throttle'lı fetch. */
+/** Throttled fetch with exponential backoff. */
 export async function politeFetch(
   url: string,
   { retries = 3, timeoutMs = 60_000 }: FetchOptions = {},
@@ -52,11 +53,11 @@ export async function politeFetch(
       lastError = error;
 
       /*
-       * TypeError = isteğin kendisi kurulamadı (geçersiz URL, ByteString'e
-       * sığmayan başlık). Yeniden denemek bunu düzeltmez; yalnızca kaynak
-       * siteye gereksiz istek gönderir ve asıl nedeni sıradan bir ağ hatası
-       * gibi gösterir. Bir kez CRAWLER_USER_AGENT'taki Türkçe karakter tam
-       * olarak böyle gizlendi.
+       * A TypeError means the request itself could not be constructed (invalid
+       * URL, a header that will not fit in a ByteString). Retrying does not fix
+       * that; it only sends needless requests to the source site and disguises
+       * the real cause as an ordinary network error. A Turkish character in
+       * CRAWLER_USER_AGENT once hid in exactly this way.
        */
       if (error instanceof TypeError) throw error;
 
@@ -72,14 +73,14 @@ export async function politeFetch(
 }
 
 /**
- * Yıl arşiv sayfasının URL'i. Yol Türkçe ve URL-encoded:
+ * URL of a year's archive page. The path is Turkish and URL-encoded:
  * https://basimevi.gov.ct.tr/ARŞİV/2025
  */
 export function archiveUrl(year: number): string {
   return SOURCE_BASE_URL + '/' + encodeURIComponent('ARŞİV') + '/' + year;
 }
 
-/** Kaynak sitenin göreli bağlantılarını mutlak hâle getirir. */
+/** Turns the source site's relative links into absolute ones. */
 export function absolutize(href: string): string {
   try {
     return new URL(href, SOURCE_BASE_URL + '/').toString();

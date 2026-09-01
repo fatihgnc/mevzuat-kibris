@@ -8,9 +8,9 @@ interface RecordListProps {
   showDeadline?: boolean;
   variant?: 'full' | 'compact';
   /**
-   * In-feed reklam 5. sonuçtan sonra, sayfa başına tek adet (spec 14.4).
-   * Liste beşten kısaysa reklam hiç basılmıyor — üç sonucun arasına reklam
-   * koymak hem kullanıcıyı hem AdSense politikasını zorlar.
+   * The in-feed ad goes after the 5th result, one per page (spec 14.4). If the list
+   * is shorter than five, no ad is emitted at all — putting an ad among three
+   * results strains both the user and AdSense policy.
    */
   adSlotId?: string;
   emptyMessage?: string;

@@ -1,11 +1,12 @@
 /**
- * Konular — spec 3.5 taksonomisi, artboard'daki görünen adlar ve açıklamalar.
+ * Topics — the taxonomy from spec 3.5, with the display names and descriptions from
+ * the artboard.
  *
- * Renkli konu noktaları KALDIRILDI (ürün sahibinin kararı), bu yüzden `color` alanı da
- * silindi — tasarımdaki oklch değerleri git geçmişinde duruyor. Gerekçe:
- * components/topic-badge.
- * Açıklama metinleri elle yazıldı ve konu sayfasında ince içerik olmamak için kullanılıyor
- * (spec 8.2 ve 14.5).
+ * The coloured topic dots were REMOVED (the product owner's decision), so the
+ * `color` field went with them — the design's oklch values are in git history.
+ * Rationale: components/topic-badge.
+ * The description texts were written by hand and exist so that topic pages are not
+ * thin content (spec 8.2 and 14.5).
  */
 export const TOPIC_SLUGS = [
   'munhal',
@@ -23,11 +24,11 @@ export type TopicSlug = (typeof TOPIC_SLUGS)[number];
 
 export interface Topic {
   slug: TopicSlug;
-  /** Listelerde ve rozetlerde görünen ad */
+  /** The name shown in lists and badges */
   name: string;
-  /** Konu sayfasındaki iki-üç cümlelik özgün açıklama */
+  /** The two-to-three sentence original description on the topic page */
   description: string;
-  /** Ana sayfa konu ızgarasındaki tek satırlık tanım */
+  /** The one-line definition in the home page topic grid */
   blurb: string;
   sortOrder: number;
 }
@@ -98,10 +99,11 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     sortOrder: 8,
   },
   /*
-   * Dokuzuncu konu, gerçek veriden geldi. 2025 arşivi işlendiğinde konusuz
-   * kalan 1.595 kaydın 537'si (üçte biri) "X'in KKTC YURTTAŞLIĞINA ALINMASI"
-   * biçimindeydi ve mevcut sekiz konunun hiçbirine girmiyordu — münhal değil,
-   * atama değil, mevzuat değil. Kelime eklemek çözmüyordu; kategori eksikti.
+   * The ninth topic came from real data. When the 2025 archive was processed, of
+   * the 1,595 records left without a topic, 537 (a third) had the form "X'in KKTC
+   * YURTTAŞLIĞINA ALINMASI" and fitted none of the existing eight — not a vacancy,
+   * not an appointment, not legislation. Adding keywords did not solve it; the
+   * category was missing.
    */
   yurttaslik: {
     slug: 'yurttaslik',

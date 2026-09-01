@@ -3,26 +3,29 @@ import { sql } from '../shared/db';
 import { log } from '../shared/logger';
 
 /**
- * Tadil/iptal kararlarının konusunu, atıf yaptıkları karardan devralır.
+ * Makes amendment/annulment decisions inherit their topic from the decision they
+ * cite.
  *
- * Bakanlar Kurulu kararlarının bir bölümü kendi başına konu sinyali taşımıyor:
+ * Some Council of Ministers decisions carry no topic signal of their own:
  *
  *   "Ü(K-I) 1880-2024 SAYI VE 21.10.2024 TARİHLİ KARARIN TADİL EDİLMESİ"
  *
- * Bu kaydın konusu, tadil ettiği kararın konusu. Kelime kuralıyla çözülemez —
- * başlıkta konuya dair hiçbir sözcük yok. 2025'te 169 kayıt böyle.
+ * This record's topic is the topic of the decision it amends. No keyword rule can
+ * solve it — the title contains not one word about the subject. In 2025, 169
+ * records look like this.
  *
- * Devralma ZİNCİRLENMİYOR: yalnızca doğrudan atıf yapılan kaydın konuları
- * alınıyor, o kayıt da başka bir kararı tadil ediyorsa peşine düşülmüyor.
- * Sebep, zincirin ucundaki kararın çoğunlukla arşivde olmaması ve her adımda
- * konunun biraz daha alakasızlaşması.
+ * Inheritance does NOT CHAIN: only the topics of the directly cited record are
+ * taken, and if that record itself amends another decision we do not follow it.
+ * The reason is that the decision at the end of the chain is usually not in the
+ * archive, and the topic drifts further from relevance at every step.
  *
- * Kapsam sınırı dürüstçe söylenmeli: atıflar sık sık geçmiş yıllara gidiyor
- * (2024, 2016, 2013). O yıllar çekilmediği sürece kaynak kayıt bulunamıyor ve
- * kayıt konusuz kalıyor — uydurmaktansa boş bırakılıyor.
+ * The coverage limit should be stated honestly: citations often reach back into
+ * earlier years (2024, 2016, 2013). Until those years are crawled, the source
+ * record cannot be found and the record stays without a topic — left empty rather
+ * than invented.
  */
 
-/** Yalnızca gerçekten tadil/iptal olan kayıtlarda çalışsın. */
+/** Only run on records that really are amendments or annulments. */
 const AMENDMENT = /(TADİL|İPTAL)\s+ED/i;
 
 export async function inheritReferencedTopics(): Promise<number> {
@@ -44,9 +47,9 @@ export async function inheritReferencedTopics(): Promise<number> {
     if (!refs.length) continue;
 
     /*
-     * Başlıkta birden çok atıf olabiliyor ("A ve B sayılı kararların iptali").
-     * Hepsinin konularının BİRLEŞİMİ alınıyor: kayıt gerçekten hepsini
-     * ilgilendiriyor ve birini seçmek keyfi olurdu.
+     * A title may contain several citations ("the annulment of decisions A and
+     * B"). We take the UNION of all their topics: the record genuinely concerns
+     * all of them, and picking one would be arbitrary.
      */
     const topics = new Set<string>();
 

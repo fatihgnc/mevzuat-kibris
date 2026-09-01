@@ -2,11 +2,11 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Oturum tazeleme — yalnızca auth gereken yollarda.
+ * Session refresh — only on paths that need auth.
  *
- * matcher kasıtlı olarak dar: kayıt ve liste sayfaları ISR ile statik
- * servis ediliyor (spec 11.1) ve middleware her isteğe girerse o statiklik
- * anlamını yitirir. Auth yalnızca /takip, /hesap ve /auth/* için gerekli.
+ * The matcher is deliberately narrow: record and list pages are served statically
+ * via ISR (spec 11.1), and if middleware ran on every request that staticness would
+ * lose its meaning. Auth is only needed for /takip, /hesap and /auth/*.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

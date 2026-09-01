@@ -19,7 +19,7 @@ import { buildMetadata } from '@/lib/seo/metadata';
 import { formatDateLong } from '@/lib/text/dates';
 import { cn } from '@/lib/utils';
 
-// ISR + tag: revalidateTag('topic:{slug}') ingest sonrası tazeler (spec 11.1).
+// ISR + tag: revalidateTag('topic:{slug}') refreshes it after ingest (spec 11.1).
 export const revalidate = 3600;
 
 export function generateStaticParams() {
@@ -56,9 +56,9 @@ export default async function TopicPage({ params, searchParams }: Props) {
   const topic = TOPICS[konu];
 
   /*
-   * "Başvurusu açık" filtresi yalnızca son başvuru tarihi taşıyan konularda
-   * anlamlı (spec 3.9): münhal ve ihale. Diğer konularda hiç gösterilmiyor,
-   * çünkü her zaman sıfır sonuç verecek bir filtre kullanıcıyı yanıltır.
+   * The "applications open" filter is only meaningful for topics that carry a
+   * deadline (spec 3.9): vacancies and tenders. It is not shown at all for other
+   * topics, because a filter that will always return zero results misleads the user.
    */
   const supportsDeadline = konu === 'munhal' || konu === 'ihale';
 
@@ -110,7 +110,7 @@ export default async function TopicPage({ params, searchParams }: Props) {
               </h1>
             </div>
 
-            {/* Özgün konu açıklaması — ince içerik olmaması için (spec 8.2, 14.5). */}
+            {/* The original topic description — so the page is not thin content (spec 8.2, 14.5). */}
             <p className="mt-3 max-w-prose text-xl leading-[1.6] text-ink-body">
               {topic.description}
             </p>
@@ -129,14 +129,15 @@ export default async function TopicPage({ params, searchParams }: Props) {
             </div>
 
             {/*
-              Sıfır sayılı bir filtre düğmesi göstermek anlamsız: tıklayan boş
-              liste alıyor. Son başvuru tarihi ancak münhal/ihale kayıtlarının
-              GÖVDESİNDEN çıkarılabiliyor (extractDeadline); gövdesi olmayan
-              kayıtta çıkarılamıyor ve şu an arşivde tarihi olan tek bir kayıt
-              var, yani düğme neredeyse her zaman "0" diyordu.
+              Showing a filter button with a count of zero is pointless: clicking it
+              returns an empty list. A deadline can only be extracted from the BODY of
+              a vacancy/tender record (extractDeadline); it cannot be extracted from a
+              record with no body, and right now the archive holds exactly one record
+              with a date — so the button said "0" almost every time.
 
-              openOnly şartı, filtre AÇIKKEN düğmenin kaybolmamasını sağlıyor —
-              yoksa kullanıcı boş listede kalır ve geri dönecek düğme olmaz.
+              The openOnly condition keeps the button from disappearing WHILE the
+              filter is on — otherwise the user is stranded on an empty list with no
+              button to go back.
             */}
             {supportsDeadline && (openCount > 0 || openOnly) ? (
               <div className="mb-1 mt-[26px] flex flex-wrap items-center gap-2 border-b border-line pb-3.5">

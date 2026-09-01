@@ -4,11 +4,12 @@ import { titleCase } from '../shared/turkish-suffix';
 import type { EntityKind } from '../../src/types/record';
 
 /**
- * Varlık çıkarımı — spec 7.1 adım 6.
+ * Entity extraction — spec 7.1 step 6.
  *
- * Üç tür: kurum, şirket, yerleşim yeri. Kişi BİLEREK yok (spec 3.7 madde 1):
- * /kisi/[slug] üretmiyoruz, dolayısıyla kişi adı çıkarmıyoruz da. Kişi adları
- * için bir dizin oluşturmamak ürünün açık bir kararı.
+ * Three kinds: institution, company, place. People are DELIBERATELY absent (spec
+ * 3.7 rule 1): we do not generate /kisi/[slug] pages, so we do not extract
+ * personal names either. Not building an index of people's names is an explicit
+ * product decision.
  */
 
 export interface ExtractedEntity {
@@ -21,9 +22,9 @@ export interface ExtractedEntity {
 }
 
 /**
- * Bilinen kurumlar. Sabit liste kullanıyoruz çünkü kurum adları gazetede
- * tutarlı yazılıyor ve serbest çıkarım "Dairesi", "Bakanlığı" ile biten her
- * şeyi kuruma çevirip gürültü üretiyor.
+ * Known institutions. We use a fixed list because institution names are written
+ * consistently in the gazette, and free extraction turns everything ending in
+ * "Dairesi" or "Bakanlığı" into an institution and produces noise.
  */
 const INSTITUTIONS = [
   'Kamu Hizmeti Komisyonu',
@@ -58,9 +59,9 @@ const INSTITUTIONS = [
 ];
 
 /**
- * Yerleşim yerleri, ilçeleriyle. Kısa ve sabit bir liste: KKTC'de altı ilçe
- * ve yaklaşık iki yüz köy var, hepsi bilinen. Serbest çıkarımdan çok daha
- * güvenilir ve /yer/[slug] sayfalarının hepsi anlamlı kalıyor.
+ * Places, with their districts. A short fixed list: Northern Cyprus has six
+ * districts and roughly two hundred villages, all of them known. Far more
+ * reliable than free extraction, and it keeps every /yer/[slug] page meaningful.
  */
 const PLACES: Array<{ name: string; district: string }> = [
   { name: 'Lefkoşa', district: 'Lefkoşa' },
@@ -94,9 +95,9 @@ const PLACES: Array<{ name: string; district: string }> = [
 ];
 
 /**
- * Şirket adı deseni. Gazete şirket adlarını her zaman bir şirket türü
- * kısaltmasıyla bitiriyor; bu, serbest metinde şirket adını güvenilir biçimde
- * yakalamanın tek yolu.
+ * Company name pattern. The gazette always ends a company name with a company
+ * type abbreviation; that is the only reliable way to catch a company name in
+ * free text.
  */
 const COMPANY_PATTERN =
   /\b([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜa-zçğıöşü0-9&.'’\-]*(?:\s+[A-ZÇĞİÖŞÜ0-9][A-ZÇĞİÖŞÜa-zçğıöşü0-9&.'’\-]*){0,6}\s+(?:LTD|LİMİTED|LIMITED|A\.Ş\.|ANONİM ŞİRKETİ|CO\.|INC\.)\.?)/g;
@@ -119,11 +120,11 @@ function toEntity(
 }
 
 /**
- * Bir kaydın başlığı ve gövdesinden varlıkları çıkarır.
+ * Extracts entities from a record's title and body.
  *
- * Güven puanı: başlıkta geçen varlık 1.0, yalnızca gövdede geçen 0.7.
- * Kayıt sayfasındaki "kayıtta geçenler" listesi bu puana göre sıralanıyor,
- * yani başlıktaki asıl özne öne çıkıyor.
+ * Confidence score: an entity in the title scores 1.0, one that appears only in
+ * the body scores 0.7. The "mentioned in this record" list on the record page is
+ * ordered by that score, so the real subject from the title comes first.
  */
 export function extractEntities(input: {
   title: string;
@@ -150,9 +151,10 @@ export function extractEntities(input: {
   for (const place of PLACES) {
     const upper = turkishUpper(place.name);
     /*
-     * Sözcük sınırı kontrolü: "Lefke" araması "Lefkoşa" içinde eşleşmemeli.
-     * Türkçe ekler nedeniyle sağ sınırda harf olabilir ("Lefke'de", "Girne'nin"),
-     * o yüzden yalnızca sol sınır ve hemen sağında ek göstergesi arıyoruz.
+     * Word boundary check: searching for "Lefke" must not match inside
+     * "Lefkoşa". Turkish suffixes mean the right-hand boundary may be a letter
+     * ("Lefke'de", "Girne'nin"), so we require only a left boundary plus a suffix
+     * marker immediately to the right.
      */
     const pattern = new RegExp('(^|[^A-ZÇĞİÖŞÜ])' + upper + "(?=$|[^A-ZÇĞİÖŞÜ]|'|\\s)", 'u');
     if (!pattern.test(upperAll)) continue;
@@ -163,7 +165,7 @@ export function extractEntities(input: {
   let match: RegExpExecArray | null;
   while ((match = COMPANY_PATTERN.exec(haystack)) !== null) {
     const raw = match[1]!.replace(/\s+/g, ' ').trim();
-    // Çok kısa eşleşmeler ("BİR LTD") gürültü.
+    // Very short matches ("BİR LTD") are noise.
     if (raw.length < 8) continue;
     const inTitle = turkishUpper(title).includes(turkishUpper(raw));
     add(toEntity('company', raw, null, inTitle ? 1 : 0.7));

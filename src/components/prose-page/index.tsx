@@ -3,9 +3,9 @@ import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 
 /**
- * Statik metin sayfalarının ortak kabuğu (hakkında, iletişim, gizlilik,
- * kullanım koşulları). Ölçü prose genişliğinde tutuluyor — uzun satır
- * okunabilirliği düşürüyor ve bu sayfalar baştan sona okunmak için.
+ * The shared shell for static text pages (about, contact, privacy, terms). The
+ * measure is kept at prose width — long lines hurt readability, and these pages are
+ * meant to be read from start to finish.
  */
 export function ProsePage({
   title,
@@ -23,9 +23,10 @@ export function ProsePage({
       <SiteHeader />
 
       {/*
-        İçerik kapsayıcısı header ve footer ile AYNI: max-w-6xl, aynı yatay
-        padding. Böylece başlık, gövde ve marka aynı sol kenarda hizalanıyor.
-        İçeride ayrıca max-width yok — içerik ile layout aynı genişlikte.
+        The content container is IDENTICAL to the header and footer: max-w-6xl, the
+        same horizontal padding. That keeps the heading, the body and the brand
+        aligned on the same left edge. There is no extra max-width inside — the
+        content is the same width as the layout.
       */}
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-8 lg:px-10">
         <Breadcrumbs items={crumbs} />

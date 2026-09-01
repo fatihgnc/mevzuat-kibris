@@ -19,10 +19,10 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /**
- * Otorite elle yazılmış SQL migration'lar (supabase/migrations/*.sql).
- * Bu dosya sorgu katmanına tip verir; generated column ve GIN indeksleri gibi
- * drizzle-kit'in üretemediği şeyler orada tanımlı. db:generate çıktısı yalnızca
- * diff kontrolü için kullanılır, doğrudan uygulanmaz.
+ * The authority is the hand-written SQL migrations (supabase/migrations/*.sql).
+ * This file gives the query layer its types; things drizzle-kit cannot generate,
+ * such as generated columns and GIN indexes, are defined there. The db:generate
+ * output is used only for diff checking and is never applied directly.
  */
 
 const tsvector = customType<{ data: string; driverData: string }>({
@@ -77,6 +77,9 @@ export const records = pgTable(
     bodyText: text('body_text'),
     summary: text('summary'),
     summarySource: text('summary_source'),
+    // Filled in + summary null = the LLM layer tried and produced no safe summary
+    // (spec 3.8, tier 3). Stops the same title being re-asked on every run.
+    summaryAttemptedAt: timestamp('summary_attempted_at', { withTimezone: true }),
     deadlineAt: date('deadline_at'),
     deadlineNote: text('deadline_note'),
     pageFrom: smallint('page_from'),

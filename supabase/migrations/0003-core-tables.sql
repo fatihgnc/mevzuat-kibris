@@ -1,16 +1,16 @@
--- 0003 — gazete sayıları, kayıtlar, konular (spec 6)
+-- 0003 — gazette issues, records, topics (spec 6)
 
 create table if not exists issues (
   id             bigserial primary key,
   year           smallint not null,
   number         integer  not null,
   published_at   date     not null,
-  pdf_url        text     not null,            -- orijinal kaynak; PDF saklanmıyor (spec 3.6)
+  pdf_url        text     not null,            -- the original source; the PDF is not stored (spec 3.6)
   page_count     smallint,
   text_status    text not null default 'pending'
                  check (text_status in ('pending','extracted','ocr','failed','needs_review')),
   text_quality   real check (text_quality between 0 and 1),
-  retry_count    smallint not null default 0,  -- spec 7.2 yeniden deneme kuyruğu, 3'te durur
+  retry_count    smallint not null default 0,  -- spec 7.2 retry queue, stops at 3
   raw_index_html text,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
@@ -29,13 +29,13 @@ create table if not exists records (
   doc_type          text not null,
   ref_type          text,
   ref_number        text,
-  title             text not null,             -- ham başlık, hiç değiştirilmez
-  title_normalized  text not null,             -- tr-lowercase + unaccent (uygulama tarafında)
+  title             text not null,             -- the raw title, never altered
+  title_normalized  text not null,             -- tr-lowercase + unaccent (done application-side)
   subject           text,
   body_text         text,                      -- 20 KB'de kesilir (spec 14.3)
-  summary           text,                      -- üretilen özet cümle (spec 3.8), kalıcı
+  summary           text,                      -- the generated summary sentence (spec 3.8), permanent
   summary_source    text check (summary_source in ('rule','llm')),
-  deadline_at       date,                      -- münhal/ihale son başvuru (spec 3.9)
+  deadline_at       date,                      -- vacancy/tender application deadline (spec 3.9)
   deadline_note     text,
   page_from         smallint,
   page_to           smallint,
@@ -43,8 +43,8 @@ create table if not exists records (
   related_record_id bigint references records(id) on delete set null,
   corrects_id       bigint references records(id) on delete set null,
   has_personal_data boolean not null default false,
-  -- Spec 8.2 madde 2: 200 karakterden kısa ve varlık bağlantısı olmayan kayıt
-  -- kendi sayfasını almaz; yalnızca sayı sayfasında anchor alır. Ingest yazar.
+  -- Spec 8.2 rule 2: a record shorter than 200 characters with no entity link does
+  -- not get its own page; it only gets an anchor on the issue page. Ingest writes this.
   has_own_page      boolean not null default true,
   search_vector     tsvector generated always as (
                       setweight(to_tsvector('tr_rg', coalesce(title, '')), 'A') ||
@@ -59,7 +59,7 @@ create index if not exists records_title_trgm_idx on records using gin (title_no
 create index if not exists records_published_idx on records (published_at desc);
 create index if not exists records_doctype_published_idx on records (doc_type, published_at desc);
 create index if not exists records_issue_idx on records (issue_id);
--- /konu/munhal "başvurusu açık" filtresi bu indeksten geçer
+-- the /konu/munhal "applications open" filter goes through this index
 create index if not exists records_deadline_idx on records (deadline_at)
   where deadline_at is not null;
 
@@ -76,7 +76,7 @@ create table if not exists record_topics (
   primary key (record_id, topic)
 );
 
--- Konu akışı sorgusu: konuya göre filtrele, tarihe göre sırala
+-- Topic feed query: filter by topic, order by date
 create index if not exists record_topics_topic_idx on record_topics (topic, record_id desc);
 
 create table if not exists ingest_runs (

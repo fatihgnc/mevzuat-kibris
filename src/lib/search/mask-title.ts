@@ -1,32 +1,33 @@
 import type { Token, TokenLevel } from '@/types/record';
 
 /**
- * Maskelenmiş gazete başlığı (spec 3.8 + artboard 1a/1b/1e/1g).
+ * The masked gazette title (spec 3.8 + artboards 1a/1b/1e/1g).
  *
- * Ham RG başlıkları okunamayacak kadar kötü ama atılamıyor: resmî terim orada
- * duruyor ve kullanıcının kopyalayabilmesi gerekiyor (spec 3.8 kural 5). Tasarımın
- * çözümü başlığı atmak yerine ağırlıklandırmak — kalıp kısımlar soluk, ayırt edici
- * kısımlar koyu. Göz "TESCİLLİ BİR YEREL LİMİTED ŞİRKETİN İSİM DEĞİŞTİRME
- * MÜRACAATI" kalıbını atlayıp doğrudan şirket adına gidiyor.
+ * Raw gazette titles are unreadably bad, but they cannot be discarded: the
+ * official term is in there and the user has to be able to copy it (spec 3.8
+ * rule 5). The design's answer is to weight the title rather than throw it away
+ * — boilerplate parts are faint, distinctive parts are bold. The eye skips the
+ * "TESCİLLİ BİR YEREL LİMİTED ŞİRKETİN İSİM DEĞİŞTİRME MÜRACAATI" boilerplate and
+ * goes straight to the company name.
  *
- * Seviyeler:
- *   0  kalıp / boilerplate      soluk, ince
- *   1  ayırt edici              koyu, kalın
- *   2  ara bilgi (yıl, kurum)   orta
- *   3  arama eşleşmesi          sarı zemin (highlight.ts ekler)
+ * Levels:
+ *   0  boilerplate            faint, light
+ *   1  distinctive            dark, bold
+ *   2  supporting (year, org) medium
+ *   3  search match           yellow background (added by highlight.ts)
  */
 
 interface MaskRule {
-  /** Yakalama gruplu desen; gruplar arasında kalan metin `fill` seviyesini alır. */
+  /** A pattern with capture groups; text between groups takes the `fill` level. */
   pattern: RegExp;
-  /** Gruplarla aynı sırada seviyeler. */
+  /** Levels, in the same order as the groups. */
   levels: TokenLevel[];
   fill?: TokenLevel;
 }
 
 /**
- * Kurallar spec 3.3'teki çapalardan ve 3.8'deki kalıp tablosundan türetildi.
- * Sıra önemli: ilk eşleşen kural kazanır, özelden genele.
+ * The rules derive from the anchors in spec 3.3 and the pattern table in 3.8.
+ * Order matters: the first matching rule wins, specific before general.
  */
 const RULES: MaskRule[] = [
   // 1962 ZORLA MAL İKTİSABI YASASI-GAZİMAĞUSA/VADİLİ
@@ -112,19 +113,19 @@ const RULES: MaskRule[] = [
 ];
 
 /**
- * Baştaki gazete referansı ("A.E. 1070 ", "Ü(K-I) 2497-2025 ").
+ * The leading gazette reference ("A.E. 1070 ", "Ü(K-I) 2497-2025 ").
  *
- * Kurallar ^ ile başlıyor, dolayısıyla referans önekle hiçbiri eşleşmiyordu ve
- * her başlık genel fallback'e düşüyordu — sonuç: neredeyse tüm jetonlar
- * "ayırt edici" işaretleniyor ve maske hiçbir işe yaramıyordu.
+ * The rules are anchored with ^, so with a reference prefix none of them matched
+ * and every title fell through to the general fallback — the result being that
+ * nearly every token was marked "distinctive" and the mask did nothing at all.
  *
- * Referans metinde KALIYOR (kullanıcı ham başlığı kopyalayabilmeli) ama kalıp
- * seviyesinde: künye şeridinde zaten ayrı bir alan olarak gösteriliyor.
+ * The reference STAYS in the text (the user must be able to copy the raw title)
+ * but at boilerplate level: the meta bar already shows it as a separate field.
  */
 const LEADING_REF =
   /^(?:A\.E\.\s?\d+|Ü\(K-I{1,2}\)\s?[\d-]+|Ş\.M\.\s?\d+|M\.T\.\s?\d+|GENELGE\s+MİA\.[\d/]+|Y\.[TÖ]\.NO:\s?[\d/]+)\s*/i;
 
-/** Kalıp sözlüğü — fallback ayrıştırmada soluk bırakılacak stok ifadeler. */
+/** Boilerplate lexicon — stock phrases to leave faint in fallback parsing. */
 const BOILERPLATE = [
   'REKABET KURULU KARARI',
   'KARAR SAYISI',
@@ -156,11 +157,11 @@ const BOILERPLATE = [
 const SEPARATORS = /([/\-–—,:()]+)/;
 
 /**
- * Kural eşleşmediğinde: ayraçlardan böl, kalıp sözlüğündekileri soluk bırak,
- * yılları ara bilgi say, gerisini ayırt edici kabul et.
+ * When no rule matches: split on separators, leave lexicon entries faint, treat
+ * years as supporting information and everything else as distinctive.
  *
- * Kasıtlı olarak cömert: bir parçayı yanlışlıkla koyu göstermek, ayırt edici
- * bilgiyi soluk gösterip kullanıcının gözden kaçırmasından daha az zararlı.
+ * Deliberately generous: marking a fragment bold by mistake does less harm than
+ * dimming distinctive information and letting the user miss it.
  */
 function fallbackMask(title: string): Token[] {
   const parts = title.split(SEPARATORS).filter((part) => part.length > 0);
@@ -180,13 +181,14 @@ function fallbackMask(title: string): Token[] {
   }
 
   /*
-   * Başlığın TAMAMI kalıpsa maskeleme anlamını yitiriyor: geri plana atılacak
-   * bir arka plan yok, çünkü her şey arka plan. "SÖZLEŞMELİ PERSONEL" gibi
-   * başlıklarda satırın tümü sönük tona düşüyor ve okunmaz hâle geliyordu.
+   * If the WHOLE title is boilerplate, masking loses its meaning: there is no
+   * background to push things into, because everything is background. Titles like
+   * "SÖZLEŞMELİ PERSONEL" dropped the entire line to the faint tone and became
+   * unreadable.
    *
-   * Böyle bir durumda kalıp jetonları öne çıkarıyoruz — o başlık için taşıdığı
-   * bilgi zaten o. Maskeleme ayırt etmek için var; ayıracak bir şey yoksa
-   * hiçbir şeyi silikleştirmemeli.
+   * In that case we promote the boilerplate tokens — for that title, they are the
+   * information. Masking exists to distinguish; with nothing to distinguish, it
+   * should dim nothing.
    */
   if (!tokens.some((token) => token.lvl === 1)) {
     for (const token of tokens) {
@@ -197,7 +199,7 @@ function fallbackMask(title: string): Token[] {
   return mergeAdjacent(tokens);
 }
 
-/** Aynı seviyedeki komşu jetonları birleştirir — gereksiz span üretmeyelim. */
+/** Merges neighbouring tokens at the same level — no point emitting extra spans. */
 function mergeAdjacent(tokens: Token[]): Token[] {
   const out: Token[] = [];
   for (const token of tokens) {
@@ -213,14 +215,14 @@ function mergeAdjacent(tokens: Token[]): Token[] {
 }
 
 /**
- * Ham başlığı jetonlara ayırır. Sonuç deterministik: aynı başlık her yerde
- * (liste, detay, e-posta) aynı maskeyi alır.
+ * Splits a raw title into tokens. The result is deterministic: the same title
+ * gets the same mask everywhere (list, detail page, email).
  */
 export function maskTitle(title: string): Token[] {
   const full = title.replace(/\s+/g, ' ').trim();
   if (!full) return [];
 
-  // Referans öneki ayrılıyor; kurallar kalan gövdeye uygulanıyor.
+  // The reference prefix is split off; the rules apply to the remaining body.
   const refMatch = LEADING_REF.exec(full);
   const prefix: Token[] = refMatch ? [{ t: refMatch[0], lvl: 0 }] : [];
   const text = refMatch ? full.slice(refMatch[0].length) : full;
@@ -250,14 +252,14 @@ export function maskTitle(title: string): Token[] {
     if (cursor < text.length) tokens.push({ t: text.slice(cursor), lvl: fill });
 
     const merged = mergeAdjacent(tokens);
-    // Kural her şeyi tek seviyeye düşürdüyse maske bir işe yaramıyor demektir.
+    // If a rule collapsed everything to one level, the mask is doing no work.
     if (merged.some((token) => token.lvl === 1)) return mergeAdjacent([...prefix, ...merged]);
   }
 
   return mergeAdjacent([...prefix, ...fallbackMask(text)]);
 }
 
-/** Maskeyi düz metne geri çevirir — kopyala düğmesi ve e-posta için. */
+/** Turns the mask back into plain text — for the copy button and email. */
 export function tokensToText(tokens: Token[]): string {
   return tokens.map((token) => token.t).join('');
 }

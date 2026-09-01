@@ -7,11 +7,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 /**
- * Magic link dönüşü — artboard 1h adım 2'den 3'e geçiş.
+ * The magic link return — artboard 1h, the move from step 2 to step 3.
  *
- * Alarm burada yazılıyor, /api/alerts'te değil: bağlantıya tıklanana kadar
- * kalıcı hiçbir kayıt oluşmuyor, yani doğrulanmamış adresle takip kurulamıyor.
- * Alarm tanımı redirect URL'inin query parametrelerinden geliyor.
+ * The alert is written here rather than in /api/alerts: no persistent record exists
+ * until the link is clicked, so a follow cannot be set up with an unverified
+ * address. The alert definition comes from the redirect URL's query parameters.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
   const label = url.searchParams.get('label');
 
-  // Bağlantıda alarm tanımı yoksa bu sadece bir giriş; takip sayfasına gidiyoruz.
+  // If the link carries no alert definition this is just a sign-in; we go to the follow page.
   if (!label) return NextResponse.redirect(origin + '/takip');
 
   const topic = url.searchParams.get('topic');
@@ -50,9 +50,10 @@ export async function GET(request: Request) {
     });
 
     /*
-     * Onay ekranında kullanıcıya atanan GERÇEK gün gösterilecek (spec 10.3
-     * madde 2), o yüzden gün ve nihai sıklık URL'e taşınıyor. Herkese sabit
-     * "pazartesi" yazmak dağıtımın anlamını bitirir.
+     * The confirmation screen will show the user the ACTUAL day they were assigned
+     * (spec 10.3 rule 2), so the day and the final frequency are carried in the URL.
+     * Writing a fixed "pazartesi" for everyone defeats the point of spreading the
+     * load.
      */
     const params = new URLSearchParams({
       durum: 'onay',

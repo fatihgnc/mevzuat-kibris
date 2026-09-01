@@ -1,12 +1,13 @@
 import postgres from 'postgres';
 
-// Env yükleme `./env` içinde; DATABASE_URL'i okumadan önce çalışması şart.
+// Env loading lives in `./env`; it must run before DATABASE_URL is read.
 import './env';
 
 /**
- * Ingest bağlantısı. Uygulamanınkinden ayrı: burası service role ile yazıyor
- * ve RLS'i baypas ediyor (spec 6). Ayrıca GitHub Actions runner'ında çalışıyor,
- * Vercel'de değil — ağır iş faturasız runner'da (spec 14.3).
+ * The ingest connection. Separate from the app's: this one writes with the
+ * service role and bypasses RLS (spec 6). It also runs on the GitHub Actions
+ * runner rather than on Vercel — heavy work belongs on the unbilled runner
+ * (spec 14.3).
  */
 const url = process.env.DATABASE_URL;
 
@@ -19,7 +20,7 @@ export const sql = postgres(url, {
   idle_timeout: 30,
   connect_timeout: 15,
   prepare: false,
-  // Ingest uzun metin yazıyor; varsayılan timeout yetmeyebiliyor (ms).
+  // Ingest writes long text; the default timeout may not be enough (ms).
   connection: { statement_timeout: 120_000 },
 });
 
@@ -27,7 +28,7 @@ export async function closeDb(): Promise<void> {
   await sql.end({ timeout: 5 });
 }
 
-/** Bir ingest çalışmasını kaydeder; hata listesi jsonb olarak birikir. */
+/** Records one ingest run; the error list accumulates as jsonb. */
 export async function startRun(
   kind: 'daily' | 'backfill' | 'retry',
   targetYear?: number,

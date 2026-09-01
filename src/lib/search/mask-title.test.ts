@@ -4,11 +4,12 @@ import { maskTitle, tokensToText } from './mask-title';
 import { overlayMatches, tokenClass } from './highlight';
 
 /**
- * Maskeleme testleri — spec 3.8 ve artboard 1a.
+ * Masking tests — spec 3.8 and artboard 1a.
  *
- * Bu maske tasarımın ayırt edici parçası: ham gazete başlığı atılmıyor,
- * ağırlıklandırılıyor. Sessizce bozulduğunda sayfa "çalışıyor" görünüyor ama
- * başlık okunmaz kalıyor — o yüzden hem seviyeler hem sınıflar test ediliyor.
+ * This mask is the distinctive part of the design: the raw gazette title is not
+ * discarded but weighted. When it breaks silently the page still looks "fine"
+ * while the title stays unreadable — so both the levels and the classes are
+ * tested.
  */
 
 const levelsOf = (title: string) => maskTitle(title).map((token) => token.lvl);
@@ -57,8 +58,8 @@ describe('maskTitle', () => {
   });
 
   it('maske her şeyi tek seviyeye düşürmez', () => {
-    // Fallback bile en az bir ayırt edici ve bir kalıp jetonu üretmeli;
-    // hepsi aynı seviyeyse maske görsel olarak hiçbir iş yapmıyor demektir.
+    // Even the fallback must produce at least one distinctive and one boilerplate
+    // token; if they are all at the same level the mask is doing no visual work.
     const levels = new Set(
       levelsOf('Ü(K-II) 618-2025 SÖZLEŞMELİ PERSONEL / ALİ ÖZCANLI'),
     );
@@ -86,9 +87,9 @@ describe('overlayMatches', () => {
 
 describe('tokenClass', () => {
   /*
-   * Sınıf adları TAM METİN olmalı. Dinamik birleştirilirse ('tok-' + level)
-   * Tailwind içerik taraması göremez, kuralları eler ve maske sayfada
-   * görünmez olur. Bu test o regresyonu yakalar.
+   * Class names must be written IN FULL. Composed dynamically ('tok-' + level),
+   * Tailwind's content scan cannot see them, strips the rules, and the mask
+   * becomes invisible on the page. This test catches that regression.
    */
   it('gerçek Tailwind utility sınıfları döndürür', () => {
     expect(tokenClass(0)).toContain('font-light');

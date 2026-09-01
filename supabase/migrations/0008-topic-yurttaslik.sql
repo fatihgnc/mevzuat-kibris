@@ -1,16 +1,16 @@
--- Dokuzuncu konu: Yurttaşlık.
+-- A ninth topic: Citizenship (Yurttaşlık).
 --
--- Gerçek veriden geldi. 2025 arşivi işlendiğinde konusuz kalan 1.595 kaydın
--- 537'si (üçte biri) "X'in KKTC YURTTAŞLIĞINA ALINMASI" biçimindeydi ve
--- mevcut sekiz konunun hiçbirine girmiyordu.
+-- It came from real data. When the 2025 archive was processed, of the 1,595 records
+-- left without a topic, 537 (a third) had the form "X'in KKTC YURTTAŞLIĞINA ALINMASI"
+-- and fitted none of the existing eight topics.
 --
--- Migration olarak yazılmasının sebebi: record_topics.topic sütunu
--- topics(slug)'a foreign key. Konu satırı olmadan sınıflandırıcı kaydı
--- yazamaz. `scripts/seed` bu tabloyu dolduruyor ama yalnızca db:reset'te
--- çalışıyor; gerçek veri yüklü bir veritabanında reset yapılamaz.
+-- Why it is written as a migration: the record_topics.topic column is a foreign
+-- key to topics(slug). Without the topic row the classifier cannot write the
+-- record. `scripts/seed` populates this table but only runs on db:reset;
+-- a database loaded with real data cannot be reset.
 --
--- Metinler src/lib/constants/topics.ts ile aynı; orası tek kaynak ve seed
--- her çalıştığında buradaki satırı tazeliyor.
+-- The texts match src/lib/constants/topics.ts; that file is the single source and
+-- seed refreshes this row every time it runs.
 
 insert into topics (slug, name, description, sort_order)
 values (

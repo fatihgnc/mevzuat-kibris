@@ -7,20 +7,20 @@ import type { Token } from '@/types/record';
 
 interface RawTitleProps {
   tokens: Token[];
-  /** Kopyalanacak düz metin — jetonların birleşimi, maskesiz. */
+  /** The plain text to copy — the tokens joined, unmasked. */
   plainTitle: string;
   label?: string;
 }
 
 /**
- * "Gazetedeki başlık, olduğu gibi" kutusu — artboard 1a/1g.
+ * The "the gazette's title, as it is" box — artboards 1a/1g.
  *
- * Spec 3.8 kural 5: ham başlık her zaman sayfada ve kopyalanabilir, açılır
- * kutuda saklanmaz. Kullanıcı bu metni resmî yazışmada kullanacak, o yüzden
- * hem tek tıkla seçilebiliyor (select-all) hem kopyala düğmesi var.
+ * Spec 3.8 rule 5: the raw title is always on the page and copyable, never hidden
+ * behind a disclosure. The user will use this text in official correspondence, so
+ * it is both selectable in one click (select-all) and has a copy button.
  *
- * Maskeleme burada da uygulanıyor: kalıp soluk, ayırt edici koyu. Kopyalanan
- * metin maskesiz tam hâli.
+ * Masking applies here too: boilerplate faint, distinctive dark. The copied text is
+ * the full, unmasked form.
  */
 export function RawTitle({ tokens, plainTitle, label = 'Gazetedeki başlık, olduğu gibi' }: RawTitleProps) {
   const [copied, setCopied] = useState(false);
@@ -35,7 +35,7 @@ export function RawTitle({ tokens, plainTitle, label = 'Gazetedeki başlık, old
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Pano erişimi yoksa metin zaten select-all ile seçilebiliyor.
+      // Without clipboard access the text can still be selected with select-all.
     }
   }
 

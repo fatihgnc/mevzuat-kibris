@@ -1,9 +1,9 @@
 /**
- * Rehber içerikleri — spec 9.7.
+ * Guide content — spec 9.7.
  *
- * Bunlar elle yazılmış, özgün metinler. İki işi var: kullanıcıyı eğitmek ve
- * sitenin "sadece kazınmış içerik" olmadığını göstermek (spec 14.5 madde 2).
- * AdSense başvurusu bu sekiz rehber yayımlanmadan yapılmıyor.
+ * These are hand-written, original texts. They do two jobs: teach the user, and
+ * show the site is not "just scraped content" (spec 14.5 rule 2). The AdSense
+ * application is not submitted before all eight guides are published.
  */
 
 export interface GuideSection {
@@ -15,7 +15,7 @@ export interface GuideSection {
 export interface Guide {
   slug: string;
   title: string;
-  /** Liste sayfasındaki tek satırlık tanım */
+  /** The one-line definition on the list page */
   summary: string;
   /** Meta description */
   description: string;

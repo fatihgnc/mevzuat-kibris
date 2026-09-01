@@ -12,12 +12,12 @@ const schema = z.object({
 });
 
 /**
- * Ingest sonrası on-demand revalidation — spec 11.2.
+ * On-demand revalidation after ingest — spec 11.2.
  *
- * Kritik nokta: yalnızca ana sayfayı değil, ETKİLENEN TÜM tag'leri tazeliyoruz.
- * Ana sayfa "3 yeni kayıt" derken konu sayfasının "kayıt yok" demesi, aynı
- * veriden iki farklı cevap veren iki sayfa demek; ürünün güvenilirliğini tek
- * seferde bitiren hata bu.
+ * The critical point: we refresh EVERY affected tag, not just the home page. The
+ * home page saying "3 new records" while the topic page says "no records" means two
+ * pages giving two different answers from the same data; that is the bug that ends
+ * the product's credibility in one go.
  */
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));

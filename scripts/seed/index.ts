@@ -13,16 +13,16 @@ import { log } from '../shared/logger';
 import { summarize } from '../summarize/rules';
 
 /**
- * Yerel geliştirme ve CI smoke testi için tohum verisi.
+ * Seed data for local development and the CI smoke test.
  *
- * PDF indirmiyor; fixtures/ altındaki gerçek içindekiler dökümlerini kullanıyor.
- * Böylece veritabanı şeması, arama config'i ve arayüz ağ erişimi olmadan uçtan
- * uca çalıştırılabiliyor.
+ * It downloads no PDFs; it uses the real table-of-contents dumps under
+ * fixtures/. That lets the database schema, the search configuration and the UI
+ * be exercised end to end without network access.
  */
 
 const FIXTURES = join(process.cwd(), 'fixtures', 'issues');
 
-/** Gövde metni yerine, aramanın çalıştığını görebilmek için kısa bir örnek metin. */
+/** A short sample text in place of the body, so search can be seen working. */
 function sampleBody(title: string): string {
   return [
     title,

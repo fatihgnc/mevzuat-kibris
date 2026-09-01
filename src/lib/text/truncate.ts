@@ -1,7 +1,7 @@
 /**
- * Cümle sonunda kesen kırpma — meta description için (spec 8.4).
- * Ortada kesilen bir açıklama arama sonucunda kötü görünüyor; nokta arıyoruz,
- * yoksa son boşlukta kesip üç nokta koyuyoruz.
+ * Truncation that cuts at a sentence end — for meta descriptions (spec 8.4).
+ * A description cut mid-sentence looks bad in search results; we look for a
+ * period, and failing that cut at the last space and add an ellipsis.
  */
 export function truncateAtSentence(input: string, maxLength = 155): string {
   const text = input.replace(/\s+/g, ' ').trim();
@@ -19,7 +19,7 @@ export function truncateAtSentence(input: string, maxLength = 155): string {
   return window.slice(0, lastSpace > 0 ? lastSpace : maxLength).trimEnd() + '…';
 }
 
-/** Başlık kırpma — title etiketi için 60 karakter (spec 8.4). */
+/** Title truncation — 60 characters for the title element (spec 8.4). */
 export function truncateTitle(input: string, maxLength = 60): string {
   const text = input.replace(/\s+/g, ' ').trim();
   if (text.length <= maxLength) return text;
@@ -28,7 +28,7 @@ export function truncateTitle(input: string, maxLength = 60): string {
   return window.slice(0, lastSpace > 0 ? lastSpace : maxLength).trimEnd() + '…';
 }
 
-/** body_text 20 KB'de kesilir (spec 14.3) — bayt bazlı, karakter değil. */
+/** body_text is cut at 20 KB (spec 14.3) — measured in bytes, not characters. */
 export const BODY_TEXT_LIMIT_BYTES = 20 * 1024;
 
 export function truncateBytes(input: string, limit = BODY_TEXT_LIMIT_BYTES): string {

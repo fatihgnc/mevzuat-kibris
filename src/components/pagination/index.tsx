@@ -5,17 +5,17 @@ import { cn } from '@/lib/utils';
 interface PaginationProps {
   page: number;
   totalPages: number;
-  /** Sayfa numarasını alıp o sayfanın URL'ini döndürür. */
+  /** Takes a page number and returns that page's URL. */
   hrefFor: (page: number) => string;
   className?: string;
 }
 
 /**
- * Klasik sayfalama — sonsuz kaydırma bilerek yok (spec 9.3): her sayfa
- * paylaşılabilir bir URL ve Google'ın gezebileceği bir bağlantı.
+ * Classic pagination — infinite scroll is deliberately absent (spec 9.3): every
+ * page is a shareable URL and a link Google can crawl.
  *
- * 2. sayfadan itibaren noindex, follow (spec 8.2 madde 4); bunu metadata
- * tarafı hallediyor, burada yalnızca bağlantılar var.
+ * From page 2 onward it is noindex, follow (spec 8.2 rule 4); the metadata side
+ * handles that, and there are only links here.
  */
 export function Pagination({ page, totalPages, hrefFor, className }: PaginationProps) {
   if (totalPages <= 1) return null;
@@ -72,19 +72,19 @@ function boxClass() {
 }
 
 /**
- * "1 … 9 10 11 … 30" biçiminde pencere: ilk sayfa, geçerli sayfanın iki yanı,
- * son sayfa.
+ * A window of the form "1 … 9 10 11 … 30": the first page, the two either side of
+ * the current one, and the last page.
  *
- * Tasarım artboard'ı "1 2 3 … 64" gösteriyordu, yani baştan üç sayfa sabitti.
- * Ürün sahibinin kararıyla değiştirildi: ilk üç sayfayı sabit tutmak, kullanıcı
- * arşivin ortasındayken ekranın yarısını hiç işine yaramayan bağlantılara
- * ayırıyordu. Artık yalnızca 1 ve son sayfa sabit — biri "başa dön", diğeri
- * "arşiv ne kadar derin" sorusuna cevap.
+ * The design artboard showed "1 2 3 … 64", i.e. the first three pages were fixed.
+ * Changed by the product owner's decision: pinning the first three pages spent half
+ * the row on links of no use to a user in the middle of the archive. Now only 1 and
+ * the last page are fixed — one answers "back to the start", the other "how deep
+ * does the archive go".
  *
- * Sayı adedi 3 ile 5 arasında değişiyor (kenarlarda pencere taşmadığı için
- * daralıyor). Sabit genişlik için kenarlarda pencereyi kaydırmak mümkündü ama
- * o zaman 1. sayfada "1 2 3 4" gibi tuhaf bir dizi çıkıyor; daralma daha
- * dürüst.
+ * The number of entries varies between 3 and 5 (it narrows at the edges because the
+ * window does not overflow). A fixed width was possible by sliding the window at
+ * the edges, but that produces an odd sequence like "1 2 3 4" on page 1; narrowing
+ * is more honest.
  */
 export function pageWindow(page: number, total: number): Array<number | null> {
   if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);

@@ -1,14 +1,15 @@
 import { turkishLower } from '../../src/lib/text/turkish-lower';
 
 /**
- * Türkçe ek uyumu — özet cümle üretimi için (spec 3.8).
+ * Turkish suffix harmony — for summary sentence generation (spec 3.8).
  *
- * Özet cümleler "Toronto Rent A Car Ltd'in", "Vadili'de", "Girne'de" gibi
- * ekli özel adlar içeriyor. Ek yanlış olduğunda cümle makine üretimi gibi
- * okunuyor ve ürünün "okunabilir özet" vaadi zayıflıyor. Ünlü uyumunu ve
- * sert ünsüz benzeşmesini uyguluyoruz.
+ * Summary sentences contain suffixed proper nouns such as "Toronto Rent A Car
+ * Ltd'in", "Vadili'de", "Girne'de". When the suffix is wrong the sentence reads
+ * as machine-generated and weakens the product's promise of a readable summary.
+ * We apply vowel harmony and voiceless-consonant assimilation.
  *
- * Özel adlarda ek kesme işaretiyle ayrılır (TDK): Vadili'de, Ltd'in.
+ * On proper nouns the suffix is separated by an apostrophe (per TDK):
+ * Vadili'de, Ltd'in.
  */
 
 const BACK_VOWELS = new Set(['a', 'ı', 'o', 'u']);
@@ -16,15 +17,15 @@ const FRONT_VOWELS = new Set(['e', 'i', 'ö', 'ü']);
 const ROUNDED = new Set(['o', 'u', 'ö', 'ü']);
 const VOWELS = new Set([...BACK_VOWELS, ...FRONT_VOWELS]);
 
-/** Sert ünsüzler — locative ekinde d yerine t getirir (fıstıkçı şahap). */
+/** Voiceless consonants — the locative suffix takes t instead of d after these. */
 const VOICELESS = new Set(['f', 's', 't', 'k', 'ç', 'ş', 'h', 'p']);
 
 /**
- * Ünlü uyumu SON SÖZCÜĞE bakar, ifadenin tamamına değil.
+ * Vowel harmony follows the LAST WORD, not the whole phrase.
  *
- * "Toronto Rent A Car Ltd" için tüm dizgede geriye doğru tarasaydık "Car"
- * içindeki a'yı bulup "Ltd'ın" üretirdik. Doğrusu "Ltd'in": ek son sözcüğe
- * geliyor ve o sözcük nasıl okunuyorsa ona uyuyor.
+ * For "Toronto Rent A Car Ltd", scanning the whole string backwards would find
+ * the a in "Car" and produce "Ltd'ın". The correct form is "Ltd'in": the suffix
+ * attaches to the last word and harmonises with how that word is pronounced.
  */
 function lastWord(name: string): string {
   const parts = name.trim().split(/[\s\-–—]+/).filter(Boolean);
@@ -32,10 +33,10 @@ function lastWord(name: string): string {
 }
 
 /**
- * Ünlüsü olmayan kısaltmalar okunuşlarına göre ek alır: "Ltd" limited diye
- * okunuyor, dolayısıyla ince sıradan ek geliyor. Listede olmayanlarda ince
- * sıra varsayılıyor — Türkçe kısaltmaların çoğu harf harf okunuyor ve harf
- * adlarının çoğu ince ("be", "ce", "de", "ef").
+ * Abbreviations with no vowel take their suffix from how they are pronounced:
+ * "Ltd" is read as "limited", so it takes a front-vowel suffix. Anything not in
+ * the list is assumed front — most Turkish abbreviations are spelled out letter
+ * by letter, and most letter names are front ("be", "ce", "de", "ef").
  */
 const ABBREVIATION_VOWEL: Record<string, string> = {
   ltd: 'e',
@@ -63,7 +64,7 @@ function lastLetter(name: string): string {
 }
 
 /**
- * İlgi eki: -in / -ın / -un / -ün, ünlüyle bitiyorsa araya n.
+ * Genitive: -in / -ın / -un / -ün, with an inserted n after a vowel.
  * "Toronto Rent A Car Ltd" -> "Toronto Rent A Car Ltd'in"
  */
 export function genitive(name: string): string {
@@ -72,7 +73,7 @@ export function genitive(name: string): string {
 
   let suffix: string;
   if (vowel === null) {
-    // Okunuşu bilinmeyen kısaltma: ince sıra varsayılan (bkz. ABBREVIATION_VOWEL).
+    // Abbreviation with unknown pronunciation: front vowel is the default (see ABBREVIATION_VOWEL).
     suffix = 'in';
   } else if (BACK_VOWELS.has(vowel)) {
     suffix = ROUNDED.has(vowel) ? 'un' : 'ın';
@@ -84,7 +85,7 @@ export function genitive(name: string): string {
 }
 
 /**
- * Bulunma eki: -de / -da / -te / -ta.
+ * Locative: -de / -da / -te / -ta.
  * "Vadili" -> "Vadili'de", "Alayköy" -> "Alayköy'de", "Haspolat" -> "Haspolat'ta"
  */
 export function locative(name: string): string {
@@ -97,7 +98,7 @@ export function locative(name: string): string {
 }
 
 /**
- * Yönelme eki: -e / -a / -ye / -ya.
+ * Dative: -e / -a / -ye / -ya.
  * "Fiyat İstikrar Fonu" -> "Fiyat İstikrar Fonu'na"
  */
 export function dative(name: string): string {
@@ -109,7 +110,7 @@ export function dative(name: string): string {
 }
 
 /**
- * Belirtme eki: -i / -ı / -u / -ü, ünlüyle bitiyorsa araya y.
+ * Accusative: -i / -ı / -u / -ü, with an inserted y after a vowel.
  * "Vadili" -> "Vadili'yi"
  */
 export function accusative(name: string): string {
@@ -125,7 +126,7 @@ export function accusative(name: string): string {
 }
 
 /**
- * İyelik ekli addan ayrılma hâli: -nden / -ndan.
+ * Ablative on a noun that already carries a possessive: -nden / -ndan.
  * "tüketim maddeleri" -> "tüketim maddelerinden"
  */
 export function ablativeFromPossessive(name: string): string {
@@ -135,11 +136,12 @@ export function ablativeFromPossessive(name: string): string {
 }
 
 /**
- * BÜYÜK HARFLE yazılmış kaynak metni okunabilir hâle getirir.
+ * Makes ALL-CAPS source text readable.
  *
- * Gazete başlıkları tamamen büyük harf. Her sözcüğün ilk harfini büyütmek
- * "Ve", "İle" gibi bağlaçları da büyütüyor ve özel ad gibi gösteriyor;
- * bağlaçları küçük bırakıyoruz. Zaten karışık yazılmış metne dokunmuyoruz.
+ * Gazette titles are entirely uppercase. Capitalising the first letter of every
+ * word also capitalises conjunctions like "Ve" and "İle" and makes them look
+ * like proper nouns; we leave conjunctions lowercase. Text that is already mixed
+ * case is left alone.
  */
 const LOWERCASE_WORDS = new Set([
   've',
@@ -156,8 +158,8 @@ const LOWERCASE_WORDS = new Set([
 ]);
 
 /**
- * Şirket türü kısaltmaları kısaltma gibi değil, sözcük gibi yazılır:
- * "Toronto Rent A Car Ltd", "TORONTO RENT A CAR LTD" değil.
+ * Company type abbreviations are written like words, not like abbreviations:
+ * "Toronto Rent A Car Ltd", not "TORONTO RENT A CAR LTD".
  */
 const COMPANY_SUFFIXES: Record<string, string> = {
   ltd: 'Ltd',
@@ -170,7 +172,7 @@ const COMPANY_SUFFIXES: Record<string, string> = {
   'inc.': 'Inc.',
 };
 
-/** Ünlüsü olmayan sözcük = kısaltma (KKTC, KDV, TC). Büyük kalır. */
+/** A word with no vowel is an abbreviation (KKTC, KDV, TC). It stays uppercase. */
 function isAcronym(word: string): boolean {
   const letters = turkishLower(word).replace(/[^a-zçğıöşü]/g, '');
   if (!letters) return false;
@@ -178,23 +180,23 @@ function isAcronym(word: string): boolean {
 }
 
 /**
- * Türkçe mi yabancı mı — küçük harfe çevirmede TEK belirsizlik büyük I harfi.
+ * Turkish or foreign — the ONLY ambiguity when lowercasing is the capital I.
  *
- * Türkçede I -> ı, İ -> i. Yabancı sözcüklerde I -> i olmalı. Kaynak metin
- * tamamen büyük harf olduğu için sözcüğe bakarak ayırt edilemiyor:
- * "ASLIHAN" Türkçe (Aslıhan), "NICOSIA" yabancı (Nicosia), ikisi de yalnızca
- * düz I içeriyor.
+ * In Turkish, I -> ı and İ -> i. In foreign words I must become i. Because the
+ * source text is entirely uppercase, the word itself cannot settle it:
+ * "ASLIHAN" is Turkish (Aslıhan) and "NICOSIA" is foreign (Nicosia), and both
+ * contain only a plain I.
  *
- * Karar SÖZCÜK BAZINDA DEĞİL İFADE BAZINDA veriliyor: ifadenin herhangi bir
- * yerinde Türkçeye özgü bir harf (ç ğ İ ö ş ü) varsa ifadenin tamamı Türkçe
- * sayılıyor. Şirket sicilinde bu ayrım net çalışıyor:
+ * The decision is made PER PHRASE, NOT PER WORD: if a distinctively Turkish
+ * letter (ç ğ İ ö ş ü) appears anywhere in the phrase, the whole phrase counts
+ * as Turkish. On the company registry this distinction works cleanly:
  *
- *   "KIBRIS TÜRK ELEKTRİK KURUMU"      -> Ü, İ var  -> Kıbrıs Türk Elektrik Kurumu
- *   "NICOSIA LANGUAGE CENTRE LIMITED"  -> yok       -> Nicosia Language Centre Limited
- *   "HASPOLAT GIDA SANAYİ LTD"         -> İ var     -> Haspolat Gıda Sanayi Ltd
+ *   "KIBRIS TÜRK ELEKTRİK KURUMU"      -> has Ü, İ  -> Kıbrıs Türk Elektrik Kurumu
+ *   "NICOSIA LANGUAGE CENTRE LIMITED"  -> none      -> Nicosia Language Centre Limited
+ *   "HASPOLAT GIDA SANAYİ LTD"         -> has İ     -> Haspolat Gıda Sanayi Ltd
  *
- * Sözcük bazında yapılsaydı "KIBRIS" tek başına yabancı sayılıp "Kibris"
- * olurdu; ifade bazında doğru çıkıyor.
+ * Done per word, "KIBRIS" on its own would count as foreign and come out as
+ * "Kibris"; per phrase it comes out right.
  */
 const TURKISH_MARKERS = /[ÇĞİÖŞÜçğiöşü]/;
 
@@ -205,7 +207,7 @@ function looksTurkish(phrase: string): boolean {
 export function titleCase(input: string): string {
   const text = input.trim().replace(/\s+/g, ' ');
 
-  // Zaten karışık yazılmışsa dokunma.
+  // Already mixed case — leave it alone.
   if (text !== text.toLocaleUpperCase('tr')) return text;
 
   const turkish = looksTurkish(text);

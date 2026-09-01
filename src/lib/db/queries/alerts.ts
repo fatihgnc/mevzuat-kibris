@@ -58,12 +58,14 @@ export interface CreateAlertInput {
 }
 
 /**
- * Alarm oluşturur ve haftalık aboneyi haftanın bir gününe atar (spec 10.3 madde 2).
+ * Creates an alert and assigns a weekly subscriber to a day of the week (spec
+ * 10.3 rule 2).
  *
- * Gün assign_weekday(user_id) ile deterministik: aynı kullanıcının bütün haftalık
- * alarmları aynı gün gider, tek mailde birleşebilir. Günlük abone sayısı 60'ı
- * geçtiyse istek haftalığa çevrilir (spec 10.3 madde 5) — sessizce değil, çağıran
- * taraf dönen `frequency` alanını kullanıcıya göstermek zorunda.
+ * The day is deterministic via assign_weekday(user_id): all of a user's weekly
+ * alerts go out on the same day and can be combined into one email. If the daily
+ * subscriber count has passed 60, the request is converted to weekly (spec 10.3
+ * rule 5) — not silently: the caller must show the returned `frequency` to the
+ * user.
  */
 export async function createAlert(input: CreateAlertInput): Promise<AlertRow> {
   let frequency = input.frequency;
@@ -108,8 +110,8 @@ export async function deleteAlert(alertId: number, userId: string): Promise<void
 }
 
 /**
- * Kota bekçisi (spec 10.3 madde 4): bugün kaç gönderim yapıldı.
- * Resend ücretsiz katmanında günlük tavan 100.
+ * Quota guard (spec 10.3 rule 4): how many dispatches have gone out today.
+ * The Resend free tier's daily ceiling is 100.
  */
 export const DAILY_EMAIL_CAP = 100;
 
@@ -123,9 +125,9 @@ export async function todayDeliveryCount(): Promise<number> {
 }
 
 /**
- * Eşleştirme sorgusu — spec 10.2, birebir.
- * Arama ile aynı search_vector ve aynı tr_rg config'ini kullanıyor: kullanıcının
- * aramada gördüğü ile alarmda aldığı aynı olsun diye.
+ * The matching query — spec 10.2, verbatim.
+ * It uses the same search_vector and the same tr_rg configuration as search, so
+ * that what the user saw in search is what they get in the alert.
  */
 export async function matchAlerts(
   newRecordIds: number[],

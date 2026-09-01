@@ -5,20 +5,20 @@ import { log } from '../shared/logger';
 import { inheritReferencedTopics } from './inherit';
 
 /**
- * Saklanan başlıklardan belge türünü ve konuları YENİDEN hesaplar.
+ * RECOMPUTES document type and topics from the stored titles.
  *
- * Neden ayrı bir betik: sınıflandırma kuralları gerçek veri görüldükçe
- * değişiyor ve her değişiklik ancak yeni kayıtlara uygulanıyordu. Mevcut
- * kayıtları güncellemenin tek yolu bütün arşivi yeniden çekmekti — 262 PDF
- * indirmesi, kaynak siteye gereksiz yük ve saatler. Oysa sınıflandırma
- * yalnızca `title`, `section` ve `ref_type` sütunlarına bakıyor; üçü de
- * veritabanında duruyor. Ağa hiç çıkmıyoruz.
+ * Why a separate script: classification rules change as real data is seen, and
+ * each change only ever applied to new records. The only way to update existing
+ * records was to re-crawl the whole archive — 262 PDF downloads, needless load on
+ * the source site, and hours. But classification looks only at the `title`,
+ * `section` and `ref_type` columns, and all three are already in the database. We
+ * never touch the network.
  *
- * DEĞİŞTİRMEDİKLERİ, bilerek: `body_text`, `summary`, `has_own_page`, `slug`.
- * Bunlar PDF metnine ya da üretim anındaki karara bağlı; slug ise spec 8.1
- * gereği bir kez üretildikten sonra hiç değişmiyor.
+ * What it deliberately does NOT change: `body_text`, `summary`, `has_own_page`,
+ * `slug`. Those depend on the PDF text or on a decision made at generation time;
+ * and per spec 8.1 a slug never changes once generated.
  *
- * Kullanım: tsx scripts/reclassify/index.ts [--dry]
+ * Usage: tsx scripts/reclassify/index.ts [--dry]
  */
 
 interface RecordRow {
@@ -67,9 +67,9 @@ async function main() {
 
     if (!sameTopics) {
       /*
-       * Kaldırılanları da silmek ŞART. Yalnızca ekleme yapılsaydı, bir kayıt
-       * daha önce yanlışlıkla aldığı konuyu sonsuza kadar taşırdı ve kural
-       * daraltmaları hiç etki etmezdi.
+       * Deleting removed topics is ESSENTIAL. With inserts only, a record would
+       * carry a topic it had once been given by mistake forever, and narrowing a
+       * rule would have no effect at all.
        */
       await sql`delete from record_topics where record_id = ${Number(row.id)}`;
       for (const topic of topics) {
@@ -84,9 +84,10 @@ async function main() {
   log.info('kural tabanlı sınıflandırma bitti', { docTypeChanged, topicsChanged });
 
   /*
-   * Devralma kural katmanından SONRA çalışmak zorunda: tadil kaydı konusunu
-   * atıf yaptığı karardan alıyor ve o kaynağın konusu ancak bu adımda
-   * belirleniyor. Sıra ters olsaydı kaynakların çoğu hâlâ konusuz olurdu.
+   * Inheritance has to run AFTER the rule layer: an amendment record takes its
+   * topic from the decision it cites, and that source's topic is only determined
+   * in this step. In the reverse order most of the sources would still have no
+   * topic.
    */
   const inherited = dry ? 0 : await inheritReferencedTopics();
   log.info('yeniden sınıflandırma tamam', { docTypeChanged, topicsChanged, inherited });

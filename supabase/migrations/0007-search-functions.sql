@@ -1,14 +1,14 @@
--- 0007 — arama fonksiyonları (spec 5.4)
+-- 0007 — search functions (spec 5.4)
 
 /*
- * Eşanlamlı ve köprü sözlüğü.
+ * The synonym and bridge dictionary.
  *
- * Spec 5.2 bunu dosya tabanlı bir synonym dictionary olarak tarif ediyor ve
- * Supabase'de $SHAREDIR'a yazılamadığı için "uygulama katmanında sorgu
- * genişletmesi" tavizini kabul ediyor. Bunu TABLO olarak yapıyoruz; çünkü
- * uygulama katmanında yapılırsa alarm eşleştirmesi (spec 10.2) aynı genişletmeyi
- * almaz ve "kullanıcının aramada gördüğü ile alarmda aldığı birebir aynıdır"
- * vaadi bozulurdu. Tabloda olunca iki taraf da aynı fonksiyondan geçiyor.
+ * Spec 5.2 describes this as a file-based synonym dictionary and, because
+ * $SHAREDIR cannot be written on Supabase, settles for "query expansion in the
+ * application layer". We do it as a TABLE instead: done in the application layer,
+ * alert matching (spec 10.2) would not get the same expansion, and the promise
+ * that "what the user saw in search is exactly what they get in the alert" would
+ * break. In a table, both sides go through the same function.
  */
 create table if not exists search_synonyms (
   term        text not null,
@@ -18,7 +18,7 @@ create table if not exists search_synonyms (
 
 create index if not exists search_synonyms_term_idx on search_synonyms (term);
 
--- Alan terimleri (spec 5.2 örnek listesi). Çift yönlü yazılıyor.
+-- Domain terms (the example list in spec 5.2). Written in both directions.
 insert into search_synonyms (term, alternative) values
   ('kamulastirma', 'istimlak'),
   ('istimlak', 'kamulastirma'),
@@ -35,8 +35,8 @@ insert into search_synonyms (term, alternative) values
   ('khk', 'yasa gucunde kararname'),
   ('bkk', 'bakanlar kurulu karari'),
   ('imar', 'planlama onayi'),
-  -- Ünsüz yumuşaması köprüleri: önek eşleşmesinin kapatamadığı tek boşluk.
-  -- "tüzük" araması "tüzüğünde" geçen kaydı bulmalı (k -> ğ, unaccent sonrası g).
+  -- Consonant-softening bridges: the one gap prefix matching cannot close.
+  -- Searching "tüzük" must find a record containing "tüzüğünde" (k -> ğ, g after unaccent).
   ('tuzuk', 'tuzug'),
   ('toprak', 'toprag'),
   ('kaynak', 'kaynag'),
@@ -46,17 +46,18 @@ insert into search_synonyms (term, alternative) values
 on conflict do nothing;
 
 /*
- * Sorgu üretimi — spec 5.4 adım 2-4.
+ * Query construction — spec 5.4 steps 2-4.
  *
- * websearch_to_tsquery kullanıcı sözdizimini (tırnaklı ifade, OR, eksi) kendisi
- * güvenle ayrıştırıyor; onun çıktısını alıp iki şey ekliyoruz:
+ * websearch_to_tsquery safely parses the user's syntax (quoted phrases, OR, minus)
+ * on its own; we take its output and add two things:
  *
- *   1. Her sözcüğe :* öneki. Türkçe eklemeli ve ekler sona geldiği için önek
- *      eşleşmesi gövdelemenin işini yapıyor (bkz. 0002 ölçümü).
- *   2. search_synonyms'teki karşılıklar OR ile ekleniyor.
+ *   1. A :* prefix on every word. Turkish is agglutinative and its suffixes come
+ *      at the end, so prefix matching does the job of stemming (see the
+ *      measurement in 0002).
+ *   2. The counterparts from search_synonyms, OR'ed in.
  *
- * İki aşamalı değiştirme (önce yer tutucu, sonra açılım) kullanılıyor; tek
- * aşamada yapılırsa üretilen alternatifler yeniden eşleşip sonsuz genişliyor.
+ * A two-stage replacement is used (placeholders first, expansions second); done in
+ * one stage, the generated alternatives would match again and expand without end.
  */
 create or replace function mk_tsquery(q text) returns tsquery
 language plpgsql
@@ -82,7 +83,7 @@ begin
     return null;
   end if;
 
-  -- Aşama 1: her benzersiz lexeme'i yer tutucuya çevir
+  -- Stage 1: turn every unique lexeme into a placeholder
   for lexeme in
     select distinct m[1] from regexp_matches(base_text, '''([^'']+)''', 'g') m
   loop
@@ -117,7 +118,7 @@ begin
     base_text := replace(base_text, quote_literal(lexeme), marker);
   end loop;
 
-  -- Aşama 2: yer tutucuları açılımlarıyla değiştir
+  -- Stage 2: replace the placeholders with their expansions
   for idx in 1 .. coalesce(array_length(markers, 1), 0) loop
     base_text := replace(base_text, markers[idx], expansions[idx]);
   end loop;
@@ -125,12 +126,12 @@ begin
   return base_text::tsquery;
 exception
   when others then
-    -- Bozuk bir sorgu arama sayfasını düşürmemeli; ham hâline geri dönüyoruz.
+    -- A malformed query must not take down the search page; we fall back to the raw form.
     return websearch_to_tsquery('tr_rg', q);
 end;
 $$;
 
--- Tazelik çarpanı: son 90 gün x1.5, son 1 yıl x1.2, gerisi x1.0 (spec 5.4).
+-- Freshness multiplier: last 90 days x1.5, last year x1.2, older x1.0 (spec 5.4).
 create or replace function recency_boost(published date)
 returns real
 language sql
@@ -143,7 +144,7 @@ as $$
   end;
 $$;
 
--- 0 sonuç dönünce "bunu mu demek istediniz" (spec 5.4 adım 7).
+-- "Did you mean" when 0 results come back (spec 5.4 step 7).
 create or replace function suggest_similar(q text, limit_n int default 3)
 returns table (slug text, title text, summary text, similarity real)
 language sql
@@ -160,7 +161,7 @@ as $$
    limit limit_n;
 $$;
 
--- Config doğru kurulduysa bu sorguların hepsi eşleşmeli.
+-- If the config was installed correctly, all of these queries must match.
 do $$
 declare
   doc tsvector;
@@ -188,7 +189,7 @@ begin
     raise exception 'mk_tsquery: "fon" araması "FONUNA" geçen kaydı bulamıyor';
   end if;
 
-  -- Negatif kontrol: alakasız sorgu eşleşmemeli, yoksa önek fazla geniş demektir.
+  -- Negative control: an unrelated query must not match, or the prefix is too broad.
   if to_tsvector('tr_rg', 'MARKA TESCİL MÜRACAATI İLANI') @@ mk_tsquery('kamulastirma') then
     raise exception 'mk_tsquery: alakasız sorgu eşleşiyor, önek fazla geniş';
   end if;

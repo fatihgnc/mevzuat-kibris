@@ -6,20 +6,20 @@ import { useState, type FormEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 interface SearchBoxProps {
-  /** `hero` ana sayfadaki büyük kutu, `compact` başlıktaki dar kutu. */
+  /** `hero` is the large box on the home page, `compact` the narrow one in the header. */
   size?: 'hero' | 'compact';
   defaultValue?: string;
   placeholder?: string;
-  /** Pasif görünüm: konu sayfasındaki gri kutu (odak yok, kenarlık soluk). */
+  /** Passive appearance: the grey box on a topic page (no focus, faint border). */
   active?: boolean;
   className?: string;
 }
 
 /**
- * Arama kutusu — sitedeki dört client component'ten biri (spec 13).
+ * The search box — one of the site's four client components (spec 13).
  *
- * Form GET ile /ara'ya gidiyor: JS kapalıyken de çalışıyor ve sonuç URL'i
- * paylaşılabilir kalıyor (spec 5.5). router.push yalnızca yumuşak geçiş için.
+ * The form GETs to /ara: it works with JS disabled and the result URL stays
+ * shareable (spec 5.5). router.push is only there for the soft transition.
  */
 export function SearchBox({
   size = 'hero',

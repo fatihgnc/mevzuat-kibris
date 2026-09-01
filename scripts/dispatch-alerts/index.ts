@@ -15,24 +15,24 @@ import {
 } from './template';
 
 /**
- * Aşama 9 — alarm gönderimi (spec 10).
+ * Stage 9 — alert dispatch (spec 10).
  *
- * E-posta hacmi bu üründe bir maliyet kalemi, dolayısıyla tasarımın kısıtı.
- * Resend ücretsiz katmanı: aylık 3.000, GÜNLÜK 100. Bağlayıcı olan günlük
- * tavan.
+ * Email volume is a cost line in this product and therefore a design constraint.
+ * The Resend free tier allows 3,000 a month and 100 A DAY. The daily ceiling is
+ * the binding one.
  *
- * Uygulanan kurallar:
- *   1. Varsayılan haftalık (alerts.frequency default 'weekly')
- *   2. Haftanın gününe dağıtım — bugün hangi güne düşüyorsa o aboneler
- *   3. Eşleşme yoksa mail YOK ("bu hafta yeni kayıt yok" maili asla gitmez)
- *   4. Kota bekçisi — tavana yaklaşıldıysa kalanlar ertelenir ve
- *      status='deferred' olarak loglanır, SESSİZCE DÜŞÜRÜLMEZ
- *   5. Günlük abone 60'ı geçince yeni günlük talep kapalı (createAlert'te)
- *   6. instant frekansı yok
+ * The rules enforced here:
+ *   1. Weekly by default (alerts.frequency defaults to 'weekly')
+ *   2. Spread across the days of the week — today's subscribers only
+ *   3. No matches means NO email (a "no new records this week" email never goes out)
+ *   4. Quota guard — as the ceiling approaches, the rest are deferred and logged
+ *      with status='deferred'; they are NEVER SILENTLY DROPPED
+ *   5. Once daily subscribers pass 60, new daily requests are closed (in createAlert)
+ *   6. There is no instant frequency
  */
 
 const DAILY_CAP = 100;
-/** Kota bekçisine pay: tavanın bu kadarını kullanıp duruyoruz. */
+/** Headroom for the quota guard: we stop after using this much of the ceiling. */
 const SAFETY_MARGIN = 10;
 const BATCH_SIZE = 100;
 
@@ -62,11 +62,13 @@ function toIso(value: string | Date): string {
 }
 
 /**
- * Eşleştirme sorgusu — spec 10.2, birebir. Arama ile aynı search_vector ve
- * aynı tr_rg config'i: kullanıcının aramada gördüğü ile alarmda aldığı aynı.
+ * The matching query — spec 10.2, verbatim. The same search_vector and the same
+ * tr_rg configuration as search: what the user saw in search is what they get in
+ * the alert.
  *
- * Pencere: son gönderimden bu yana yayımlanmış kayıtlar. last_sent_at boşsa
- * son 7 gün — yeni abone bir yıllık arşivi tek mailde almasın.
+ * The window: records published since the last dispatch. If last_sent_at is empty,
+ * the last 7 days — a new subscriber should not receive a year of archive in one
+ * email.
  */
 async function findMatches(frequency: 'daily' | 'weekly', weekday: number): Promise<MatchRow[]> {
   return sql<MatchRow[]>`
@@ -143,8 +145,8 @@ async function main() {
     findMatches('weekly', weekday),
   ]);
 
-  // Günlük aboneler önce: haftalık olan bir gün ertelenebilir, günlük olan
-  // ertelenirse "her gün" sözü tutulmamış olur.
+  // Daily subscribers first: a weekly one can wait a day, but deferring a daily
+  // one breaks the promise of "every day".
   const queue = [...daily, ...weekly].filter((row) => row.matched.length > 0);
 
   log.info('gönderim kuyruğu', { daily: daily.length, weekly: weekly.length, queue: queue.length });
@@ -169,9 +171,9 @@ async function main() {
 
     if (budget <= 0) {
       /*
-       * Kota bekçisi (spec 10.3 madde 4). Sessizce düşürmüyoruz: ertelenen
-       * gönderim loglanıyor ve yarınki çalışmada last_sent_at değişmediği
-       * için aynı kayıtlar tekrar eşleşiyor.
+       * Quota guard (spec 10.3 rule 4). We do not drop silently: the deferred
+       * dispatch is logged, and because last_sent_at is unchanged the same records
+       * match again on tomorrow's run.
        */
       await sql`
         insert into alert_deliveries (alert_id, record_ids, status)
@@ -201,7 +203,7 @@ async function main() {
         html: renderDigestHtml(digest),
         text: renderDigestText(digest),
         headers: {
-          // ZORUNLU (spec 10.3): tek tıkla çıkma.
+          // MANDATORY (spec 10.3): one-click unsubscribe.
           'List-Unsubscribe': '<' + unsubscribeUrl(alertId) + '>',
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           'List-Id': SITE_NAME + ' takip <takip.' + new URL(SITE_URL).hostname + '>',
@@ -212,7 +214,7 @@ async function main() {
     budget -= 1;
   }
 
-  // Batch API, istek başına 100 alıcı (spec 10.3).
+  // Batch API, 100 recipients per request (spec 10.3).
   for (let i = 0; i < payloads.length; i += BATCH_SIZE) {
     const chunk = payloads.slice(i, i + BATCH_SIZE);
 

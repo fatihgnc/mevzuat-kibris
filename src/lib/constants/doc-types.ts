@@ -1,6 +1,6 @@
 /**
- * Belge tipleri — spec 3.4 enum'u. Görünen adlar artboard'daki "Belge türü"
- * filtresinden ve künye şeridinden alındı: kısa, tekil, günlük dile yakın.
+ * Document types — the enum from spec 3.4. The display names come from the artboard's
+ * "Belge türü" filter and the meta bar: short, singular, close to everyday language.
  */
 export const DOC_TYPES = [
   'yasa',
@@ -65,25 +65,27 @@ export function docTypeLabel(value: string): string {
 }
 
 /**
- * Referans numarası tipleri — spec 3.3 çapaları. `mt` (marka tescil) tasarımdaki
- * "M.T. 8842" örneğinden eklendi; spec 3.3 listesinde marka ilanlarının referans
- * deseni yoktu ama EK V BÖLÜM II kayıtlarının tamamı numaralı yayımlanıyor.
+ * Reference number types — the anchors from spec 3.3. `mt` (trade mark
+ * registration) was added from the design's "M.T. 8842" example; spec 3.3's list
+ * had no reference pattern for trade mark notices, but every EK V BÖLÜM II record
+ * is published with a number.
  *
- * `s` / `skii` / `kii` / `teki` gerçek arşivden geldi: Bakanlar Kurulu kararının
- * öneki dönemlere göre değişmiş. 2006/2012/2018/2025 arşiv sayfaları sayıldığında
- * dördü de ezici çoğunlukla EK IV BÖLÜM I'de çıkıyor, yani spec 3.3'ün Ü(K-I)
- * dediği serinin ta kendisi:
+ * `s` / `skii` / `kii` / `teki` came from the real archive: the prefix of a Council
+ * of Ministers decision changed from period to period. Counting the 2006, 2012,
+ * 2018 and 2025 archive pages, all four appear overwhelmingly in EK IV BÖLÜM I —
+ * that is, they are the very series spec 3.3 calls Ü(K-I):
  *
- *   S-1642-2006 / S(K-II) 566-2006  →  K(II)-2839-2012  →  TE(K-I) 1555-2018
- *   →  Ü(K-I) 2497-2025
+ *   S-1642-2006 / S(K-II) 566-2006  ->  K(II)-2839-2012  ->  TE(K-I) 1555-2018
+ *   ->  Ü(K-I) 2497-2025
  *
- * Ayrı tip olarak duruyorlar çünkü künyedeki atıf kaynağa sadık kalmalı: bir
- * hukukçu 2006 kararını "Ü(K-I) 1642-2006" diye değil "S-1642-2006" diye arar.
- * Tek tipe indirgemek arama ve alarm eşleşmesini bozardı.
+ * They stay as separate types because the citation in the meta bar must remain
+ * faithful to the source: a lawyer looks up the 2006 decision as "S-1642-2006",
+ * not "Ü(K-I) 1642-2006". Collapsing them into one type would break search and
+ * alert matching.
  *
- * Parantez içindeki seri harfi dönemler arası GÜVENİLİR DEĞİL: `K(II)` ikinci
- * seri gibi okunuyor ama 2012'de EK IV BÖLÜM I'de. Bölümü referans önekinden
- * türetme.
+ * The series letter in parentheses is NOT RELIABLE across periods: `K(II)` reads
+ * like a second series but sits in EK IV BÖLÜM I in 2012. Do not derive the section
+ * from the reference prefix.
  */
 export const REF_TYPES = [
   'ae',
@@ -104,7 +106,7 @@ export const REF_TYPES = [
 
 export type RefType = (typeof REF_TYPES)[number];
 
-/** Künyede ve slug'da görünen referans etiketi: "A.E. 1071", "Ü(K-I) 2497-2025". */
+/** The reference label shown in the meta bar and the slug: "A.E. 1071", "Ü(K-I) 2497-2025". */
 export function formatRef(refType: string | null, refNumber: string | null): string | null {
   if (!refType || !refNumber) return null;
   switch (refType) {
@@ -114,7 +116,7 @@ export function formatRef(refType: string | null, refNumber: string | null): str
       return `Ü(K-I) ${refNumber}`;
     case 'ukii':
       return `Ü(K-II) ${refNumber}`;
-    // Dönemsel Bakanlar Kurulu önekleri — kaynaktaki yazımıyla geri veriliyor.
+    // Period-specific Council of Ministers prefixes — returned in the source's own spelling.
     case 's':
       return `S-${refNumber}`;
     case 'skii':

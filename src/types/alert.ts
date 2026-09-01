@@ -1,7 +1,7 @@
 import type { DocType } from '@/lib/constants/doc-types';
 import type { TopicSlug } from '@/lib/constants/topics';
 
-/** instant spec 10.3 madde 6 uyarınca v1'de kapalı. */
+/** instant is disabled in v1 per spec 10.3 rule 6. */
 export type AlertFrequency = 'daily' | 'weekly';
 
 export interface AlertRow {
@@ -13,7 +13,7 @@ export interface AlertRow {
   docTypes: DocType[];
   entityIds: number[];
   frequency: AlertFrequency;
-  /** 0 = pazar. Haftalık aboneler güne dağıtılır (spec 10.3 madde 2). */
+  /** 0 = Sunday. Weekly subscribers are spread across the days (spec 10.3 rule 2). */
   preferredWeekday: number;
   isActive: boolean;
   lastSentAt: string | null;

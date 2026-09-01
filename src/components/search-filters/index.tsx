@@ -16,28 +16,29 @@ import { cn } from '@/lib/utils';
 interface SearchFiltersProps {
   params: SearchParams;
   facets: SearchResult['facets'];
-  /** Yıl seçenekleri veriden türetiliyor; takvimden değil (spec 8.4). */
+  /** Year options are derived from the data, not from the calendar (spec 8.4). */
   coverage?: { earliestYear: number | null; latestYear: number | null } | null;
 }
 
 /**
- * Filtre rayı — artboard 1b sol sütun.
+ * The filter rail — the left column of artboard 1b.
  *
- * GERÇEK BİR FORM, ama hâlâ JS'siz çalışıyor. Eskiden her filtre bir bağlantıydı
- * ve tıklandığı anda sayfa yenileniyordu; ürün sahibinin kararıyla artık
- * seçimler biriktiriliyor ve "Filtrele" ile tek seferde uygulanıyor.
+ * A REAL FORM, and it still works without JS. Filters used to be links that
+ * reloaded the page the moment they were clicked; by the product owner's decision
+ * selections now accumulate and are applied in one go with "Filtrele".
  *
- * `method="get"` seçilmesinin sebebi bu: onChange'de gezinen bir JS bileşeni
- * yerine düz HTML formu kullanınca değişiklik, tasarımın üç temel özelliğinin
- * hiçbirini bozmuyor —
+ * That is why `method="get"` was chosen: using a plain HTML form instead of a JS
+ * component that navigates on change means the change breaks none of the design's
+ * three core properties —
  *
- *   1. her filtre kombinasyonu hâlâ paylaşılabilir bir URL (spec 5.5),
- *   2. JS olmadan da çalışıyor,
- *   3. sunucuda render ediliyor, istemci durumu yok.
+ *   1. every filter combination is still a shareable URL (spec 5.5),
+ *   2. it works without JS,
+ *   3. it renders on the server, with no client state.
  *
- * Tarayıcı form gönderirken adres çubuğunu kendisi kuruyor; `buildSearchHref`e
- * gerek kalmıyor. `sayfa` alanı forma BİLEREK konmadı: filtre değişince 1.
- * sayfaya dönmek gerekiyor ve alanı hiç göndermemek bunu kendiliğinden yapıyor.
+ * The browser builds the address bar itself on submit, so `buildSearchHref` is not
+ * needed. The `sayfa` field is DELIBERATELY absent from the form: changing a
+ * filter must return you to page 1, and simply never sending the field does that
+ * on its own.
  */
 export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) {
   const years = yearOptions(coverage);
@@ -45,17 +46,17 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
   const filtersOpen = hasActiveFilters(params);
 
   /*
-   * Konular HER ZAMAN tam liste. Yalnızca facet satırlarını basmak, filtre
-   * uygulandığında listeyi kendi sonucuna daraltıyordu: "Atama" seçince geriye
-   * tek seçenek kalıyor ve kullanıcı başka konu ekleyemiyordu. Sayı 0 olsa da
-   * seçenek duruyor; kutunun yeri sabit kalsın diye sıra da sabit.
+   * Topics are ALWAYS the full list. Emitting only the facet rows narrowed the
+   * list to its own result when a filter was applied: picking "Atama" left a
+   * single option and the user could not add another topic. The option stays even
+   * at count 0; the order is fixed too, so the box does not move.
    */
   const topicCounts = new Map(facets.topics.map((facet) => [facet.key, facet.n]));
 
   /*
-   * Belge türünde 23 seçeneğin hepsini basmak rayı boğardı; en çok sonuç veren
-   * sekiz tanesi gösteriliyor. Ama SEÇİLİ olan bir tür listeden düşerse
-   * kullanıcı onu geri alamaz — o yüzden seçililer her hâlükârda ekleniyor.
+   * Emitting all 23 document types would drown the rail; the eight with the most
+   * results are shown. But if a SELECTED type drops off the list the user cannot
+   * undo it — so selected ones are always added back.
    */
   const docTypeShortlist = facets.docTypes.slice(0, 8);
   const missingChecked = facets.docTypes
@@ -64,17 +65,18 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
   const docTypes = [...docTypeShortlist, ...missingChecked];
 
   /*
-   * UYGULANMIŞ filtrelerin imzası — formu yeniden mount etmek için.
+   * A signature of the APPLIED filters — used to remount the form.
    *
-   * Girdiler `defaultChecked` kullanıyor ve bu değer DOM'a YALNIZCA ilk
-   * mount'ta yazılıyor. Next.js yumuşak gezinmesinde ("Filtreleri kaldır" bir
-   * Link) React aynı <input> elemanlarını yeniden kullanıyor, `defaultChecked`
-   * değişimini yok sayıyor ve kutular işaretli kalıyordu: sonuçlar sıfırlanmış
-   * ama filtreler seçili görünen bir ekran çıkıyordu.
+   * The inputs use `defaultChecked`, and that value is written to the DOM ONLY on
+   * first mount. During a Next.js soft navigation ("Filtreleri kaldır" is a Link)
+   * React reuses the same <input> elements, ignores the `defaultChecked` change,
+   * and the boxes stayed ticked: a screen where the results had been reset but the
+   * filters still looked selected.
    *
-   * key değişince React eski ağacı söküp yenisini kuruyor, böylece sunucunun
-   * ürettiği doğru işaretli durum DOM'a uygulanıyor. Sunucu bileşeni olduğu
-   * için girdileri kontrollü hâle getirmek (useState) seçenek değil.
+   * When the key changes, React tears down the old tree and builds a new one, so
+   * the correct checked state produced by the server is applied to the DOM. Because
+   * this is a server component, making the inputs controlled (useState) is not an
+   * option.
    */
   const appliedKey = [
     params.konu.join(','),
@@ -89,24 +91,24 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
       method="get"
       action="/ara"
       /*
-       * Tarayıcının kendi form durumu geri yüklemesi de aynı hatayı üretiyor:
-       * geri/ileri ve yenilemede işaretleri sunucunun gönderdiği HTML'e değil,
-       * kullanıcının son dokunduğu hâle geri getiriyor. Filtre durumunun tek
-       * kaynağı URL olmalı.
+       * The browser's own form-state restoration produces the same bug: on
+       * back/forward and reload it restores the ticks to whatever the user last
+       * touched rather than to the HTML the server sent. The single source of
+       * filter state must be the URL.
        */
       autoComplete="off"
       aria-label="Arama filtreleri"
       /*
-       * Sticky: kullanıcı uzun sonuç listesinde aşağı inerken filtreler solda
-       * kalıyor. top değeri header'ın altına denk geliyor (header sticky top-0).
-       * Yükseklik sınırı + kendi kaydırması şart: yıl listesi arşiv büyüdükçe
-       * uzuyor ve ekrandan taşarsa "Filtrele" butonu erişilemez hâle gelir.
-       * Yalnızca lg'de — altında ızgara tek sütuna düşüyor ve orada sticky bir
-       * ray içeriği iterdi.
+       * Sticky: the filters stay on the left as the user scrolls a long result
+       * list. The top value lines up under the header (which is sticky top-0). A
+       * height limit plus its own scrolling is essential: the year list grows as
+       * the archive grows, and if it overflows the screen the "Filtrele" button
+       * becomes unreachable. Only at lg — below that the grid collapses to one
+       * column, where a sticky rail would push the content around.
        */
       className="flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto lg:pb-1"
     >
-      {/* Form gönderilirken kaybolmaması gereken, rayda göstermediğimiz alanlar. */}
+      {/* Fields we do not show in the rail but that must survive form submission. */}
       <input type="hidden" name="q" value={params.q} />
       {params.sirala !== DEFAULT_SORT ? (
         <input type="hidden" name="sirala" value={params.sirala} />
@@ -165,13 +167,13 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
       </section>
 
       {/*
-        Butonun rayın SONUNDA olması bilinçli: seçimler yukarıdan aşağı yapılıyor
-        ve eylem okumanın bittiği yerde.
+        Putting the button at the END of the rail is deliberate: selections are made
+        top to bottom, and the action belongs where the reading stops.
 
-        "Filtreleri kaldır" bir BAĞLANTI, buton değil: form gönderimi değil,
-        filtresiz adrese gidiş. Sorgu metni korunuyor — kullanıcı filtreleri
-        sıfırlarken aramasını kaybetmemeli. Yalnızca uygulanmış filtre varken
-        görünüyor; boşken kalabalık yapardı.
+        "Filtreleri kaldır" is a LINK, not a button: it is not a form submission but
+        a navigation to the unfiltered address. The query text is preserved — a user
+        clearing filters must not lose their search. It only appears when a filter
+        is applied; when empty it would just add clutter.
       */}
       <div className="sticky bottom-0 flex flex-col gap-2 bg-surface pt-1">
         <button
@@ -224,8 +226,8 @@ function FilterCheckbox({
 }
 
 /**
- * Yıl seçimi radyo grubu. "Tümü" değeri boş dizge: form gönderilirken boş
- * değerler URL'e yazılmıyor, yani yıl filtresi kendiliğinden düşüyor.
+ * The year radio group. The "Tümü" value is an empty string: empty values are not
+ * written to the URL on submit, so the year filter drops out by itself.
  */
 function YearRadio({ option, activeYear }: { option: YearOption; activeYear?: number }) {
   const checked = option.yil === undefined ? activeYear === undefined : activeYear === option.yil;
@@ -248,7 +250,7 @@ function toggle<T extends string>(list: readonly T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-/** Açık filtre çipleri — artboard 1f'deki "Son 12 ay ×" rozetleri. */
+/** Active filter chips — the "Son 12 ay ×" badges in artboard 1f. */
 export function ActiveFilterChips({ params }: { params: SearchParams }) {
   const chips: Array<{ key: string; label: string; href: string }> = [];
 
@@ -269,8 +271,8 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
   }
 
   /*
-   * baslangic/bitis artık arayüzden üretilmiyor ama paylaşılmış eski
-   * bağlantılarda gelebiliyor; çipini gösterip kaldırılabilir tutuyoruz.
+   * baslangic/bitis are no longer produced by the UI, but they can still arrive in
+   * old shared links; we show their chip so they remain removable.
    */
   if (params.baslangic || params.bitis) {
     chips.push({

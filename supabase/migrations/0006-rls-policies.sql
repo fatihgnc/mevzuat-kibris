@@ -1,5 +1,5 @@
 -- 0006 — RLS (spec 6)
--- Kamu verisi herkese okunur; kullanıcıya ait olan yalnızca sahibine.
+-- Public data is readable by everyone; user-owned data only by its owner.
 -- Ingest service role key ile yazar, RLS'i baypas eder.
 
 alter table issues          enable row level security;
@@ -14,7 +14,7 @@ alter table alert_deliveries enable row level security;
 alter table ingest_runs     enable row level security;
 alter table search_logs     enable row level security;
 
--- Kamuya açık okuma
+-- Public read
 do $$
 declare t text;
 begin
@@ -26,7 +26,7 @@ begin
 end
 $$;
 
--- Kullanıcıya ait tablolar
+-- User-owned tables
 drop policy if exists profiles_own on profiles;
 create policy profiles_own on profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
@@ -41,6 +41,6 @@ create policy alert_deliveries_own on alert_deliveries
     exists (select 1 from alerts a where a.id = alert_id and a.user_id = auth.uid())
   );
 
--- ingest_runs ve search_logs: kimseye açık değil, yalnızca service role.
--- Arama logu yazımı /api/search-suggest üzerinden service role ile yapılır;
--- anon istemciye yazma açılırsa log kirletilebilir.
+-- ingest_runs and search_logs: open to nobody, service role only.
+-- Search log writes go through /api/search-suggest with the service role;
+-- opening writes to the anon client would let the log be polluted.

@@ -14,7 +14,7 @@ import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { formatDateLong } from '@/lib/text/dates';
 
-/** ISR 30 gün — yayımlanmış bir sayı değişmiyor (spec 11.1). */
+/** ISR 30 days — a published issue does not change (spec 11.1). */
 export const revalidate = 2592000;
 export const dynamicParams = true;
 
@@ -52,7 +52,7 @@ export default async function IssuePage({ params }: Props) {
     adjacentIssues(year, number),
   ]);
 
-  // Bölümler gazetenin kendi sırasında; bilinmeyen bölüm varsa sona düşüyor.
+  // Sections in the gazette's own order; an unknown section falls to the end.
   const ordered = [...sections].sort((a, b) => {
     const ai = SECTIONS.indexOf(a.section as never);
     const bi = SECTIONS.indexOf(b.section as never);
@@ -116,7 +116,7 @@ export default async function IssuePage({ params }: Props) {
               {group.records.map((record) => (
                 <li
                   key={record.id}
-                  // İnce kayıtların kendi sayfası yok; anchor buraya (spec 8.2 madde 2).
+                  // Thin records have no page of their own; the anchor points here (spec 8.2 rule 2).
                   id={record.refLabel ? 'karar-' + record.refLabel : undefined}
                   className="scroll-mt-24 border-b border-line-soft py-3.5"
                 >
@@ -130,9 +130,9 @@ export default async function IssuePage({ params }: Props) {
                       </Link>
                     ) : (
                       /*
-                       * Kendi sayfası olmayan kayıt burada tam hâliyle duruyor:
-                       * sayfası yok diye bilgi kaybolmuyor, yalnızca ayrı bir URL
-                       * almıyor.
+                       * A record with no page of its own appears here in full: it
+                       * loses no information for lacking a page, it simply gets no
+                       * separate URL.
                        */
                       <span className="text-lg font-medium leading-[1.4] text-ink">
                         {record.summary ?? <MaskedText tokens={record.titleTokens} />}

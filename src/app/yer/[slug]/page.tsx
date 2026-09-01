@@ -4,7 +4,7 @@ import { EntityPage } from '@/components/entity-page';
 import { entitySlugs, getEntity } from '@/lib/db/queries/entities';
 import { buildMetadata } from '@/lib/seo/metadata';
 
-/** ISR 7 gün (spec 11.1). */
+/** ISR 7 days (spec 11.1). */
 export const revalidate = 604800;
 export const dynamicParams = true;
 

@@ -8,22 +8,23 @@ import {
 import { turkishLower } from '../../src/lib/text/turkish-lower';
 
 /**
- * Özet cümle üretimi — spec 3.8.
+ * Summary sentence generation — spec 3.8.
  *
- * Kesin kurallar, kodda karşılıklarıyla:
+ * The hard rules, with their counterparts in code:
  *
- *  1. Özet başlıktan KESİNLİKLE çıkarılabilen şeyi söyler. Kararın sonucunu
- *     bildirmez. Aşağıdaki hiçbir kalıp "reddetti", "kabul etti", "onayladı"
- *     üretmiyor — Rekabet Kurulu kalıbı bilerek "hakkında karar" ile bitiyor.
- *  2. Özet günlük dili kullanır: "kamulaştırma kararı", "zorla mal iktisabı"
- *     değil. Resmî terim zaten ham başlıkta duruyor ve arama ikisini de
- *     yakalıyor (eşanlamlı genişletme, supabase/migrations/0007).
- *  3. Aynı belge tipi hep aynı kalıbı alır.
- *  4. Bir kez üretilir, records.summary'de kalıcı saklanır; liste, detay,
- *     e-posta, RSS ve og:title aynı metni kullanır.
+ *  1. A summary states what can DEFINITELY be derived from the title. It does
+ *     not report the outcome of a decision. None of the patterns below produce
+ *     "rejected", "accepted" or "approved" — the Competition Board pattern
+ *     deliberately ends with "hakkında karar" ("a decision concerning").
+ *  2. A summary uses everyday language: "kamulaştırma kararı", not "zorla mal
+ *     iktisabı". The official term is already in the raw title, and search
+ *     catches both (synonym expansion, supabase/migrations/0007).
+ *  3. The same document type always gets the same pattern.
+ *  4. It is generated once and stored permanently in records.summary; the list,
+ *     the detail page, email, RSS and og:title all use that same text.
  *
- * Kural tutmazsa null dönüyoruz. Çağıran taraf o zaman LLM'e düşüyor, o da
- * olmazsa özet yok ve maskelenmiş başlık gösteriliyor.
+ * When no rule matches we return null. The caller then falls to the LLM, and if
+ * that fails too there is no summary and the masked title is shown.
  */
 
 export interface SummaryInput {
@@ -38,22 +39,22 @@ interface Rule {
   build: (match: RegExpMatchArray) => string | null;
 }
 
-/** Fazladan boşluk ve sondaki noktalama temizliği. */
+/** Clean up extra whitespace and trailing punctuation. */
 function clean(value: string): string {
   return value.replace(/\s+/g, ' ').replace(/[.,;:/\-]+$/, '').trim();
 }
 
 /**
- * Baştaki referans numarasını atar.
+ * Drops the leading reference number.
  *
- * Gazetenin içindekiler dökümünde kayıt satırı referansla başlıyor ("A.E. 1064
- * 1962 ZORLA MAL İKTİSABI YASASI-..."). Ham başlıkta bu numara KALIYOR — kaynağa
- * sadık olmak gerekiyor ve maskelenmiş başlıkta kullanıcı onu görüyor. Ama özet
- * cümlede numaranın yeri yok: künye şeridinde zaten ayrı bir alan olarak
- * gösteriliyor.
+ * In the gazette's table of contents a record line starts with its reference
+ * ("A.E. 1064 1962 ZORLA MAL İKTİSABI YASASI-..."). That number STAYS in the raw
+ * title — we have to stay faithful to the source, and the user sees it in the
+ * masked title. But it has no place in the summary sentence: the meta bar
+ * already shows it as a separate field.
  *
- * Bu atlanınca özetler "A.e. 1063 Su Kullanım Bedelleri emirnamesinde değişiklik"
- * gibi çıkıyor ve kalıpların çoğu hiç eşleşmiyor.
+ * Skipping this produces summaries like "A.e. 1063 Su Kullanım Bedelleri
+ * emirnamesinde değişiklik", and most of the patterns then never match at all.
  */
 const LEADING_REF =
   /^(?:A\.E\.\s?\d+|Ü\(K-I{1,2}\)\s?[\d-]+|Ş\.M\.\s?\d+|M\.T\.\s?\d+|GENELGE\s+MİA\.[\d/]+|Y\.[TÖ]\.NO:\s?[\d/]+)\s*/i;
@@ -70,7 +71,7 @@ const RULES: Rule[] = [
     build: (match) => {
       const place = clean(match[1]!);
       if (!place) return null;
-      // "GAZİMAĞUSA/VADİLİ" -> ilçe + köy; köy adı daha ayırt edici.
+      // "GAZİMAĞUSA/VADİLİ" -> district + village; the village name is more distinctive.
       const parts = place.split('/').map((part) => titleCase(clean(part)));
       const village = parts[parts.length - 1]!;
       const district = parts.length > 1 ? parts[0]! : null;
@@ -112,10 +113,10 @@ const RULES: Rule[] = [
       const who = titleCase(clean(match[1]!));
       if (!who) return null;
       /*
-       * Kaynakta ya kişi adı ya kurum adı geliyor. Kurum adıysa cümle
-       * "istihdam edildi" değil "istihdamı" olmalı; kişi adına benzeyip
-       * benzemediğine bakmak yerine iki durumda da nötr kalan bir kalıp
-       * kullanıyoruz. Tahmin yürütmüyoruz.
+       * The source gives either a person's name or an institution's. For an
+       * institution the sentence has to read "istihdamı" rather than "istihdam
+       * edildi"; instead of guessing whether it looks like a personal name, we
+       * use a pattern that stays neutral in both cases. We do not speculate.
        */
       return genitive(who) + ' sözleşmeli personel olarak istihdamı';
     },
@@ -167,9 +168,9 @@ const RULES: Rule[] = [
       const subject = titleCase(clean(match[2]!));
       if (!objector || !subject) return null;
       /*
-       * Sonuç YOK. "İtiraz hakkında karar" diyoruz; reddedildi mi kabul mü
-       * edildi, o bilgi gövdede ve hukuki metinde tahmin kabul edilemez
-       * (spec 3.8 kural 1).
+       * NO outcome. We say "a decision concerning the objection"; whether it was
+       * rejected or upheld is in the body, and guessing inside a legal text is
+       * unacceptable (spec 3.8 rule 1).
        */
       return genitive(objector) + ' ' + subject + ' ihalesine yaptığı itiraz hakkında Rekabet Kurulu kararı';
     },
@@ -217,8 +218,8 @@ const RULES: Rule[] = [
     name: 'fon-degisiklik',
     // 2025 FİYAT İSTİKRAR FONU,(AKARYAKIT,TARIMSAL ÜRÜN VE TÜKETİM MADDELERİ)
     //   (FONA YATIRILACAK MİKTARLAR)(DEĞİŞİKLİK)EMİRNAMESİ
-    // Genel (DEĞİŞİKLİK) kuralından ÖNCE denenmeli, yoksa o kural başlığın
-    // tamamını tek bir ada indirip özeti okunmaz hâle getiriyor.
+    // Must be tried BEFORE the general (DEĞİŞİKLİK) rule, otherwise that rule
+    // collapses the whole title into one name and makes the summary unreadable.
     pattern:
       /^\d{4}\s+(FİYAT İSTİKRAR FONU)\s*,?\s*\(([^)]+)\)\s*\(([^)]*YATIRILACAK[^)]*)\)\s*\(DEĞİŞİKLİK\)/i,
     build: (match) => {
@@ -269,9 +270,9 @@ export interface SummaryResult {
 }
 
 /**
- * Kural tabanlı özet. Kalıp yoksa null döner ve çağıran taraf LLM'e düşer
- * (spec 3.8 kademeli üretim). LLM de başarısızsa özet yok; maskelenmiş
- * başlık gösteriliyor.
+ * Rule-based summary. Returns null when no pattern matches, and the caller falls
+ * to the LLM (spec 3.8 staged generation). If the LLM fails too there is no
+ * summary and the masked title is shown.
  */
 export function summarize(input: SummaryInput): SummaryResult | null {
   const title = stripLeadingRef(input.title.replace(/\s+/g, ' ').trim());
@@ -283,12 +284,12 @@ export function summarize(input: SummaryInput): SummaryResult | null {
 
     try {
       const summary = rule.build(match);
-      // Kalıp eşleşti ama anlamlı bir cümle çıkmadıysa bir sonrakine geç.
+      // The pattern matched but produced no meaningful sentence; move to the next.
       if (summary && summary.length > 8) {
         return { summary: summary.charAt(0).toLocaleUpperCase('tr') + summary.slice(1), source: 'rule', ruleName: rule.name };
       }
     } catch {
-      // Tek bir kuralın patlaması bütün ingest'i durdurmasın.
+      // One rule blowing up must not stop the whole ingest.
     }
   }
 

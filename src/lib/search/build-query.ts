@@ -6,27 +6,27 @@ import { PAGE_SIZE } from '@/lib/seo/config';
 import { normalizeForSearch } from '@/lib/text/turkish-lower';
 
 /**
- * Arama sorgusu hattı — spec 5.4.
+ * The search query pipeline — spec 5.4.
  *
- *   1. normalize        trim, tr-lowercase, fazla boşluk
- *   2. tırnak tespiti   "hizmet alımı" -> phraseto_tsquery
- *   3. eşanlamlı        search_synonyms tablosu (mk_tsquery içinde)
- *   4. tsquery üret     mk_tsquery(q) — önek eşleşmesi dahil
- *   5. sırala           ts_rank_cd * recency_boost
- *   6. vurgula          ts_headline
- *   7. 0 sonuçta        trigram önerisi
+ *   1. normalise        trim, tr-lowercase, collapse whitespace
+ *   2. quote detection  "hizmet alımı" -> phraseto_tsquery
+ *   3. synonyms         the search_synonyms table (inside mk_tsquery)
+ *   4. build tsquery    mk_tsquery(q) — including prefix matching
+ *   5. order            ts_rank_cd * recency_boost
+ *   6. highlight        ts_headline
+ *   7. on 0 results     trigram suggestion
  *
- * 1-2 burada, 3-7 SQL tarafında (0007-search-functions.sql).
+ * 1-2 happen here, 3-7 on the SQL side (0007-search-functions.sql).
  */
 
 /**
- * Sıralama seçenekleri. İlki varsayılan.
+ * Sort options. The first is the default.
  *
- * "En ilgili" (ts_rank_cd) ürün sahibinin kararıyla KALDIRILDI. Sonucu bilerek
- * kabul edilmiş bir ödünç: artık metin araması da tarihe göre sıralanıyor,
- * yani "ihale" araması en alakalıyı değil en yeniyi başa koyuyor. Resmî Gazete
- * için bu savunulabilir — kullanıcı çoğunlukla "en son ne oldu" diye bakıyor.
- * Geri istenirse `orderBy` içindeki rank dalı ve buradaki seçenek geri gelir.
+ * "Most relevant" (ts_rank_cd) was REMOVED by the product owner's decision. The
+ * consequence was accepted knowingly: text search is now also ordered by date, so
+ * a search for "ihale" puts the newest first rather than the most relevant. For a
+ * gazette that is defensible — users mostly ask "what happened most recently". If
+ * it is wanted back, the rank branch in `orderBy` and the option here return.
  */
 export const SORT_OPTIONS = ['yeni', 'eski'] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
@@ -39,9 +39,9 @@ export const SORT_LABELS: Record<SortOption, string> = {
 };
 
 /**
- * URL query parametreleri. Hepsi paylaşılabilir olsun diye kısa ve Türkçe
- * (spec 5.5). Bilinmeyen değer sessizce düşer, hata vermez — paylaşılan bir
- * bağlantı eski bir filtre içeriyorsa sayfa yine de açılmalı.
+ * URL query parameters. All of them short and in Turkish so links stay shareable
+ * (spec 5.5). An unknown value is dropped silently rather than erroring — a
+ * shared link containing an old filter must still open the page.
  */
 export const searchParamsSchema = z.object({
   q: z.string().trim().max(200).catch(''),
@@ -75,12 +75,12 @@ function toArray(value: string | string[] | undefined): string[] {
 }
 
 /**
- * Ham searchParams'ı şemaya vermeden önce düzleştirir.
+ * Flattens raw searchParams before handing them to the schema.
  *
- * Next.js aynı anahtarın tekrarında dizi veriyor (`?q=a&q=b`). Şema tek dizge
- * beklediği için bu, paylaşılmış bozuk bir bağlantıda arama sayfasını 500'e
- * düşürüyordu. Çoklu değerde ilki alınıyor; dizi bekleyen alanlar (konu, tur)
- * kendi transform'unda zaten diziyi işliyor.
+ * Next.js gives an array when a key repeats (`?q=a&q=b`). Because the schema
+ * expects a single string, that turned the search page into a 500 on a broken
+ * shared link. With multiple values the first is taken; fields that do expect an
+ * array (konu, tur) already handle arrays in their own transform.
  */
 export function parseSearchParams(
   raw: Record<string, string | string[] | undefined>,
@@ -96,16 +96,16 @@ export function parseSearchParams(
 }
 
 export interface BuiltQuery {
-  /** Kullanıcının yazdığı hâli — arayüzde gösterilir. */
+  /** As the user typed it — shown in the UI. */
   raw: string;
-  /** Normalize edilmiş hâli — trigram önerisi ve loglama için. */
+  /** The normalised form — for trigram suggestions and logging. */
   normalized: string;
   /**
-   * Postgres'e gidecek tsquery ifadesi. Boşsa (sorgu yok) yalnızca filtreler
-   * uygulanır ve sıralama tarihe düşer.
+   * The tsquery expression sent to Postgres. If empty (no query), only filters
+   * apply and ordering falls back to date.
    */
   tsquery: string | null;
-  /** Tırnak içinde tam ifade arandı mı — arayüzde "tam eşleşme" rozeti için. */
+  /** Whether an exact phrase was searched in quotes — for the "exact match" badge. */
   hasPhrase: boolean;
   offset: number;
   limit: number;
@@ -148,7 +148,7 @@ export function buildQuery(params: SearchParams): BuiltQuery {
   return { ...base, tsquery, hasPhrase };
 }
 
-/** Aktif filtre var mı — "filtreleri kaldır" bağlantısını göstermek için. */
+/** Whether any filter is active — drives whether the "clear filters" link is shown. */
 export function hasActiveFilters(params: SearchParams): boolean {
   return Boolean(
     params.konu.length ||
@@ -209,22 +209,23 @@ export interface YearOption {
 }
 
 /**
- * Tarih filtresi seçenekleri — artboard 1b'deki sol raydaki liste.
+ * Date filter options — the list in artboard 1b's left rail.
  *
- * Ürün sahibinin kararıyla yıllar TEKİL listeleniyor; aralık yok. Eskiden
- * "Son 12 ay / 2025 / 2020 – 2024 / Tümü" vardı. İki sonucu var:
+ * By the product owner's decision the years are listed INDIVIDUALLY, with no
+ * ranges. It used to be "Son 12 ay / 2025 / 2020 – 2024 / Tümü". That has two
+ * consequences:
  *
- * 1. "Son 12 ay" kaldırıldı. Tek başına aralık olduğu için tekil yıl listesine
- *    girmiyordu; ayrıca `baslangic`/`bitis` gerektirdiğinden filtreyi tek
- *    parametreye (`yil`) indirgemeyi engelliyordu. Tek parametre olması
- *    "Filtrele" butonlu formu radyo grubuyla çözülebilir kıldı.
- * 2. Yıllar VERİDEN geliyor, takvimden değil. Bugün 2026 ama arşivde yalnızca
- *    2025 var; takvimden üretilseydi 2026 seçeneği çıkar ve tıklayan boş sonuç
- *    alırdı. Spec 8.4'ün kapsam kuralı: arkasında veri olmayan yıl iddiası
- *    yapma.
+ * 1. "Son 12 ay" was removed. Being a range on its own it did not fit a list of
+ *    single years, and because it required `baslangic`/`bitis` it blocked reducing
+ *    the filter to one parameter (`yil`). Having one parameter is what made the
+ *    form with its "Filtrele" button solvable with a radio group.
+ * 2. The years come FROM THE DATA, not from the calendar. Today is 2026 but the
+ *    archive holds only 2025; generated from the calendar, a 2026 option would
+ *    appear and whoever clicked it would get nothing. Spec 8.4's coverage rule:
+ *    do not claim a year you have no data for.
  *
- * `baslangic`/`bitis` parametreleri şemada DURUYOR — paylaşılmış eski
- * bağlantılar çalışmaya devam etsin diye. Sadece arayüz onları üretmiyor.
+ * The `baslangic`/`bitis` parameters REMAIN in the schema so that old shared links
+ * keep working. Only the UI no longer produces them.
  */
 export function yearOptions(
   coverage?: { earliestYear: number | null; latestYear: number | null } | null,

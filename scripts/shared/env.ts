@@ -1,24 +1,24 @@
 import { config as loadEnv } from 'dotenv';
 
 /*
- * Betikler için env yükleme — TEK kaynak.
+ * Env loading for scripts — THE single source.
  *
- * Next.js .env.local'i kendisi okuyor ama tsx ile çalışan scriptler okumuyor.
- * Aynı dosyadan beslenmezlerse "uygulamada çalışıyor, ingest'te çalışmıyor"
- * sınıfında bir hata çıkıyor. Öncelik Next ile aynı: .env.local > .env
+ * Next.js reads .env.local itself, but scripts run under tsx do not. If they are
+ * not fed from the same file you get the "works in the app, fails in ingest"
+ * class of bug. Precedence matches Next: .env.local > .env
  *
- * Neden ayrı dosya: bu yükleme eskiden `shared/db.ts` içindeydi ve env'in
- * yüklenmesi o modülü import etmeye BAĞLIYDI. Veritabanına dokunmayan
- * betikler (`scripts/revalidate`) env'siz kalıyordu — `npm run revalidate`
- * bu yüzden hiç çalışmamıştı, her seferinde "REVALIDATE_SECRET yok" deyip
- * sessizce çıkıyordu.
+ * Why a separate file: this loading used to live inside `shared/db.ts`, which
+ * made env availability DEPEND on importing that module. Scripts that never
+ * touch the database (`scripts/revalidate`) were left without env — which is why
+ * `npm run revalidate` had never worked, exiting silently with "REVALIDATE_SECRET
+ * missing" every time.
  *
- * DİKKAT — import sırası. `src/lib/seo/config.ts` gibi modüller env'i
- * DEĞERLENDİRİLDİKLERİ anda okuyup sabite donduruyor. Bir betik hem böyle bir
- * modülü hem bunu import ediyorsa, bunun ÖNCE değerlendiğine güvenme: ESM
- * import sırası dosyadaki yazım sırasına bağlı ve linter onu yeniden
- * sıralayabilir. Env'e bağlı değeri sabitten değil, kullanım anında
- * `process.env`'den oku (örnek: `scripts/revalidate` → `revalidateBaseUrl`).
+ * CAUTION — import order. Modules such as `src/lib/seo/config.ts` read env AT
+ * EVALUATION TIME and freeze it into a constant. If a script imports both such a
+ * module and this one, do not rely on this being evaluated FIRST: ESM import
+ * order follows the order written in the file, and the linter may reorder it.
+ * Read env-dependent values from `process.env` at the point of use rather than
+ * from a constant (see `scripts/revalidate` -> `revalidateBaseUrl`).
  */
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });

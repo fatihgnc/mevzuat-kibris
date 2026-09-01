@@ -20,12 +20,12 @@ const createSchema = z.object({
 });
 
 /**
- * Takip kurma — artboard 1h adım 1 ve 2.
+ * Setting up a follow — artboard 1h steps 1 and 2.
  *
- * Akış kasıtlı olarak iki adımlı: alarm hemen yazılmıyor, önce magic link
- * gönderiliyor. Bağlantıya tıklanana kadar hiçbir kayıt oluşmuyor, yani
- * başkasının adresiyle takip kurulamıyor. Alarmın kendisi /auth/callback
- * içinde, oturum açıldıktan sonra yazılıyor.
+ * The flow is deliberately two-step: the alert is not written immediately; a magic
+ * link is sent first. No record is created until the link is clicked, so a follow
+ * cannot be set up with someone else's address. The alert itself is written inside
+ * /auth/callback, after the session is established.
  */
 export async function POST(request: Request) {
   let payload: unknown;
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
   const user = await getCurrentUser();
 
-  // Oturum zaten açıksa magic link'e gerek yok, alarmı doğrudan kuruyoruz.
+  // If a session is already open there is no need for a magic link; we create the alert directly.
   if (user && user.email === input.email) {
     const alert = await createAlert({
       userId: user.id,
@@ -68,9 +68,9 @@ export async function POST(request: Request) {
   }
 
   /*
-   * Alarm tanımı magic link'in redirect URL'ine gömülüyor. Sunucuda oturum
-   * yokken kalıcı bir kayıt oluşturmak istemiyoruz: doğrulanmamış e-posta
-   * adresleriyle dolu bir tablo hem gereksiz hem kötüye kullanılabilir.
+   * The alert definition is embedded in the magic link's redirect URL. We do not
+   * want to create a persistent record on the server while there is no session: a
+   * table full of unverified email addresses is both pointless and open to abuse.
    */
   const next = new URLSearchParams({
     label: input.label,

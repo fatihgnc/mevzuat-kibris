@@ -9,9 +9,10 @@ import { websiteJsonLd } from '@/lib/seo/json-ld';
 import '@/styles/globals.css';
 
 /**
- * Tek aile, self-host (spec 13). next/font Google'dan build sırasında indirip
- * kendi origin'imizden servis ediyor; runtime'da fonts.googleapis.com'a istek yok.
- * `display: swap` ile metin ilk boyamada görünüyor, LCP fonta takılmıyor.
+ * One family, self-hosted (spec 13). next/font downloads it from Google at build
+ * time and serves it from our own origin; at runtime there is no request to
+ * fonts.googleapis.com. With `display: swap` the text is visible on first paint and
+ * LCP does not wait on the font.
  */
 const sans = Source_Sans_3({
   subsets: ['latin-ext'],
@@ -21,9 +22,9 @@ const sans = Source_Sans_3({
 });
 
 /**
- * metadataBase burada bir kez set ediliyor ve hiçbir sayfa kendi canonical'ını
- * elle kurmuyor (spec 8.4). Bu satır, canonical'ın preview domain'ine kaçmasını
- * engelleyen tek nokta.
+ * metadataBase is set here once and no page builds its own canonical by hand (spec
+ * 8.4). This line is the single thing preventing the canonical from escaping to a
+ * preview domain.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  /* Tarayıcı arayüzü de temayla dönsün; ikinci değer koyu temanın zemini. */
+  /* Let the browser chrome follow the theme too; the second value is the dark theme's ground. */
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
     { media: '(prefers-color-scheme: dark)', color: '#171A1B' },
@@ -45,29 +46,29 @@ export const viewport: Viewport = {
 };
 
 /**
- * Temayı İLK BOYAMADAN ÖNCE kuran betik.
+ * The script that sets the theme BEFORE THE FIRST PAINT.
  *
- * React'in içinden yapılamaz: hidrasyon sayfa boyandıktan sonra çalışıyor,
- * yani koyu tema seçmiş kullanıcı önce beyaz bir ekran görüp sonra karanlığa
- * atlardı. Bu yüzden senkron, satır içi ve <body>'nin ilk çocuğu.
+ * It cannot be done from inside React: hydration runs after the page has painted,
+ * so a user who chose the dark theme would see a white screen first and then jump
+ * to dark. Hence it is synchronous, inline, and the first child of <body>.
  *
- * Sıra: kullanıcının açık seçimi > işletim sistemi tercihi. Seçim yoksa
- * sisteme uyuyoruz; kullanıcı bir kez anahtara dokunduysa artık onun kararı
- * geçerli ve sistem tercihi ezmiyor.
+ * Order: the user's explicit choice > the OS preference. With no choice we follow
+ * the system; once the user has touched the switch, their decision stands and the
+ * system preference no longer overrides it.
  *
- * try/catch: gizli sekmede ve site verisi engelliyken localStorage okumak
- * istisna atıyor. Yakalanmazsa betik ölür ve sayfa temasız kalırdı.
+ * try/catch: reading localStorage throws in a private window and with site data
+ * blocked. Uncaught, the script would die and the page would be left with no theme.
  */
 const THEME_INIT = `(function(){try{var t=localStorage.getItem('tema');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     /*
-     * suppressHydrationWarning yalnızca <html> etiketinin KENDİ öznitelikleri
-     * için geçerli, içeriğe inmiyor. Gerekli, çünkü tema betiği React
-     * hidrasyondan önce data-theme ekliyor ve sunucudan gelen HTML'de o
-     * öznitelik yok — React bunu uyuşmazlık sayıyor. Kasıtlı bir fark;
-     * uyarıyı susturmak doğru olan, betiği geciktirmek değil.
+     * suppressHydrationWarning applies only to the <html> tag's OWN attributes; it
+     * does not reach into the content. It is needed because the theme script adds
+     * data-theme before React hydrates and that attribute is absent from the HTML
+     * the server sent — which React counts as a mismatch. The difference is
+     * deliberate; silencing the warning is the right move, not delaying the script.
      */
     <html lang="tr" className={sans.variable} suppressHydrationWarning>
       <body className="min-h-dvh bg-surface font-sans text-ink-body">
@@ -84,9 +85,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
         />
         {/*
-         * AdSense yükleyicisi lazyOnload: sayfa etkileşime hazır olduktan sonra
-         * iniyor, LCP'ye girmiyor (spec 13, 14.4). ADSENSE_CLIENT boşsa hiç
-         * basılmıyor — onay gelmeden site reklamsız çalışıyor.
+         * The AdSense loader is lazyOnload: it comes down after the page is
+         * interactive and stays out of LCP (spec 13, 14.4). If ADSENSE_CLIENT is
+         * empty it is not emitted at all — before approval the site runs ad-free.
          */}
         {ADSENSE_CLIENT ? (
           <Script

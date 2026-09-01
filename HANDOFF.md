@@ -18,21 +18,22 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Alan | Durum |
 | --- | --- |
 | Arayüz (8 artboard) | ✅ Tamam |
-| Veritabanı şeması + RLS | ✅ 8 migration, hepsi geçiyor |
+| Veritabanı şeması + RLS | ✅ 9 migration, hepsi geçiyor |
 | Arama (FTS, facet, öneri) | ✅ Çalışıyor, spec'ten sapma var (bkz. §3) |
 | Konu sınıflandırması | ✅ Gerçek veriyle kalibre; konusuz oran %52 → %17 (§3.7) |
-| Özet üretimi | ⚠️ Yalnızca kural katmanı: 5.223 kaydın 565'inde özet (%10,8) — bkz. §6.2 |
+| Özet üretimi | ✅ Kural + LLM; 6.915 kaydın 5.887'sinde özet (%85,1). Kalan %14,9 spec 3.8'in 3. basamağı — bkz. §6.2 |
 | Rehber içerikleri (8 adet) | ✅ Elle yazıldı |
 | SEO (sitemap, JSON-LD, robots) | ✅ Build'de 59 sayfa üretiliyor |
 | Ingest (2025 + 2026) | ✅ 422 sayı, 6.915 kayıt, 0 hata — gerçek veri |
-| PDF metin çıkarma | ✅ 383 sayı; 33 taranmış (OCR kuyruğunda), 6 gözden geçirme |
-| OCR | ⚠️ `ocrmypdf`/`tesseract` kurulu değil, 33 sayı gövdesiz — bkz. §6.1 |
+| PDF metin çıkarma | ✅ 384 çıkarıldı + 32 OCR; 5 gözden geçirme, 1 kaynakta ölü bağlantı |
+| OCR | ✅ Çalışıyor. 33 taranmış sayının 32'si kurtarıldı; kalite 0,887–0,999 — bkz. §6.1 |
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
 | Alarm/e-posta | ⚠️ Kod yazıldı, Resend anahtarı yok, gönderim denenmedi |
-| Auth (magic link) | ⚠️ Kod yazıldı, gerçek Supabase'e bağlanmadı |
+| Supabase | ⚠️ Veri taşındı ve uygulama çalışıyor, ama `next build` düşüyor — bkz. §6.4 |
+| Auth (magic link) | ⚠️ Kod yazıldı; Supabase Auth artık gerçek ama akış uçtan uca denenmedi |
 
-Doğrulama: `tsc` temiz, `eslint` temiz, **83 test** geçiyor,
+Doğrulama: `tsc` temiz, `eslint` temiz, **103 test** geçiyor,
 `next build` 59 sayfa üretiyor, First Load JS 103 kB (spec hedefi <120 kB).
 
 ---
@@ -522,6 +523,53 @@ kalıyordu — `npm run revalidate` bu yüzden **hiç çalışmamıştı**, her
 
 ---
 
+### 4.8 JS sözcük sınırı Türkçede çalışmıyor (SESSİZ)
+
+JavaScript'in düzenli ifade sözcük sınırı ASCII tanımlı: sözcük karakteri
+`a-z`, `A-Z`, `0-9` ve `_`. Türkçe harfler bu tanımın dışında, yani "ç", "ğ",
+"ı", "ö", "ş", "ü" ile başlayan ya da biten bir kalıba sınır koyduğunda kalıp
+**hiç eşleşmiyor** — hata vermiyor, sadece sessizce hiçbir şey yakalamıyor:
+
+```ts
+/\bgeçersiz sayıldı\b/.test('teklif geçersiz sayıldı')  // false
+/\bözet yok\b/.test('bu başlıkta özet yok')             // false
+```
+
+Bu, LLM özet denetiminde (§6.2) gerçekten oldu: yasak ifade listesinin yarısı
+yazıldığı günden beri ölüydü ve "Teklif geçersiz sayıldı" gibi tam olarak
+engellemesi gereken cümleler denetimden geçiyordu. Testte yakalandı.
+
+Çözüm `scripts/summarize/guard.ts` içindeki `trWord()`: sınırı Türkçe harfleri
+de içeren bir karakter sınıfıyla ileriye/geriye bakışla kuruyor. Türkçe metin
+üzerinde sözcük sınırlı kalıp yazarken bunu kullan.
+
+Aynı sınıftan bir uyarı: `\w`, `\d` ve `\b` bu projede Türkçe metne
+uygulanamaz. Karakter sınıflarını açıkça yaz.
+
+### 4.9 `x += await f()` eşzamanlı çalışırken sayaç kaybediyor (SESSİZ)
+
+```ts
+stats.records += await writeSummary(...);   // YANLIŞ
+```
+
+JavaScript birleşik atamada sol tarafın değerini `await`'ten **önce** okuyor,
+sonra bekliyor, sonra `okunanDeğer + sonuç` yazıyor. Tek işçide sorun yok. Ama
+`Promise.all` ile dört işçi aynı nesneyi güncellerken arada tamamlanan
+artışların üzerine yazılıyor.
+
+§6.2'nin doğrulamasında görüldü: betik "37 kayıt yazdım" derken veritabanında
+120 satır vardı. Sayaç yanlış olduğu için iş bitmiş görünüyordu.
+
+```ts
+const written = await writeSummary(...);    // DOĞRU
+stats.records += written;
+```
+
+Bu kalıbı eşzamanlı çalışan her yerde ara — `+=`, `-=`, `push` değil ama
+`x = x + await ...` biçimleri de aynı hatayı taşıyor.
+
+---
+
 ## 5. Yerel ortam
 
 Postgres 16 kabı ayakta (veri dolu):
@@ -554,154 +602,270 @@ Dev server bu oturumda **açık bırakıldı** (port 3000).
 
 ## 6. Sıradaki işler
 
-Ürün sahibi **OCR** ve **LLM özet katmanını** ayrı bir oturumda yaptırmayı
-seçti. İkisinin tam brifingi §6.1 ve §6.2'de: ölçümler, kısıtlar ve tuzaklar
-orada, o oturuma başlayan kişi hiçbir şeyi yeniden türetmek zorunda kalmasın.
+**OCR (§6.1) ve LLM özet katmanı (§6.2) yapıldı; ikisi de gerçek veriyle
+çalıştırıldı.** Taranmış 33 sayının 32'si kurtarıldı, kayıtların %85,1'inde özet
+var (oturum başında %11,5'ti). İkisinin tam raporu — ölçümler, alınan kararlar ve
+yol boyunca bulunan altı hata — aşağıda.
 
 Kalan işler, öncelik sırasıyla:
 
-1. **OCR** — §6.1. Taranmış sayıların gövdesi yok.
-2. **LLM özet katmanı** — §6.2. Kayıtların %89'unda özet yok.
-3. **Fixture'ları çoğalt.** `fixtures/real/` altında dört gerçek sayı var
+1. **Fixture'ları çoğalt.** `fixtures/real/` altında dört gerçek sayı var
    (dönem başına bir tane, hepsi elle doğrulandı). Spec §7.3 25 istiyor.
    Yeni fixture eklerken beklenen çıktıyı ayrıştırıcıdan üretip ham hücreye
    karşı **gözle doğrula** — üretip doğrulamadan koymak testi kendini
    onaylayan bir aynaya çevirir.
-4. **2006–2024 backfill.** Kapasite için önce yakın yıllar (§2.2): 2015–2025
+2. **2006–2024 backfill.** Kapasite için önce yakın yıllar (§2.2): 2015–2025
    ≈ 240 MB, ücretsiz katmana rahat sığar. `npm run ingest:backfill <yıl>`.
    Eski yıllara geçerken §3.5'te not düşülen dönemsel önekler (`SİBER(K-I)`,
    `H(K-I)`, `Y(K-I)`, `E-`) `REF_PATTERNS`'e eklenmeli.
-5. **Supabase'e bağlan.** Auth akışı (magic link → `/auth/callback` → alarm
-   yazımı) hiç uçtan uca denenmedi.
-6. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
+   **Başlamadan önce §2.2'yi yeniden ölç** — o tahmin OCR hiç metin üretmezken
+   yapılmıştı, artık üretiyor (§6.1). **Özet maliyetini de hesaba kat:** yılda
+   ~4.000 kayıt × 19 yıl ≈ 76.000 kayıt, kural katmanı düştükten sonra ~67.000
+   LLM çağrısı — bu oturumdaki doldurmanın ~11 katı.
+3. **`next build`'i geçir — TEK ENGEL BU.** §6.4. Veri Supabase'de, uygulama
+   sayfaları doğru render ediyor, ama derleme prerender ortasında rastgele bir
+   sayfada düşüyor. Elenmiş şıkların listesi §6.4'te; tekrar denemeye değmez.
+   Bu geçmeden Vercel'e çıkılamaz.
+4. **Auth akışını uçtan uca dene.** Magic link → `/auth/callback` → alarm yazımı
+   hiç denenmedi. Supabase Auth artık gerçek (`auth.uid()` çalışıyor).
+5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
    dağıtım mantığı test edilmedi.
-7. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
+6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
    basılmıyor, yalnızca ayrılmış kutu görünüyor. Spec §14.5: başvuru Milestone 4
    bitmeden yapılmamalı.
+7. **Kalan 5 `needs_review` sayısı.** §6.1 sonundaki not; acil değil.
 
 ---
 
-### 6.1 OCR — taranmış sayıların gövdesini kurtarmak
+### 6.1 OCR — YAPILDI
 
-**Sorun.** PDF'lerin bir kısmı metin değil, sayfanın taranmış görüntüsü.
-`pdftotext` görüntüden harf okuyamıyor, yalnızca varsa metin katmanını alıyor.
+**Durum: çalışıyor.** 33 taranmış sayının 32'si kurtarıldı. Kalan 1 sayı
+(2025/170) OCR sorunu değil: kaynaktaki PDF bağlantısı **HTTP 404**, dosya
+sitede yok.
 
-**Ölçüm** (422 sayı: 2025 + 2026):
+| `text_status` | Önce | Sonra | Kalite (sonra) |
+| --- | --- | --- | --- |
+| `extracted` | 383 | 384 | 0,596 – 1,000 |
+| `ocr` | 0 | **32** | 0,887 – 0,999 (ort. 0,985) |
+| `needs_review` | 6 | 5 | 0,246 – 0,545 |
+| `failed` | 33 | 1 | — (kaynak 404) |
 
-| `text_status` | Sayı | Ortalama kalite |
+Kurtarılan gövde: OCR'lanan 32 sayıdaki 338 kaydın 147'sinde gövde var,
+ortalama 2.936 karakter. Tüm arşivde gövdeli kayıt oranı **%54,8** (3.792/6.915).
+
+**ASIL BULGU — bayrak yanlıştı, araç eksikliği ikincil sorundu.**
+
+Kod `ocrmypdf --skip-text` çağırıyordu. `--skip-text`, üzerinde metin OLAN bir
+sayfayı **komple atlıyor**. Taranmış gazete sayfalarında tek bir gerçek metin
+nesnesi var: sayfa numarası. ocrmypdf onu görüp her sayfa için
+`skipping all processing on this page` deyip geçiyordu — yani araçlar kurulmuş
+olsa bile OCR hiçbir şey üretmeyecekti.
+
+2025 sayı 12'nin üç sayfalık dilimiyle ölçüldü:
+
+```
+--skip-text  →      18 karakter   ("18 149 150 151" — yalnızca sayfa numaraları)
+--redo-ocr   →   7.873 karakter   (temiz Türkçe, kalite 0,999)
+--force-ocr  →   7.898 karakter   (aynı sonuç, ~2,6 sn/sayfa)
+```
+
+Artık `--redo-ocr` kullanılıyor, `--force-ocr` yedeğiyle (`runOcr`,
+`scripts/extract-text/index.ts`). `--redo-ocr` tercih edildi çünkü GERÇEK metin
+katmanını koruyor; kuyrukta kısmen metin kısmen taranmış sayılar da var ve
+onlarda rasterleştirmek elimizdeki iyi metni çöpe atmak olurdu.
+
+Tam sayı üzerinde ölçülen sonuç:
+
+```
+2025/12   3.883 → 104.954 karakter   (27,5 MB PDF, 45 sn)
+2025/67   4.354 → 119.418 karakter   (23,4 MB PDF, 48 sn)
+```
+
+**Eşik kalibrasyonu (eski 3. madde) — YAPILDI, eşik DEĞİŞMEDİ.**
+
+`QUALITY_THRESHOLD = 0.55` "hiç gerçek OCR çıktısı görülmeden" konmuştu. Artık
+görüldü; ölçülen dağılım:
+
+```
+metin PDF'leri (384 sayı)   0,596 – 1,000   ortalama 0,979
+OCR çıktısı     (32 sayı)   0,887 – 0,999   ortalama 0,985
+bilinen bozuk    (5 sayı)   0,246 – 0,545
+```
+
+0,55 tam olarak bilinen-bozuk tavanı (0,545) ile sağlam-metin tabanı (0,596)
+arasında duruyor. Tahminle konmuştu ama **ölçüm onu doğruladı**; değiştirmek
+için sebep yok.
+
+Buna karşılık şunu bilerek oku: bu eşik OCR'ın başarısızlığını **yakalamıyor**
+ve yakalayamaz. OCR çıktısının tabanı 0,887, eşiğin 0,33 üstünde. Kalite metnin
+*doğruluğunu* ölçüyor, *eksikliğini* değil — taranmış bir sayının kapak
+sayfasından çıkan üç satırlık tertemiz Türkçe de 0,99 veriyor. Taranmışlığı
+yakalayan tek şey `SCANNED_TEXT_RATIO` (§3.6) ve o hâlâ yük taşıyan denetim.
+
+**Yan yolda çıkan hata — kalite 0 ile "ölçülemedi" karışıyordu.**
+
+`estimateQuality` 20 sözcükten az metinde `0` döndürüyordu. Tek kararlık kısa
+bir sayı (2025/59, 671 karakter) bu yüzden `needs_review` damgası yiyip yeniden
+deneme kuyruğuna giriyordu: 30 günde bir PDF yeniden iniyor, aynı sonuç
+çıkıyor, süresiz. Artık ölçülemeyen kalite `null` dönüyor ("bilmiyorum" ile
+"kötü" farklı şeyler) ve `needs_review` yalnızca ÖLÇÜLMÜŞ düşük kalitede
+veriliyor. 2025/59 yeniden işlendi, artık `extracted` + `quality null`.
+Testi: `scripts/extract-text/quality.test.ts`.
+
+**Kurulum.** Araçlar bu makinede kuruldu ve çalışıyor: tesseract 5.5.3 (`tur`
+dil verisiyle), ghostscript 10.07.1, ocrmypdf 17.11. Komutlar README'de.
+Dikkat: `pip`'in kurduğu `ocrmypdf.exe` PATH'te olmalı — `commandExists` onu
+PATH'ten arıyor, bulamazsa OCR'ı sessizce atlayıp sayıyı `failed` damgalıyor.
+
+**Depolama uyarısı hâlâ geçerli.** 32 sayı için sorun yok ama §2.2'deki
+~480 MB'lık 20 yıllık tahmin taranmış oranın düşük kalmasına dayanıyor ve eski
+yıllarda o oran muhtemelen daha yüksek. OCR artık gerçekten metin ürettiğine
+göre (sayı başına ~100 KB), backfill'e geçmeden §2.2'yi yeniden ölç.
+
+**Kalan 5 `needs_review` — bakılabilir, acil değil.** Bunlar taranmış değil,
+metin katmanı bozuk. Somut örnek 2026/17: kaynak PDF'in metin katmanından
+noktasız "ı" hiç çıkmıyor ("yayımlamak" → "yaymlamak", "halkın" → "halkn").
+İki not:
+
+1. Bu bozulmayı `estimateQuality` **tesadüfen** yakalamıyor — o ölçüt dört
+   ünsüzün yan yana gelmesine bakıyor, düşen "ı" onu üretmiyor. O metin tek
+   başına 0,93 alıyor. Yani düşük kalite bozulmanın kanıtı, yüksek kalite
+   sağlamlığın kanıtı DEĞİL.
+2. `--force-ocr` bunları düzeltebilir (sayfayı görüntüye çevirip baştan okur)
+   ama şu an denenmedi ve `looksScanned` false olduğu için OCR'a hiç
+   girmiyorlar. Denemeden önce şunu ölç: 2025/195 180.785 karakterle 0,283
+   alıyor; bu kadar metnin gerçekten bozuk olması yerine ölçütün tablo/isim
+   listesi ağırlıklı sayılarda yanılıyor olması da mümkün.
+
+---
+
+### 6.2 LLM özet katmanı — YAPILDI
+
+Sağlayıcı **OpenAI**, model `gpt-4o-mini` (ürün sahibinin kararı).
+
+**DOLDURMA TAMAMLANDI.** Sonuç: **6.915 kaydın 5.887'sinde özet (%85,1)**.
+Oturum başında %11,5'ti.
+
+| kaynak | kayıt | oran |
 | --- | --- | --- |
-| `extracted` | 383 | 0.98 |
-| `failed` (taranmış) | 33 | 0.84 |
-| `needs_review` | 6 | 0.34 |
+| `llm` | 5.090 | %73,6 |
+| `rule` | 797 | %11,5 |
+| özet yok (3. basamak) | 1.028 | %14,9 |
 
-Somut örnek: 2025 sayı 175 → **23,8 MB PDF, çıkan metin 2 KB** (yalnızca kapak
-sayfasının metin katmanı). Metin/PDF bayt oranı %0,01; sağlıklı bir metin
-PDF'inde %0,27–0,45.
-
-**Kod hazır, araç yok.** `scripts/extract-text/index.ts` zaten şu zinciri
-kuruyor:
+Son koşum: 4.015 grup, **0 adet 429**, 0 hata, ~12 dakika. Kırılım:
 
 ```
-pdftotext → metin çok az mı? → ocrmypdf --language tur --skip-text → pdftotext tekrar
+declinedBy: model-declined 879 · cok-uzun 62 · sonuc-bildiriyor 1 · baslikla-ayni 1
 ```
 
-`ocrmypdf` ve `tesseract-ocr-tur` bu makinede kurulu değil; `commandExists`
-bunu görüp `failed` damgası vuruyor ve yeniden deneme kuyruğuna atıyor
-(`issues_retry_idx`). Sessizce boş kaydetmiyor — bu davranış doğru, dokunma.
+Denetim yanlış pozitifleri fiilen bitti (4.015 grupta 2 tane). Kalan redlerin
+%93'ü modelin kendi kararı.
 
-**Yapılacaklar:**
+**TOKEN TAHMİNİ ÖLÇÜMLE DÜZELTİLDİ.** `CHARS_PER_TOKEN` 2,2 varsayılmıştı
+("Türkçe kötü tokenize olur"). OpenAI'nin 429 mesajları isteğin gerçek maliyetini
+yazıyor (`Requested 590`); 2.078 karakterlik istem + 90 çıktı jetonuna karşılık
+bu **~4,2 karakter/token** demek — gpt-4o'nun tokenizer'ı Türkçeyi sanıldığından
+çok daha iyi işliyor. Yanlış tahmin her rezervasyonu iki katına çıkarıp koşumu
+limitin izin verdiğinin yarısına kısıyordu: düzeltme sonrası hız
+**157 → 290 grup/dk**. Sabit 3,5'e çekildi (ölçülenin altında, kasıtlı pay).
 
-1. `ocrmypdf` + `tesseract-ocr-tur` kur. GitHub Actions workflow'u zaten
-   kuruyor; yerelde elle gerekiyor.
-2. **Önce birkaç sayıda dene, toplu çalıştırma.** Kuyruktaki 33 sayıdan 3–5
-   tanesiyle başla: OCR sayfa başına saniyeler sürüyor, 40 sayfalık bir gazete
-   dakikalar demek.
-3. **`estimateQuality` eşiğini kalibre et.** `QUALITY_THRESHOLD = 0.55` ve
-   **hiç gerçek OCR çıktısı görülmeden tahminle kondu.** Metin PDF'lerinde
-   ölçülen kalite 0.98–0.99, yani eşik oralarda değil. OCR çıktısı görülmeden
-   ayarlanamaz.
-4. Kurtarılan sayıları `text_status='pending'` yapıp yeniden işle (§6.3).
+**AYNI BAŞLIK KOŞUMLAR ARASINDA DA BİR KEZ SORULUYOR.** Koşum içinde grup sorgusu
+zaten tekilleştiriyordu, ama koşumlar arasında değil: 2025'te özetlenmiş bir
+başlık 2026'da yeni satır olarak geldiğinde `summary is null` olduğu için ikinci
+kez soruluyor ve ikinci kez ödeniyordu. Ölçüldü: kayıtların **%12,8'i** başka bir
+kayıtla aynı başlığı taşıyor, yani bu neredeyse günlük ingest'in tüm maliyeti.
 
-**Depolama uyarısı — bu hesabı bozabilir.** Taranmış bir sayı şu an 2 KB
-veriyor; OCR'lanınca 200 KB+ verir. 33 sayı için sorun değil ama §2.2'deki
-~480 MB'lık 20 yıllık tahmin **taranmış oranın düşük kalmasına dayanıyor** ve
-eski yıllarda o oran muhtemelen çok daha yüksek. OCR açıldıktan sonra §2.2'yi
-yeniden ölç.
+`reuseExistingSummaries()` her koşumun başında, hiçbir çağrı yapmadan, mevcut
+özeti aynı istemi üretecek kayıtlara kopyalıyor. Yan faydası: aynı başlık artık
+yapı gereği birebir aynı özeti alıyor — spec 3.8 kural 3'ü modelden bağımsız
+garantiliyor.
 
-**Tuzak.** `estimateQuality` bu hata sınıfını **yakalayamıyor**: taranmış bir
-sayıdan çıkan az miktarda metin (kapak sayfası) tertemiz Türkçe olduğu için
-kalite 0.99 geliyor. Kalite metnin *doğruluğunu* ölçüyor, *eksikliğini* değil.
-Taranmışlığı yakalayan şey `SCANNED_TEXT_RATIO` (§3.6) ve OCR sonrası da o
-denetim geçerli kalmalı.
+**TUZAK — iki koşum paralel çalışırsa sessizce iki kat fatura.** Bir koşum
+durdurulup yenisi başlatıldığında eski süreç ağacı hayatta kalabiliyor. İkisi de
+aynı sırayla ilerlediği için AYNI grupları soruyor; öndeki yazıyor, arkadaki
+`summary is null` koşuluna takılıp ürettiğini çöpe atıyor. Ölçülen örnek:
+`llm: 593` ama `records: 16`.
 
----
+**Belirtisi budur: `records` sayısı `llm` sayısından belirgin düşükse başka bir
+koşum aynı grupları dolduruyordur.** Sağlıklı koşumda ikisi birbirine yakın.
+Durdurduktan sonra süreç ağacının gerçekten öldüğünü doğrula.
 
-### 6.2 LLM özet katmanı — kademeli üretimin eksik orta basamağı
+**Kalan 1.028 kayıt — ÖLÇÜLDÜ: çoğu özetlenebilir, istem engelliyor. Ürün
+sahibi düzeltmemeye karar verdi.**
 
-**Sorun.** Ham gazete başlıkları okunmuyor. Gerçek bir örnek:
+Bunlarda model "güvenli özet çıkmıyor" dedi ve 3. basamak (maskelenmiş başlık)
+doğru davranış. Ama sebebi modelin yetersizliği değil, istemin 4. maddesi:
+
+> `4. Tek cümle, nokta koyma, 12-160 karakter. Başlığı olduğu gibi kopyalama.`
+
+7. madde de "güvenli özet çıkmıyorsa YOK yaz" diyor. Başlık zaten temiz ve kısa
+bir ifadeyse doğru özet, onun okunabilir yazıma çevrilmiş hâlidir; model bunun
+4. madde tarafından yasaklandığını düşünüp YOK diyor.
+
+Bu, `baslikla-ayni` hatasının aynısı ve aynı kökten: denetimden büyük/küçük harf
+katlaması kaldırıldı (asıl değer o çeviride) ama İSTEMDE modele hâlâ "kopyalama"
+deniyor. **Denetim izin veriyor, istem yasaklıyor.**
+
+8 gerçek başlıkla ölçüldü — 4. madde şuna gevşetildiğinde:
+
+> Başlık zaten tek ve anlaşılır bir ifadeyse onu OLDUĞU GİBİ BIRAKMA ama günlük
+> yazıma çevir: BÜYÜK HARFİ normal yazıma al, özel adların büyük harfini koru.
+> Bu geçerli bir özettir, YOK yazma.
+
+sonuç **şimdiki istemle 0/8, gevşetilmişle 8/8**. Sekizi de denetimden geçti,
+hiçbiri sonuç bildirmedi. Örnek:
 
 ```
-REKABET KURULU KARARI-KARAR SAYISI:319/2025 KONU:ÇELEBİOĞLU ÖZEL GÜVENLİK
-LTD. TARAFINDAN SOSYAL SİGORTALAR DAİRESİ MERKEZ MÜDÜRLÜK BİNASINA GÜVENLİK
-HİZMETİ ALIMI İHALESİNE YAPILAN İTİRAZ.
+SEÇİM VE HALKOYLAMASI YASASI-YÜKSEK SEÇİM KURULU KARAR SAYISI:76/2025
+  şimdiki    -> YOK
+  gevşetilmiş-> Seçim ve halkoylaması yasası hakkında Yüksek Seçim Kurulu kararı
 ```
 
-Spec §3.8 kademeli üretim istiyor:
+Özetsiz 1.028 kaydın yapısal dağılımı:
 
-```
-1. Kural tabanlı  → tanınabilir kalıptaki kayıtlar
-2. Kalıp yoksa    → LLM (tek seferlik)
-3. O da olmazsa   → özet yok, maskelenmiş başlık gösterilir
-```
+| kategori | kayıt | not |
+| --- | --- | --- |
+| Diğer (yasa tasarısı, kurul kararı…) | 377 | istem engelliyor |
+| Sınav sonuç listesi | 237 | kurtarılabilir, değeri düşük (kişisel veri) |
+| Başka karara atıf (tadil/iptal) | 160 | kısmen |
+| Çok kısa başlık | 111 | istem engelliyor |
+| Çok uzun başlık | 105 | model 160 karakteri aşıyor, ayrı sorun |
+| Periyodik vaziyet/tarife | 38 | kurtarılabilir |
 
-**Birinci ve üçüncü basamak var, ortadaki yok.**
+**KARAR: uygulanmadı.** Ürün sahibi "maskelenmiş başlık okunabiliyor, boşuna
+kaynak harcamayalım" dedi. Bu bilinçli bir tercih, keşfedilmemiş bir eksik değil.
 
-**Ölçüm:** 5.223 kayıttan **565'inde özet var (%10,8)**, hepsi
-`summary_source='rule'`, `llm` **0**. Yani kayıtların **%89'unda** kullanıcı
-ham başlığı görüyor.
+Sonucu bilerek taşı: **günlük ingest'te de aynı biçimdeki yeni kayıtlar özetsiz
+kalmaya devam edecek** (~%15). Fikir değişirse iş küçük: 4. maddeyi yukarıdaki
+gibi değiştir ve `npm run summarize -- --retry` çalıştır — mevcut 5.090 özet
+`summary is null` koşuluna takılmadığı için hiç dokunulmaz, üslup tutarlılığı
+riski yok. Maliyet ~900 çağrı.
 
-> Kural katmanının neden bu kadar düşük kaldığı öğretici: bu dosya bir ara
-> "17 kaydın 15'inde özet üretiyor" (%88) diyordu. O 17 kayıt elle yazılmış
-> fixture'lardı, yani özetleyicinin kendi kalıplarına göre yazılmışlardı.
-> Gerçek veride oran %10,8'e düştü. Kural setini genişletmek de bir seçenek
-> ama kalıp çeşitliliği çok yüksek.
+**Neden `processIssue` içinde değil, ayrı betik.** Bu dosyanın eski hâli
+"`processIssue` içinde çağır" diyordu; ayrı betik seçildi çünkü (a) mevcut
+6.118 kayıt o yolla asla özet almaz — onlar zaten işlendi ve `ON CONFLICT`
+mevcut özeti koruyor; (b) tek bir OpenAI kesintisi PDF indirmeyi de durdurur.
+`reclassify` ile aynı gerekçe: girdi zaten veritabanında, kaynak siteye hiç
+dokunulmuyor. Kademe sırası korunuyor — betik önce `summarize()` (kural),
+tutmazsa LLM.
 
-**Şema hazır.** `records.summary` ve
-`records.summary_source text check (summary_source in ('rule','llm'))` zaten
-var, migration gerekmiyor. Özet **bir kez üretilip kalıcı saklanıyor** (spec
-§3.8 madde 4): liste, detay, e-posta, RSS ve `og:title` aynı metni kullanıyor,
-sayfaya özel yeniden üretim yasak.
+**Reddedilen kayıt bir daha sorulmuyor (migration 0009).** Kademeli üretimin
+üçüncü basamağı "özet yok"tur ve `summary` null KALIR. Ama betik işini
+"summary is null" diye seçerse aynı başarısız başlıklar her çalıştırmada
+yeniden sorulur — günde iki kez çalışan ingest'te süresiz ödeme demek.
+`summary_attempted_at` dolu + `summary` null = "denendi, güvenli özet çıkmadı".
+İstem ya da denetim değişince `--retry` ile eski redler yeniden denenir.
 
-**PAZARLIK KONUSU OLMAYAN KISIT — spec §3.8 madde 1:**
+**Günlük ingest'e bağlandı.** `daily-ingest.yml`'ye ayrı bir adım eklendi.
+`OPENAI_API_KEY` secret'ı yoksa adım atlanıyor ve iş yeşil kalıyor: ürün özetsiz
+de çalışıyor, ama kurulmamış bir anahtar yüzünden günlük ingest'i kırmızıya
+boyamak asıl işin (yeni sayıların yakalanması) sessizce durmasına yol açardı.
 
-> Özet, başlıktan **kesinlikle çıkarılabilen** şeyi söyler. Kararın sonucunu
-> bildirmez.
-
-Yukarıdaki örnekte "itirazı karara bağladı" **doğru**, "itirazı reddetti"
-**yanlış** — o bilgi gövdede ve hukuki metinde tahmin yürütmek kabul edilemez.
-Modele serbest özet yazdırılamaz; çıktı bu kurala göre kısıtlanmalı ve
-denetlenmeli. Diğer maddeler de bağlayıcı: günlük dil (madde 2), aynı belge
-tipi hep aynı kalıp (madde 3), orijinal başlık her zaman sayfada (madde 5).
-
-**Yapılacaklar:**
-
-1. `scripts/summarize/` altına LLM basamağı ekle. Giriş: `title`, `section`,
-   `refType`, `docType`. **Gövde metnini verme** — özet başlıktan türetilmeli,
-   yoksa madde 1 ihlal edilir.
-2. Yalnızca `summarize()` (kural) null döndüğünde çağır.
-3. Sonucu `summary` + `summary_source='llm'` olarak yaz. `processIssue`
-   içindeki `ON CONFLICT` mevcut özeti koruyor
-   (`summary = coalesce(records.summary, excluded.summary)`), yani yeniden
-   işleme özeti ezmiyor — kasıtlı.
-4. **Çıktıyı denetle.** Sonuç bildiren cümleleri yakalayan bir kontrol yaz
-   (reddetti / kabul etti / onayladı gibi); tutarsa özeti at ve üçüncü
-   basamağa düş.
-5. Maliyet tek seferlik: kural tutmayan ~4.650 kayıt × bir kısa çağrı.
-
-**Model seçimi.** Bu depoda LLM çağrısı yapan hiçbir kod yok; sağlayıcı seçimi
-ve anahtar yönetimi de bu işin parçası. Anthropic API kullanılacaksa
-`claude-api` becerisini yükleyip model kimliklerini ve fiyatlandırmayı oradan
-al, hafızadan yazma.
+**Gövde metni modele VERİLMİYOR, bilerek.** Özet yalnızca başlıktan
+türetilebilecek şeyi söyleyebilir. Modele gövdeyi verirsek, kararın sonucunu
+özetlememesini istemek önüne koyduğumuz bilgiyi görmezden gelmesini istemek
+olur. Vermezsek yazamaz. `buildUserPrompt` yalnızca başlık, belge türü ve
+bölüm gönderiyor; testi bunu doğruluyor.
 
 ---
 
@@ -720,6 +884,131 @@ Kural ya da çıkarma mantığı değiştiğinde mevcut kayıtlara uygulamanın 
 
 ---
 
+### 6.4 Supabase — veri taşındı, uygulama çalışıyor, DERLEME AÇIK SORUN
+
+Veri **yeniden üretilmedi, taşındı**. Özet bir hesaplama değil, `records.summary`
+sütununda metin. Aktarım sıfır LLM çağrısı ve sıfır kaynak-site isteğiyle yapıldı.
+
+**Taşınan (7 tablo, yerelle birebir):** `records` 6.915, `record_entities`
+10.333, `record_topics` 6.800, `entities` 1.287, `issues` 422,
+`search_synonyms` 21, `topics` 9. Özet dağılımı korundu (`llm` 5.090, `rule` 797,
+boş 1.028), gövde 3.792 kayıt / 6.697 kB.
+
+**Taşınmayanlar, bilerek:** `profiles` / `alerts` / `alert_deliveries` (boş, ve
+`auth.users`'a bağlı — Supabase Auth yönetiyor), `ingest_runs` / `search_logs`.
+
+**Yöntem.** Hostta `pg_dump` yok; Docker kabında var (PG 16.15) ve kap internete
+çıkıyor, dolayısıyla dump doğrudan kaptan Supabase'e akıtıldı. Sıra bağımlılığa
+göre. Önce `truncate` gerekti: migration 0007 `search_synonyms`'e 21, 0008
+`topics`'e 1 satır tohumluyor ve aktarımla çakışıyorlardı.
+
+`search_vector` taşınmadı, hedefte yeniden üretildi (generated column) — ön
+koşulu şemanın ÖNCE kurulmuş olması. Diziler elle hizalandı; `--data-only` dump
+`-t` filtresiyle `setval` getirmiyor ve hizalanmasaydı ilk yeni kayıt çakışırdı.
+
+### Çalıştığı doğrulananlar
+
+- Migration 0002/0007'nin **zorunlu kabul testleri gerçek Supabase'de geçti** —
+  `tr_rg` config'i orada kuruluyor. En riskli görülen adım buydu.
+- Arama gerçek veriyle: `tüzük` 751, `kamulastirma` 257, `ihale` 135, `münhal` 196.
+- Sayfalar Supabase'e karşı doğru render oluyor (dev sunucusu, 5 sayfa 200):
+  kayıt sayfasının h1'inde LLM özeti, altında ham başlık kutusu; arama 20 sonuç.
+
+### İKİ AYRI BAĞLANTI — `DATABASE_URL` + `DATABASE_URL_POOLED`
+
+Tek URL ile `next build` patlıyordu:
+
+```
+(EMAXCONNSESSION) max clients reached in session mode
+                  max clients are limited to pool_size: 15
+```
+
+Session pooler 15 istemciyle sınırlı; derleme 3.399 sayfayı ~8 işçiyle üretiyor
+ve her işçi kendi havuzunu açıyor (`max: 4`) → 32 bağlantı.
+
+Ölçüldü (6 işçi × 25 tur × 4 paralel = 600 sorgu):
+
+| pooler | süre | hata |
+| --- | --- | --- |
+| session 5432 | 5.284 ms | **5** × EMAXCONNSESSION |
+| transaction 6543 | 3.038 ms | **0** |
+
+Ayrıca sonuç DOĞRULUĞU da denetlendi (her sorgu kendi kimliğini geri getiriyor):
+transaction pooler'da **0 bozulma**. Yani pooler bu yük altında sağlam.
+
+`src/lib/db/client.ts` artık `DATABASE_URL_POOLED`'ı tercih ediyor, yoksa
+`DATABASE_URL`'e düşüyor — yerelde pooler olmadığı için doğrusu da bu.
+
+### ⚠️ AÇIK SORUN: `next build` prerender'da düşüyor
+
+Derleme, sayfa üretiminin ortasında rastgele bir sayfada patlıyor. **Her
+çalıştırmada FARKLI sayfa ve FARKLI hata:**
+
+```
+1. /karar/...kozmetik-urunleri...   Server Components hatası (üretimde mesaj gizli)
+2. /karar/...mesarya-belediyesi...  invalid input syntax for type bigint: "NaN"
+3. /karar/...2026-uki-564...        TypeError: Cannot read properties of
+                                    undefined (reading 'replace')
+```
+
+Deterministik değil, veriye bağlı değil: patlayan kayıtlar tek tek incelendi,
+hiçbirinde anormallik yok (NULL yok, öksüz FK yok, diğer kayıtlarla yapı olarak
+aynı). `.replace` hatası, satırın `title` alanının undefined gelmesi anlamına
+geliyor — yani sorgu eksik satır döndürüyor.
+
+**ELENENLER — bunları tekrar deneme, ölçüldü:**
+
+- ~~Session pooler bağlantı tavanı~~ → transaction pooler'a geçildi, EMAXCONN bitti.
+- ~~DNS (ENOTFOUND)~~ → bir kez göründü, sonra hiç; `nslookup` ve tsx bağlantısı temiz.
+- ~~Transaction pooler yükü kaldıramıyor~~ → 600 sorgu, 0 hata, session'dan hızlı.
+- ~~Cevapların birbirine karışması (pipelining)~~ → sonuç doğruluğu denetlendi,
+  600 sorguda 0 bozulma.
+- ~~Yavaş sorgu~~ → kayıt sayfasının 4 sorgusu 97–336 ms.
+- ~~Belirli bir kaydın verisi~~ → her koşumda başka sayfa.
+
+**TUZAK — dev sunucusu ölçümü bozuyor.** Dev sunucusu açıkken sayfalar 120 sn
+asılıyor ve bağımsız ölçümler de onun arkasına kuyruğa giriyor; kapatınca aynı
+sorgular 310 ms. Dev sunucusu `globalThis.__mkDb` ile TEK havuz paylaşıyor
+(`max: 4`) ve preview aracının 2 saniyede bir attığı `HEAD /` istekleriyle
+doyuyor. Pooler'ı suçlamadan önce dev sunucusunu kapat.
+
+**Sıradaki adım.** `next.config.ts`'e `experimental.cpus: 1` konup tek işçiyle
+derleme denendi; sonucu bu dosyaya yazılmadıysa oturum orada bitmiş demektir,
+ilk iş onu çalıştırmak. Geçerse sorun eşzamanlılıkta demektir ve kalıcı çözüm
+işçi sayısını sınırlamak ya da havuzu küçültmek (`max: 1`) olur; geçmezse
+prerender yolunda veriden bağımsız bir hata var demektir ve tek işçiyle hata
+mesajı da net gelir.
+
+**Yerel veritabanı olduğu gibi duruyor** (Docker `mk-pg`, 39 MB). Aktarım tek
+yönlüydü; bir terslik olursa bozulmamış kopya orada.
+
+### ⚠️ RLS uygulamanın sorgularında devreye girmiyor
+
+Ölçüldü: uygulama `postgres` rolüne bağlanıyor ve o rolde `rolbypassrls = true`.
+Migration 0006'daki politikalar uygulamanın kendi sorguları için hiçbir şey
+yapmıyor.
+
+**Şu an açık YOK**, çünkü kod sahipliği kendisi süzüyor — `listAlerts`,
+`deleteAlert`, `setAlertActive` hepsinde `and user_id = ${userId}`,
+`/api/abonelik-iptal` ise HMAC imzalı jetonla yetkilendiriyor.
+
+Ama spec 6 korumayı RLS'e dayandırıyor; gerçekte **tek savunma hattı sorgu
+kodu**. `user_id` filtresini unutan yeni bir sorguyu arkada yakalayacak bir şey
+yok. Çözüm istenirse okuma bağlantısını RLS'e tabi ayrı bir role çevirmek gerekir
+— tasarım değişikliği, taşımanın parçası olarak yapılmadı.
+
+### Gerçek Supabase'de çıkan hata: auth şeması gölgesi
+
+`scripts/migrate/index.ts` koşulsuz `create table if not exists auth.users`
+çalıştırıyor ve yorumu "Supabase'de etkisi yok" diyordu. İlk denemede patladı:
+`permission denied for schema auth`. `create ... if not exists`, tablo ZATEN
+VARKEN bile şema üzerinde CREATE yetkisi istiyor; Supabase'de `auth` şeması
+`supabase_auth_admin`'e ait. Artık `auth.users` var mı diye bakıp yalnızca
+gerçekten yokken kuruluyor.
+
+
+---
+
 ## 7. Yön bulma
 
 Değiştirmeden önce okunması gereken dosyalar:
@@ -733,6 +1022,9 @@ Değiştirmeden önce okunması gereken dosyalar:
 | `src/lib/search/mask-title.ts` | Başlık maskeleme (tasarımın imzası) |
 | `src/lib/db/queries/shared.ts` | `inList` / `arrayParam` — dizi tuzağı |
 | `scripts/summarize/rules.ts` | Özet kalıpları; sonuç bildirmeme kuralı |
+| `scripts/summarize/guard.ts` | LLM çıktı denetimi; Türkçe sözcük sınırı (§6.2) |
+| `scripts/summarize/llm.ts` | İstem + OpenAI istemcisi; gövde metni GÖNDERMİYOR |
+| `scripts/summarize/index.ts` | `npm run summarize` — kesilebilir doldurma (§6.2) |
 | `scripts/shared/turkish-suffix.ts` | Türkçe ek uyumu, I harfi kararı |
 | `scripts/parse-records/parser.ts` | `parseIndexTable` (birincil yol) + metin yedeği |
 | `fixtures/real/` | Gerçek arşiv hücreleri + elle doğrulanmış beklenen çıktı |

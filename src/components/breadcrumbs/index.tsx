@@ -7,9 +7,9 @@ export interface Crumb {
 }
 
 /**
- * Breadcrumb — her sayfada var (spec 8.3) ve JSON-LD ile eşleşiyor.
- * Ayraç olarak tasarımdaki tek karakter kullanılıyor; aria-hidden çünkü
- * ekran okuyucu için liste yapısı zaten yeterli.
+ * Breadcrumbs — present on every page (spec 8.3) and matching the JSON-LD.
+ * The separator is the single character from the design; it is aria-hidden because
+ * the list structure is already enough for a screen reader.
  */
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (

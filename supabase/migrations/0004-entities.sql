@@ -1,5 +1,5 @@
--- 0004 — varlıklar: kurum, şirket, yerleşim yeri (spec 6)
--- Kişi bilerek yok: /kisi/[slug] üretilmiyor (spec 3.7 madde 1).
+-- 0004 — entities: institution, company, place (spec 6)
+-- People are deliberately absent: no /kisi/[slug] is generated (spec 3.7 rule 1).
 
 create table if not exists entities (
   id              bigserial primary key,
@@ -26,7 +26,7 @@ create table if not exists record_entities (
 
 create index if not exists record_entities_entity_idx on record_entities (entity_id, record_id desc);
 
--- Varlık sayaçlarını yeniden hesaplar. Ingest'in index aşaması çağırır (spec 7.1 adım 7).
+-- Recomputes entity counters. Called by ingest's index stage (spec 7.1 step 7).
 create or replace function refresh_entity_counts(target_ids bigint[] default null)
 returns void
 language sql
@@ -42,7 +42,7 @@ as $$
      and (target_ids is null or e.id = any(target_ids));
 $$;
 
--- Spec 8.5: bir varlıkla en çok birlikte geçen diğer varlıklar.
+-- Spec 8.5: the entities that most often co-occur with a given entity.
 create or replace function co_occurring_entities(target_id bigint, limit_n int default 8)
 returns table (id bigint, kind text, slug text, name text, shared_records bigint)
 language sql

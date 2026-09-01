@@ -1,7 +1,7 @@
 /**
- * GitHub Actions log çıktısı. Yapılandırılmış ama okunabilir: iş bittikten
- * sonra runner logunda gözle taranıyor, ayrıca ingest_runs.errors'a yazılan
- * kayıtlarla aynı biçimde.
+ * GitHub Actions log output. Structured but readable: it is scanned by eye in
+ * the runner log after a job, and it uses the same shape as the entries written
+ * to ingest_runs.errors.
  */
 type Level = 'info' | 'warn' | 'error';
 
@@ -20,7 +20,7 @@ export const log = {
   error: (message: string, context?: Record<string, unknown>) => emit('error', message, context),
 };
 
-/** ingest_runs.errors içine yazılacak biçim. */
+/** The shape written into ingest_runs.errors. */
 export function toErrorEntry(stage: string, error: unknown, context?: Record<string, unknown>) {
   return {
     stage,

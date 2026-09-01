@@ -14,6 +14,10 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # İş düzeyinde tanımlı: adım düzeyindeki `if` yalnızca burayı görebiliyor,
+    # aynı adımda tanımlanan env'i göremiyor.
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,3 +40,21 @@ jobs:
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+
+      # Kademeli üretimin ikinci basamağı (spec 3.8). Ingest'ten SONRA ve ayrı
+      # adımda: OpenAI kesintisi PDF çekmeyi durdurmasın, ingest hatası da
+      # özetlemeyi tetiklemesin.
+      #
+      # Anahtar yoksa adım atlanıyor, iş yeşil kalıyor. Ürün özetsiz de
+      # çalışıyor — maskelenmiş başlık gösteriliyor (3. basamak) — ve günlük
+      # ingest'i kurulmamış bir anahtar yüzünden kırmızıya boyamak, asıl işin
+      # (yeni sayıların yakalanması) sessizce durmasına yol açar.
+      #
+      # Yalnızca hiç denenmemiş kayıtları soruyor; reddedilenler
+      # `summary_attempted_at` ile damgalı ve tekrar sorulmuyor (migration 0009).
+      - name: LLM özet katmanı
+        if: ${{ env.OPENAI_API_KEY != '' }}
+        run: npm run summarize
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}

@@ -5,19 +5,19 @@ import type { Token } from '@/types/record';
 interface MaskedTextProps {
   tokens: Token[];
   /**
-   * `mask`  — ham gazete başlığı: kalıp soluk, ayırt edici koyu (artboard 1a).
-   * `quote` — gövde alıntısı: maskeleme yok, yalnızca eşleşme sarı (artboard 1b).
+   * `mask`  — a raw gazette title: boilerplate faint, distinctive dark (artboard 1a).
+   * `quote` — a body excerpt: no masking, only the match in yellow (artboard 1b).
    */
   variant?: 'mask' | 'quote';
   className?: string;
-  /** Kopyalanabilirlik: ham başlık kutusunda tek tıkla tüm metin seçilsin. */
+  /** Copyability: one click should select the whole text in the raw title box. */
   selectAll?: boolean;
 }
 
 /**
- * Jetonlanmış metni basar. Tek bir <span> ağacı; hiçbir yerde
- * dangerouslySetInnerHTML yok — jetonlar ts_headline ayraçlarından ya da
- * maskTitle'dan geliyor, ikisi de düz metin.
+ * Renders tokenised text. A single <span> tree; there is no
+ * dangerouslySetInnerHTML anywhere — the tokens come from ts_headline delimiters or
+ * from maskTitle, and both are plain text.
  */
 export function MaskedText({ tokens, variant = 'mask', className, selectAll }: MaskedTextProps) {
   if (!tokens.length) return null;

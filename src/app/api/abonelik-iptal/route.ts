@@ -9,14 +9,15 @@ import { SITE_URL } from '@/lib/seo/config';
 export const dynamic = 'force-dynamic';
 
 /**
- * Tek tıkla abonelikten çıkma — spec 10.3, zorunlu.
+ * One-click unsubscribe — spec 10.3, mandatory.
  *
- * Jeton HMAC imzalı; ayrı bir tablo tutmuyoruz. Hem bağlantıdan (GET) hem
- * List-Unsubscribe-Post one-click akışından (POST) çalışıyor — RFC 8058
- * uyumlu istemciler POST atıyor ve GET'e düşmüyor.
+ * The token is HMAC signed; we keep no separate table. It works both from the link
+ * (GET) and from the List-Unsubscribe-Post one-click flow (POST) — RFC 8058
+ * compliant clients send a POST and never fall back to GET.
  *
- * Çıkışta alarm siliniyor, pasifleştirilmiyor: kullanıcıya "adresi kaydımızdan
- * sildik" diyoruz ve bunun doğru olması gerekiyor (artboard 1h adım 4).
+ * On unsubscribe the alert is deleted, not deactivated: we tell the user "we have
+ * removed your address from our records", and that has to be true (artboard 1h step
+ * 4).
  */
 function expectedToken(alertId: number): string {
   const secret = process.env.ALERT_UNSUBSCRIBE_SECRET ?? process.env.REVALIDATE_SECRET ?? '';
@@ -41,8 +42,8 @@ async function unsubscribe(request: Request): Promise<{ ok: boolean }> {
   await db.execute(sql`delete from alerts where id = ${alertId}`);
 
   /*
-   * Kullanıcının başka takibi kalmadıysa profili de siliyoruz — gizlilik
-   * sayfasında "adresiniz kaydımızdan silinir" diyoruz.
+   * If the user has no follows left we delete the profile too — the privacy page
+   * says "your address is removed from our records".
    */
   await db.execute(sql`
     delete from profiles p
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
   return NextResponse.redirect(SITE_URL + '/takip?durum=' + (ok ? 'iptal' : 'hata'));
 }
 
-/** RFC 8058 one-click: gövde yok, yanıt 200 olmalı. */
+/** RFC 8058 one-click: no body, and the response must be 200. */
 export async function POST(request: Request) {
   const { ok } = await unsubscribe(request);
   return NextResponse.json({ ok }, { status: ok ? 200 : 400 });

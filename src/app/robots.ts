@@ -3,9 +3,9 @@ import type { MetadataRoute } from 'next';
 import { IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
 
 /**
- * Preview deployment'larda tüm site kapalı (spec 8.4). Bu, canonical'ın
- * *.vercel.app'e kaçması kadar tehlikeli bir hata sınıfını daha kapatıyor:
- * preview'un indekslenip production ile duplicate content üretmesi.
+ * On preview deployments the whole site is closed off (spec 8.4). This shuts down a
+ * class of bug as dangerous as the canonical escaping to *.vercel.app: the preview
+ * getting indexed and producing duplicate content against production.
  */
 export default function robots(): MetadataRoute.Robots {
   if (!IS_PRODUCTION_DEPLOY) {
@@ -17,7 +17,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        // Arama sonuçları indekslenmiyor; crawl budget'ı kayıt sayfalarına bırak.
+        // Search results are not indexed; leave the crawl budget for record pages.
         disallow: ['/ara', '/takip', '/hesap', '/api/', '/auth/'],
       },
     ],

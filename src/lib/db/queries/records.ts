@@ -20,16 +20,16 @@ import {
 } from './shared';
 
 /**
- * Toplam sayaç üst sınırı. Bunun üzerindeki sonuçlarda "10.000+" gösteriliyor.
- * Sınırsız count(*) 100 bin satırlık bir eşleşmede p95 400 ms hedefini
- * (spec 13) tek başına bitiriyor; sayfalama zaten 500 sayfada duruyor.
+ * Upper bound on the total counter. Above this the UI shows "10.000+".
+ * An unbounded count(*) over a 100k-row match blows the p95 400 ms target (spec
+ * 13) on its own, and pagination already stops at 500 pages.
  */
 const COUNT_CAP = 10_000;
 
 export interface SearchResult {
   items: RecordListItem[];
   total: number;
-  /** Sayaç üst sınıra dayandı mı — arayüzde "10.000+" yazmak için. */
+  /** Whether the count hit the cap — so the UI can write "10.000+". */
   capped: boolean;
   facets: {
     topics: Array<{ key: TopicSlug; n: number }>;
@@ -38,25 +38,26 @@ export interface SearchResult {
 }
 
 /**
- * Filtre koşulları — arama, konu akışı ve varlık sayfalarında paylaşılıyor.
+ * Filter conditions — shared by search, the topic feed and entity pages.
  *
- * `exclude` verilirse o boyutun kendi filtresi UYGULANMAZ.
+ * If `exclude` is given, that dimension's own filter is NOT APPLIED.
  *
- * Facet sayıları için şart. Sayımlar filtrelerin tamamıyla hesaplanınca,
- * "Atama" seçen kullanıcı konu listesinde yalnızca Atama'yı görüyordu: diğer
- * konular sıfırlanıp listeden düşüyor ve seçim GERİ ALINAMAZ hâle geliyordu.
- * Faceted arama beklentisi bunun tersi — bir boyutun sayıları, o boyut hariç
- * bütün filtreler uygulanmış hâlde hesaplanır ki "buna ek olarak şunu da
- * seçsem kaç sonuç kalır" sorusu cevaplanabilsin.
+ * This is essential for facet counts. When counts were computed with every filter
+ * applied, a user who picked "Atama" saw only Atama in the topic list: the other
+ * topics went to zero, dropped off the list, and the selection became
+ * IRREVERSIBLE. Faceted search expects the opposite — a dimension's counts are
+ * computed with all filters except that dimension applied, so the question "if I
+ * also picked this, how many results would remain" can be answered.
  */
 function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur') {
   const parts = [sql`true`];
 
   /*
-   * `in (...)` kullanılıyor, `= any(dizi)` değil: drizzle JS dizisini
-   * postgres-js'e konumsal parametre olarak verdiği için dizi serileştirmesi
-   * devreye girmiyor ve sorgu "malformed array literal" ile patlıyordu — yani
-   * konu ve belge türü filtreleri hiç çalışmıyordu (bkz. queries/shared.ts).
+   * We use `in (...)` rather than `= any(array)`: drizzle passes the JS array to
+   * postgres-js as a positional parameter, which bypasses postgres-js's array
+   * serialisation, and the query blew up with "malformed array literal" — meaning
+   * the topic and document-type filters did not work at all (see
+   * queries/shared.ts).
    */
   if (params.konu?.length && exclude !== 'konu') {
     parts.push(
@@ -99,10 +100,11 @@ function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur
 }
 
 /*
- * "En ilgili" (rank desc) seçeneği kaldırıldı, bu yüzden hasQuery'ye bakan dal
- * da kalktı: metin araması olsa da olmasa da sıralama tarihe göre. `rank`
- * sütunu hâlâ hesaplanıyor (ts_headline vurgusu ve ileride geri alınabilmesi
- * için) ama artık sıralamayı belirlemiyor. Bkz. build-query.ts → SORT_OPTIONS.
+ * The "most relevant" (rank desc) option was removed, so the branch that checked
+ * hasQuery went with it: with or without a text search, ordering is by date. The
+ * `rank` column is still computed (for ts_headline highlighting and so the option
+ * can be restored) but no longer drives ordering. See build-query.ts ->
+ * SORT_OPTIONS.
  */
 function orderBy(sort: SortOption) {
   if (sort === 'eski') return sql`r.published_at asc, r.id asc`;
@@ -110,11 +112,11 @@ function orderBy(sort: SortOption) {
 }
 
 /**
- * Arama — spec 5.4 adım 4-6.
+ * Search — spec 5.4 steps 4-6.
  *
- * Sıralama ts_rank_cd * recency_boost. recency_boost bir SQL fonksiyonu
- * (0007-search-functions.sql) çünkü aynı çarpanın alarm eşleştirmesinde ve
- * konu akışında da aynı olması gerekiyor.
+ * Ordering is ts_rank_cd * recency_boost. recency_boost is a SQL function
+ * (0007-search-functions.sql) because the same multiplier has to be identical in
+ * alert matching and in the topic feed.
  */
 export async function searchRecords(
   params: SearchParams,
@@ -158,9 +160,9 @@ export async function searchRecords(
     ) capped
   `);
 
-  // Facet sayıları sonuç kümesinden hesaplanıyor, arşiv toplamından değil —
-  // artboard 1b'deki sol raydaki sayılar bu yüzden filtreye göre değişiyor.
-  // Ama her boyut KENDİ filtresi hariç sayılıyor; bkz. filterConditions.
+  // Facet counts are computed from the result set, not from the archive total —
+  // which is why the numbers in artboard 1b's left rail change with the filters.
+  // But each dimension is counted excluding ITS OWN filter; see filterConditions.
   const topicFacetFilters = filterConditions(params, 'konu');
   const docTypeFacetFilters = filterConditions(params, 'tur');
 
@@ -206,7 +208,7 @@ export async function searchRecords(
   };
 }
 
-/** 0 sonuçta trigram önerisi (spec 5.4 adım 7, artboard 1f). */
+/** Trigram suggestion on 0 results (spec 5.4 step 7, artboard 1f). */
 export interface Suggestion {
   slug: string;
   title: string;
@@ -236,8 +238,8 @@ export async function suggestSimilar(normalizedQuery: string): Promise<Suggestio
 }
 
 /**
- * Öneriye kaç kayıt karşılık geliyor — artboard 1f "6 kayıt" rozeti.
- * Öneri metniyle yapılacak aramanın gerçek sonuç sayısı; tahmin değil.
+ * How many records the suggestion actually corresponds to — artboard 1f's "6
+ * kayıt" badge. The real result count of the suggested search, not an estimate.
  */
 export async function countForQuery(query: string): Promise<number> {
   const rows = await db.execute<Row<{ n: string }>>(sql`
@@ -251,12 +253,12 @@ export async function countForQuery(query: string): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-/** Konu akışı, varlık akışı ve ana sayfa için ortak liste sorgusu. */
+/** The shared list query for topic feeds, entity feeds and the home page. */
 export interface ListOptions {
   topic?: TopicSlug;
   entitySlug?: string;
   year?: number;
-  /** Yalnızca başvurusu açık kayıtlar (spec 3.9, artboard 1e). */
+  /** Only records whose applications are still open (spec 3.9, artboard 1e). */
   openDeadlineOnly?: boolean;
   limit?: number;
   offset?: number;
@@ -326,15 +328,15 @@ export async function countRecords(options: ListOptions): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-/** Konu başına arşiv toplamı — ana sayfa konu ızgarası. */
+/** Archive total per topic — the home page topic grid. */
 /**
- * Konu başına kayıt sayısı.
+ * Record count per topic.
  *
- * `has_own_page` şartı ŞART: konu sayfası ve arama facet'leri de yalnızca
- * kendi sayfası olan kayıtları sayıyor (spec 8.2 madde 2 — ince içerik kendi
- * URL'ini almıyor). Bu filtre olmadan dizin sayfası "Marka 14" diyor,
- * tıklayınca 5 kayıt çıkıyordu. Aynı şeyi sayan iki yerin farklı cevap vermesi,
- * kullanıcının sayaçlara olan güvenini tek seferde bitiriyor (spec 8.4).
+ * The `has_own_page` condition is ESSENTIAL: the topic page and the search facets
+ * also count only records that have their own page (spec 8.2 rule 2 — thin
+ * content gets no URL of its own). Without this filter the index page said "Marka
+ * 14" and clicking through produced 5 records. Two places counting the same thing
+ * and disagreeing destroys a user's trust in the counters in one go (spec 8.4).
  */
 export async function topicCounts(): Promise<Record<string, number>> {
   const rows = await db.execute<Row<{ topic: string; n: string }>>(sql`
@@ -407,7 +409,7 @@ export async function getRecordBySlug(slug: string): Promise<RecordDetail | null
        order by re.confidence desc, e.record_count desc
        limit 12
     `),
-    // Bağlı kayıt: aynı konunun A.E. ve Ü(K-I) olarak iki kez görünmesi (spec 3.3)
+    // Related record: the same subject appearing twice, as A.E. and as Ü(K-I) (spec 3.3)
     db.execute<Row<RawListRow>>(sql`
       select ${sql.raw(LIST_COLUMNS)}, null::text as snippet
         from records r
@@ -486,7 +488,7 @@ export async function getRecordBySlug(slug: string): Promise<RecordDetail | null
   };
 }
 
-/** ISR generateStaticParams için: yalnızca son 12 ay (spec 11.1). */
+/** For ISR generateStaticParams: the last 12 months only (spec 11.1). */
 export async function recentRecordSlugs(months = 12): Promise<string[]> {
   const rows = await db.execute<Row<{ slug: string }>>(sql`
     select slug from records
@@ -497,7 +499,7 @@ export async function recentRecordSlugs(months = 12): Promise<string[]> {
   return rows.map((row) => row.slug);
 }
 
-/** Durum bandı ve ana sayfa "bugün eklenen N kayıt" satırı. */
+/** The status bar and the home page's "N records added today" line. */
 export async function siteStatus(): Promise<{
   todayCount: number;
   totalRecords: number;
@@ -544,7 +546,7 @@ export async function siteStatus(): Promise<{
   };
 }
 
-/** En çok aranan sorgular — ana sayfadaki "Sık aranan" satırı. */
+/** The most searched queries — the "Sık aranan" row on the home page. */
 export async function popularQueries(limit = 3): Promise<string[]> {
   const rows = await db.execute<Row<{ query: string }>>(sql`
     select query
@@ -565,5 +567,5 @@ export async function logSearch(query: string, resultCount: number): Promise<voi
   `);
 }
 
-/** Maskeli başlığı sunucuda üretip döndürür — e-posta ve RSS de aynı fonksiyonu kullanır. */
+/** Builds and returns the masked title on the server — email and RSS use the same function. */
 export { maskTitle, formatRef };

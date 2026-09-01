@@ -10,11 +10,11 @@ interface MetaField {
 }
 
 /**
- * Künye şeridi — artboard 1a/1g'deki dört sütunlu ızgara.
+ * The meta bar — the four-column grid in artboards 1a/1g.
  *
- * Masaüstünde dört sütun, mobilde iki (tasarımın mobil artboard'u böyle).
- * Üstünde ve altında ince çizgi: şerit gövde metninden ayrılıyor ama kutu
- * içine alınmıyor, çünkü künye içeriğin bir parçası, yan bilgi değil.
+ * Four columns on desktop, two on mobile (as in the design's mobile artboard). A
+ * hairline above and below: the bar separates from the body text without being
+ * boxed in, because the meta line is part of the content rather than an aside.
  */
 export function RecordMetaBar({ fields, className }: { fields: MetaField[]; className?: string }) {
   return (

@@ -5,8 +5,8 @@ import type { TopicSlug } from '@/lib/constants/topics';
 export type TextStatus = 'pending' | 'extracted' | 'ocr' | 'failed' | 'needs_review';
 export type SummarySource = 'rule' | 'llm';
 
-/** Maskelenmiş başlık jetonu (spec 3.8, artboard 1a).
- *  0 kalıp · 1 ayırt edici · 2 ara bilgi · 3 arama eşleşmesi */
+/** A masked title token (spec 3.8, artboard 1a).
+ *  0 boilerplate · 1 distinctive · 2 supporting · 3 search match */
 export type TokenLevel = 0 | 1 | 2 | 3;
 
 export interface Token {
@@ -22,12 +22,12 @@ export interface RecordRow {
   docType: DocType;
   refType: RefType | null;
   refNumber: string | null;
-  /** Gazetedeki ham başlık — her zaman sayfada ve kopyalanabilir (spec 3.8 kural 5). */
+  /** The gazette's raw title — always on the page and copyable (spec 3.8 rule 5). */
   title: string;
   titleNormalized: string;
   subject: string | null;
   bodyText: string | null;
-  /** Üretilmiş özet cümle; liste, detay, e-posta, RSS ve og:title aynı metni kullanır. */
+  /** The generated summary sentence; list, detail, email, RSS and og:title all use the same text. */
   summary: string | null;
   summarySource: SummarySource | null;
   deadlineAt: string | null;
@@ -38,11 +38,11 @@ export interface RecordRow {
   relatedRecordId: number | null;
   correctsId: number | null;
   hasPersonalData: boolean;
-  /** Spec 8.2 madde 2: ince kayıt kendi sayfasını almaz, sayı sayfasında anchor alır. */
+  /** Spec 8.2 rule 2: a thin record gets no page of its own, only an anchor on the issue page. */
   hasOwnPage: boolean;
 }
 
-/** Liste satırlarında kullanılan hafif biçim — artboard 1b/1d/1e satırı. */
+/** The light shape used in list rows — the artboard 1b/1d/1e row. */
 export interface RecordListItem {
   id: number;
   slug: string;
@@ -60,12 +60,12 @@ export interface RecordListItem {
   primaryTopic: TopicSlug | null;
   institution: string | null;
   /**
-   * Kaydın gövde metni var mı. snippet null olması gövde YOK demek değil:
-   * liste sorgularında ts_headline hiç çalıştırılmıyor. İkisini ayırmazsak
-   * ana sayfa her satıra "gövde metni çıkarılamadı" yazıyor.
+   * Whether the record has body text. A null snippet does NOT mean there is no
+   * body: list queries never run ts_headline. Without separating the two, the home
+   * page writes "body text could not be extracted" on every row.
    */
   hasBody: boolean;
-  /** ts_headline çıktısı jetonlara ayrılmış hâli; yalnızca arama sonuçlarında dolu. */
+  /** The ts_headline output split into tokens; filled only on search results. */
   snippet: Token[] | null;
   deadlineAt: string | null;
 }

@@ -6,22 +6,23 @@ import { cn } from '@/lib/utils';
 interface TopicBadgeProps {
   topic: string;
   href?: string;
-  /** Künye şeridinde koyu ve kalın, liste satırında ikincil. */
+  /** Dark and bold in the meta bar, secondary in a list row. */
   emphasis?: boolean;
   className?: string;
 }
 
 /**
- * Konu etiketi.
+ * The topic label.
  *
- * Renkli nokta KALDIRILDI (ürün sahibinin kararı). Tasarımda sekiz konu tek
- * L/C üzerinde yalnızca hue ile ayrışan birer nokta taşıyordu; konu sayısı
- * dokuza çıkınca ve noktalar hem filtre rayında hem listede hem altbilgide
- * tekrarlanınca renk ayırt edici olmaktan çıkıp gürültüye dönüştü. Konu adı
- * zaten yazılı ve renk hiçbir zaman tek başına anlam taşımıyordu, o yüzden
- * kaldırılması erişilebilirlik açısından da bir kayıp değil.
+ * The coloured dot was REMOVED (the product owner's decision). In the design, eight
+ * topics each carried a dot distinguished only by hue at a single L/C; once the
+ * topic count went to nine and the dots repeated in the filter rail, the list and
+ * the footer, colour stopped being distinctive and turned into noise. The topic
+ * name is written out anyway and colour never carried meaning on its own, so
+ * removing it is no accessibility loss either.
  *
- * `Topic.color` alanı bu yüzden silindi; geri istenirse git geçmişinde.
+ * That is why the `Topic.color` field was deleted; it is in git history if wanted
+ * back.
  */
 export function TopicBadge({ topic, href, emphasis, className }: TopicBadgeProps) {
   if (!isTopicSlug(topic)) return null;

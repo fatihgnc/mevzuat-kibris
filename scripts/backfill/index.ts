@@ -5,26 +5,26 @@ import { closeDb, finishRun, sql, startRun } from '../shared/db';
 import { log, toErrorEntry } from '../shared/logger';
 
 /**
- * Geriye dönük doldurma — bir yılın TÜM işlenmemiş sayılarını işler.
+ * Backfill — processes ALL unprocessed issues of one year.
  *
- * `daily`'den farkı iki tane, ikisi de kasıtlı:
+ * Two deliberate differences from `daily`:
  *
- * 1. Sayı sınırı yok. `daily` çalıştırma başına 40 sayıyla sınırlı çünkü
- *    GitHub Actions runner dakikası ölçülü harcanmalı ve günlük iş zaten
- *    birkaç sayı. Bir yılın tamamı (2025'te 262 sayı) o sınırla ancak 7
- *    çalıştırmada biter ve her çalıştırma arşiv sayfasını yeniden çeker —
- *    kaynak siteye 6 gereksiz istek. Backfill arşivi bir kez tarar.
+ * 1. No issue limit. `daily` is capped at 40 issues per run because GitHub
+ *    Actions runner minutes must be spent sparingly and the daily workload is a
+ *    few issues anyway. A whole year (262 issues in 2025) would take 7 runs
+ *    under that cap, and every run re-fetches the archive page — 6 needless
+ *    requests to the source site. Backfill scans the archive once.
  *
- * 2. `ingest_runs.kind = 'backfill'`. Şema bu türü baştan tanımlıyordu
- *    (0003-core-tables.sql) ama betiği yazılmamıştı.
+ * 2. `ingest_runs.kind = 'backfill'`. The schema defined this kind from the
+ *    start (0003-core-tables.sql) but the script had never been written.
  *
- * KESİLEBİLİR. Yalnızca `text_status = 'pending'` olanları seçiyor ve her
- * sayıyı işledikten sonra durumunu yazıyor; yarıda kesilirse yeniden
- * çalıştırmak kaldığı yerden devam eder, baştan başlamaz. Uzun sürüyor
- * (sayı başına bir PDF indirmesi + saniyede bir istek sınırı), o yüzden bu
- * özellik teorik değil.
+ * INTERRUPTIBLE. It only selects issues with `text_status = 'pending'` and
+ * writes each issue's status as soon as it is processed; if it is cut off,
+ * re-running continues from where it stopped rather than starting over. It takes
+ * a long time (one PDF download per issue plus a one-request-per-second limit),
+ * so this property is not theoretical.
  *
- * Kullanım: tsx scripts/backfill/index.ts <yıl> [--skip-crawl]
+ * Usage: tsx scripts/backfill/index.ts <year> [--skip-crawl]
  */
 
 interface PendingIssue {
@@ -68,10 +68,10 @@ async function main() {
     }
 
     /*
-     * Yalnızca 'pending'. Yeniden deneme kuyruğu (failed/needs_review)
-     * bilerek DIŞARIDA: onların bekleme süresi ve deneme sayacı var
-     * (spec 7.2) ve o mantık `daily`'nin işi. Backfill'in işi hiç
-     * denenmemişleri bitirmek.
+     * Only 'pending'. The retry queue (failed/needs_review) is deliberately
+     * EXCLUDED: those have a waiting period and an attempt counter (spec 7.2),
+     * and that logic is `daily`'s job. Backfill's job is to finish the ones that
+     * have never been tried.
      */
     const pending = await sql<PendingIssue[]>`
       select id, year, number, published_at, pdf_url, raw_index_html
@@ -102,10 +102,10 @@ async function main() {
         issues.push({ year: issue.year, number: issue.number });
       } catch (error) {
         /*
-         * Tek sayının patlaması backfill'i durdurmuyor. Arşivde ölü PDF
-         * bağlantısı var (2018 sayı 130 → HTTP 404); bir 404 yüzünden
-         * kalan 261 sayıdan vazgeçmek yanlış olur. Hata kaydediliyor ve
-         * çalıştırma sonunda 'failed' damgası alıyor.
+         * One issue blowing up does not stop the backfill. The archive contains
+         * dead PDF links (2018 issue 130 -> HTTP 404); abandoning the remaining
+         * 261 issues over one 404 would be wrong. The error is recorded and the
+         * run gets a 'failed' stamp at the end.
          */
         log.error('sayı işlenemedi', {
           year: issue.year,
@@ -116,7 +116,7 @@ async function main() {
       }
 
       done += 1;
-      // Uzun sürüyor; ilerleme görünür olmalı yoksa takıldı mı belli olmuyor.
+      // It runs for a long time; progress has to be visible or a hang looks identical.
       if (done % 10 === 0 || done === pending.length) {
         log.info('ilerleme', { done, total: pending.length, recordsNew, errors: errors.length });
       }

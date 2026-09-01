@@ -43,7 +43,7 @@ export async function getEntity(kind: EntityKind, slug: string): Promise<EntityR
   return row ? mapEntity(row) : null;
 }
 
-/** Spec 8.5: en çok birlikte geçen varlıklar. */
+/** Spec 8.5: the most frequently co-occurring entities. */
 export async function coOccurring(entityId: number, limit = 8): Promise<CoOccurringEntity[]> {
   const rows = await db.execute<Row<{
     id: string;
@@ -63,9 +63,9 @@ export async function coOccurring(entityId: number, limit = 8): Promise<CoOccurr
 }
 
 /**
- * Filtre rayındaki "kurum ara" / "bölge, köy ya da mahalle" kutuları.
- * Trigram indeksi üzerinden; sonuçlar kayıt sayısına göre, çünkü kullanıcı
- * çoğunlukla en çok geçen varlığı arıyor.
+ * The "search institutions" / "region, village or neighbourhood" boxes in the
+ * filter rail. Backed by a trigram index; results are ordered by record count,
+ * because users are usually after the most frequently occurring entity.
  */
 export async function searchEntities(
   kind: EntityKind,
@@ -88,8 +88,9 @@ export async function searchEntities(
 }
 
 /**
- * Footer'daki en aktif 20 kurum (spec 8.5) ve konu sayfalarındaki yer çipleri.
- * Boş varlık sayfası üretilmiyor: record_count < 2 olanlar hiç dönmüyor (spec 8.2 madde 3).
+ * The 20 most active institutions in the footer (spec 8.5) and the place chips on
+ * topic pages. Empty entity pages are not generated: anything with record_count <
+ * 2 is never returned (spec 8.2 rule 3).
  */
 export async function topEntities(kind: EntityKind, limit = 20): Promise<EntityRow[]> {
   const rows = await db.execute<Row<RawEntity>>(sql`
@@ -102,7 +103,7 @@ export async function topEntities(kind: EntityKind, limit = 20): Promise<EntityR
   return rows.map(mapEntity);
 }
 
-/** Sitemap ve generateStaticParams için — yine 2 kayıt eşiği geçerli. */
+/** For the sitemap and generateStaticParams — the same 2-record threshold applies. */
 export async function entitySlugs(kind: EntityKind): Promise<string[]> {
   const rows = await db.execute<Row<{ slug: string }>>(sql`
     select slug from entities where kind = ${kind} and record_count >= 2 order by record_count desc

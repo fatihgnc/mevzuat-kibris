@@ -5,17 +5,17 @@ import { SITE_NAME } from '@/lib/seo/config';
 import type { EntityRow } from '@/types/entity';
 
 /**
- * Footer — spec 8.5: tüm konular + en aktif 20 kurum.
+ * Footer — spec 8.5: every topic plus the 20 most active institutions.
  *
- * Bu, sitenin iç linkleme omurgası. 100 bin sayfalık bir sitede Google'ın
- * derin sayfalara ulaşmasının en ucuz yolu her sayfada duran bu blok.
+ * This is the site's internal linking backbone. On a 100k-page site, the cheapest
+ * way for Google to reach deep pages is this block sitting on every page.
  */
 export function SiteFooter({
   institutions = [],
   coverage,
 }: {
   institutions?: EntityRow[];
-  /** Verilmezse kapsam iddiası hiç basılmaz — asılsız iddiadan iyidir. */
+  /** If not given, no coverage claim is emitted at all — better than an unfounded one. */
   coverage?: string;
 }) {
   const year = new Date().getFullYear();

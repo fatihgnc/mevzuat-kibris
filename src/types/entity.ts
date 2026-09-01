@@ -11,7 +11,7 @@ export interface EntityRow {
   recordCount: number;
 }
 
-/** Varlık sayfasındaki "birlikte geçen varlıklar" bloğu (spec 8.5). */
+/** The "co-occurring entities" block on an entity page (spec 8.5). */
 export interface CoOccurringEntity {
   id: number;
   kind: EntityKind;

@@ -10,7 +10,7 @@ interface YearNavProps {
   className?: string;
 }
 
-/** Konu sayfalarındaki yıl navigasyonu (spec 8.5) ve /sayilar yıl listesi. */
+/** Year navigation on topic pages (spec 8.5) and the /sayilar year list. */
 export function YearNav({ years, current, hrefFor, allHref, className }: YearNavProps) {
   return (
     <nav aria-label="Yıla göre" className={cn('flex flex-wrap items-center gap-1.5', className)}>

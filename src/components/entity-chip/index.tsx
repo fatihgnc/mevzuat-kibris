@@ -12,10 +12,10 @@ interface EntityChipProps {
 }
 
 /**
- * "Kayıtta geçenler" çipi (artboard 1a/1g).
+ * The "mentioned in this record" chip (artboards 1a/1g).
  *
- * Mobilde dokunma hedefi 44px'e çıkıyor; masaüstünde daha sıkı. Bu, tasarımın
- * mobil artboard'unda ayrıca çizilmiş bir karar.
+ * On mobile the touch target grows to 44px; on desktop it is tighter. That is a
+ * decision drawn separately on the design's mobile artboard.
  */
 export function EntityChip({ kind, slug, name, className }: EntityChipProps) {
   return (

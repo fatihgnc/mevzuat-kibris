@@ -5,11 +5,10 @@ import { closeDb, finishRun, sql, startRun } from '../shared/db';
 import { log, toErrorEntry } from '../shared/logger';
 
 /**
- * Günlük ingest — spec 7.1'deki dokuz aşamayı sırayla çalıştırır.
+ * Daily ingest — runs the nine stages of spec 7.1 in order.
  *
- * Aşamalar ayrı ayrı da çalıştırılabilir; bu dosya onları GitHub Actions
- * için tek bir işe bağlıyor. Tamamı idempotent, yeniden çalıştırmak zarar
- * vermiyor.
+ * The stages can also be run individually; this file ties them into a single
+ * job for GitHub Actions. All of it is idempotent, so re-running does no harm.
  */
 
 interface PendingIssue {
@@ -44,9 +43,9 @@ async function main() {
     issuesNew = crawl.inserted;
 
     /*
-     * İşlenmemiş sayılar ve yeniden deneme kuyruğu (spec 7.2) birlikte.
-     * Yeniden deneme 3 denemede duruyor; sonsuza kadar aynı bozuk PDF'i
-     * indirmeye çalışmak hem runner dakikası hem kaynak siteye yük.
+     * Unprocessed issues and the retry queue (spec 7.2) together. Retrying stops
+     * after 3 attempts; trying to download the same broken PDF forever costs
+     * both runner minutes and load on the source site.
      */
     const pending = await sql<PendingIssue[]>`
       select id, year, number, published_at, pdf_url, raw_index_html
@@ -89,9 +88,9 @@ async function main() {
     }
 
     /*
-     * Revalidation — spec 11.2. ETKİLENEN TÜM tag'ler tazeleniyor, yalnızca
-     * ana sayfa değil. Ana sayfa "3 yeni kayıt" derken konu sayfasının "kayıt
-     * yok" demesi ürünün güvenilirliğini tek seferde bitirir.
+     * Revalidation — spec 11.2. EVERY affected tag is refreshed, not just the
+     * home page. The home page saying "3 new records" while the topic page says
+     * "no records" destroys the product's credibility in one go.
      */
     await triggerRevalidate({
       topics: [...topics],

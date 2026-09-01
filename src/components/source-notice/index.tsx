@@ -2,9 +2,9 @@ import { SITE_NAME } from '@/lib/seo/config';
 import { cn } from '@/lib/utils';
 
 /**
- * "Bağlayıcı olan orijinal metindir" ibaresi — spec 3.6 ve 16.
- * Her kayıt ve liste sayfasında görünür; AdSense başvurusunda kaynak
- * şeffaflığının kanıtı olarak da sayılıyor (spec 14.5 madde 6).
+ * The "the original text is what binds" notice — spec 3.6 and 16.
+ * It appears on every record and list page; it also counts as evidence of source
+ * transparency in the AdSense application (spec 14.5 rule 6).
  */
 export function SourceNotice({ className }: { className?: string }) {
   return (
@@ -20,7 +20,7 @@ export function SourceNotice({ className }: { className?: string }) {
   );
 }
 
-/** Metnin OCR ile okunduğu kayıtlarda gövdenin üstündeki sarı bant. */
+/** The yellow band above the body on records whose text was read by OCR. */
 export function OcrNotice({ className }: { className?: string }) {
   return (
     <p

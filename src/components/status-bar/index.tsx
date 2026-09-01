@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 
 /**
- * "Bugün eklenen N kayıt" satırı — spec 11.2 donma yasağı.
+ * The "N records added today" line — spec 11.2's no-staleness rule.
  *
- * Sayı sunucudan geliyor (ISR, revalidateTag('latest') ile tazeleniyor) ama
- * cache beklenmedik biçimde eskirse sayfa yanlış bir sayı gösterir ve
- * kesintimivar.com'daki "ana sayfa 3 kesinti diyor, bölge sayfası yok diyor"
- * hatası tekrarlanır. O yüzden mount'tan sonra /api/status'tan bir kez daha
- * okuyup düzeltiyoruz: ilk boyamada doğru değer var (flash yok), bayat kalma
- * ihtimali de kapanıyor.
+ * The number comes from the server (ISR, refreshed via revalidateTag('latest')),
+ * but if the cache goes stale unexpectedly the page shows a wrong number and the
+ * kesintimivar.com bug ("the home page says 3 outages, the region page says none")
+ * repeats. So after mount we read /api/status once more and correct it: the first
+ * paint has the right value (no flash), and the chance of it going stale is closed
+ * off.
  */
 export function StatusBar({ initialCount }: { initialCount: number }) {
   const [count, setCount] = useState(initialCount);
@@ -24,7 +24,7 @@ export function StatusBar({ initialCount }: { initialCount: number }) {
         if (!cancelled && typeof data?.todayCount === 'number') setCount(data.todayCount);
       })
       .catch(() => {
-        // Sunucudan gelen değer yerinde kalıyor; hata kullanıcıya gösterilmiyor.
+        // The server's value stays put; the error is not shown to the user.
       });
 
     return () => {

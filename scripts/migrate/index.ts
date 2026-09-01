@@ -5,13 +5,15 @@ import { closeDb, sql } from '../shared/db';
 import { log } from '../shared/logger';
 
 /**
- * Migration çalıştırıcı.
+ * Migration runner.
  *
- * Elle yazılmış SQL dosyaları otorite (drizzle-kit yalnızca diff kontrolü için).
- * Generated column, GIN indeksleri, text search configuration ve RLS politikaları
- * drizzle-kit'in üretemediği şeyler; hepsi supabase/migrations altında.
+ * The hand-written SQL files are the authority (drizzle-kit is only used for
+ * diff checking). Generated columns, GIN indexes, the text search configuration
+ * and RLS policies are things drizzle-kit cannot produce; they all live under
+ * supabase/migrations.
  *
- * Supabase CLI kullanıyorsanız buna ihtiyaç yok; bu, yerel Postgres ve CI için.
+ * If you use the Supabase CLI you do not need this; it exists for local Postgres
+ * and CI.
  */
 const DIR = join(process.cwd(), 'supabase', 'migrations');
 
@@ -25,19 +27,40 @@ async function main() {
   }
 
   /*
-   * Supabase'de auth şeması ve auth.uid() hazır gelir. Yerel Postgres'te yok,
-   * o yüzden RLS politikaları (0006) kurulamıyor. Aşağısı YALNIZCA yerel
-   * geliştirme ve CI için bir gölge: auth.uid() null döndürüyor, yani anon
-   * rolüyle hiçbir kullanıcı satırı görünmüyor. Supabase'de bu bloğun etkisi
-   * yok, çünkü nesneler zaten var (create if not exists / or replace).
+   * On Supabase the auth schema and auth.uid() come ready-made. Local Postgres
+   * has neither, so the RLS policies (0006) cannot be installed. What follows is
+   * a shim for local development and CI ONLY: auth.uid() returns null, so no
+   * user rows are visible under the anon role.
+   *
+   * IT MUST BE SKIPPED ENTIRELY ON SUPABASE, and `create ... if not exists` is
+   * NOT enough to make that safe. This block used to run unconditionally, on the
+   * assumption that "the objects already exist, so it is a no-op". Running it
+   * against a real Supabase project failed on the first try:
+   *
+   *   permission denied for schema auth
+   *
+   * `create table if not exists` still requires CREATE on the schema even when
+   * the table is already there, and on Supabase `auth` belongs to
+   * `supabase_auth_admin`, not to `postgres`. So we probe for the table and only
+   * build the shim where it is genuinely missing.
    */
-  await sql.unsafe(`
-    create schema if not exists auth;
-    create table if not exists auth.users (
-      id uuid primary key default gen_random_uuid(),
-      email text
-    );
-  `);
+  const hasAuthUsers = await sql<Array<{ present: boolean }>>`
+    select exists (
+      select 1 from information_schema.tables
+       where table_schema = 'auth' and table_name = 'users'
+    ) as present
+  `;
+
+  if (!hasAuthUsers[0]?.present) {
+    log.warn('auth.users yok, yerel gölge kuruluyor (yalnızca geliştirme)');
+    await sql.unsafe(`
+      create schema if not exists auth;
+      create table if not exists auth.users (
+        id uuid primary key default gen_random_uuid(),
+        email text
+      );
+    `);
+  }
 
   const hasAuthUid = await sql<Array<{ present: boolean }>>`
     select exists (

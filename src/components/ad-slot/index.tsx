@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils';
 type SlotKind = 'in-article' | 'in-feed';
 
 const SIZES: Record<SlotKind, { height: number; note: string }> = {
-  // Yükseklikler sabit ve tasarımdan: kutu her zaman aynı yeri kaplıyor,
-  // reklam gelse de gelmese de. CLS 0.05 hedefi (spec 13) bunun üzerine kurulu.
+  // The heights are fixed and come from the design: the box always occupies the same
+  // space, ad or no ad. The CLS 0.05 target (spec 13) is built on that.
   'in-article': { height: 250, note: '728 × 250, yer ayrıldı' },
   'in-feed': { height: 96, note: 'in-feed, sabit yükseklik' },
 };
@@ -21,15 +21,15 @@ interface AdSlotProps {
 }
 
 /**
- * Reklam alanı — spec 14.4.
+ * The ad slot — spec 14.4.
  *
- * Üç kural burada kodda karşılığını buluyor:
- *   1. İlk ekranda reklam yok  — bu bileşen hiçbir sayfada içerikten önce basılmıyor
- *   2. Yer ayrılmış container  — yükseklik sabit, script gelmeden de kutu orada
- *   3. Lazy load               — IntersectionObserver viewport'a yaklaşınca yüklüyor
+ * Three rules find their counterpart here in code:
+ *   1. No ads above the fold   — this component is never emitted before content on any page
+ *   2. Reserved container      — fixed height, the box is there before the script arrives
+ *   3. Lazy load               — an IntersectionObserver loads it as it nears the viewport
  *
- * ADSENSE_CLIENT boşsa (geliştirme, AdSense onayı gelmeden önce) yalnızca
- * ayrılmış kutu görünüyor. Bu, onay öncesi sitenin nasıl görüneceğini de gösteriyor.
+ * When ADSENSE_CLIENT is empty (development, before AdSense approval) only the
+ * reserved box is visible. That also shows how the site will look before approval.
  */
 export function AdSlot({ kind, slotId, className }: AdSlotProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -61,7 +61,7 @@ export function AdSlot({ kind, slotId, className }: AdSlotProps) {
       w.adsbygoogle = w.adsbygoogle || [];
       w.adsbygoogle.push({});
     } catch {
-      // Reklam yüklenemedi; ayrılmış kutu yerinde kalıyor, sayfa etkilenmiyor.
+      // The ad failed to load; the reserved box stays put and the page is unaffected.
     }
   }, [visible]);
 

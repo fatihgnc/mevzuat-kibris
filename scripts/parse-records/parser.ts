@@ -4,15 +4,15 @@ import { SECTION_HEADINGS, type Section } from '../../src/lib/constants/sections
 import type { RefType } from '../../src/lib/constants/doc-types';
 
 /**
- * Arşiv İÇERİK hücresi ayrıştırıcısı — spec 3.3.
+ * Parser for the archive's İÇERİK (contents) cell — spec 3.3.
  *
- * KRİTİK KURAL: tek bir İÇERİK hücresinde onlarca kayıt olabilir ve bunlar
- * sırasız/tekrarlı olabilir. Ayrıştırıcı "bu metinde kaç ayrı kayıt var"
- * sorusunu sorar; ilk eşleşmeyi alıp durmaz.
+ * CRITICAL RULE: a single İÇERİK cell may hold dozens of records, and they may
+ * be out of order or repeated. The parser asks "how many separate records are in
+ * this text"; it does not take the first match and stop.
  *
- * Aynı konu hem EK III'te A.E. numarasıyla hem EK IV BÖLÜM I'de Ü(K-I)
- * numarasıyla görünebilir. Bunlar ayrı kayıt olarak saklanır ve sonradan
- * related_record_id ile bağlanır (link-related.ts).
+ * The same subject can appear both in EK III under an A.E. number and in EK IV
+ * BÖLÜM I under a Ü(K-I) number. Those are stored as separate records and linked
+ * afterwards via related_record_id (link-related.ts).
  */
 
 export interface ParsedRecord {
@@ -20,31 +20,33 @@ export interface ParsedRecord {
   refType: RefType | null;
   refNumber: string | null;
   title: string;
-  /** KONU: sonrası, varsa */
+  /** Whatever follows KONU:, if present */
   subject: string | null;
-  /** Hücredeki sırası — aynı sayı içinde deterministik slug üretimi için */
+  /** Position within the cell — for deterministic slug generation inside one issue */
   ordinal: number;
-  /** DÜZELTME kaydı mı */
+  /** Whether this is a DÜZELTME (correction) record */
   isCorrection: boolean;
 }
 
 /**
- * Referans çapaları — spec 3.3 tablosu.
+ * Reference anchors — the table in spec 3.3.
  *
- * Sıra önemli: Ü(K-I) ve Ü(K-II) birbirine benziyor, daha uzun olan önce
- * denenmeli. GENELGE MİA, KARAR SAYISI ve KARAR NO da genel desenlerden önce.
+ * Order matters: Ü(K-I) and Ü(K-II) look alike, so the longer one must be tried
+ * first. GENELGE MİA, KARAR SAYISI and KARAR NO also come before the general
+ * patterns.
  */
 const REF_PATTERNS: Array<{ type: RefType; pattern: RegExp }> = [
   { type: 'ukii', pattern: /Ü\(K-II\)\s?(\d+-\d{4}|\d+)/ },
   { type: 'uki', pattern: /Ü\(K-I\)\s?(\d+-\d{4}|\d+)/ },
   /*
-   * Bakanlar Kurulu kararının dönemsel önekleri (bkz. REF_TYPES notu).
-   * S(K-II) ve TE(K-I), K(II)'den ÖNCE denenmeli: üçü de parantezli seri harfi
-   * taşıyor ve kısa olan uzun olanın içinde eşleşmesin diye sıra bu.
+   * Period-specific prefixes of Council of Ministers decisions (see the
+   * REF_TYPES note). S(K-II) and TE(K-I) must be tried BEFORE K(II): all three
+   * carry a parenthesised series letter, and this order stops the short one from
+   * matching inside the long one.
    *
-   * `s` deseni bilerek dar — yalın "S-" fazlasıyla genel ve başlık içindeki
-   * atıfları ("KARAR İPTALİ (S-1265-2005 ...)") kayıt sanırdı. Tam
-   * NUMARA-YIL biçimini şart koşuyoruz.
+   * The `s` pattern is deliberately narrow — a bare "S-" is far too general and
+   * would mistake in-title citations ("KARAR İPTALİ (S-1265-2005 ...)") for
+   * records. We require the full NUMBER-YEAR form.
    */
   { type: 'skii', pattern: /S\(K-II\)\s?(\d+-\d{4}|\d+)/ },
   { type: 'teki', pattern: /TE\(K-I\)\s?(\d+-\d{4}|\d+)/ },
@@ -55,21 +57,22 @@ const REF_PATTERNS: Array<{ type: RefType; pattern: RegExp }> = [
   { type: 'eskieser', pattern: /KARAR\s+NO:\s?(\d+\/\d+)/i },
   { type: 'yt', pattern: /Y\.T\.NO:\s?(\d+\/\d+\/\d{4})/i },
   { type: 'yo', pattern: /Y\.Ö\.NO:\s?(\d+\/\d+\/\d{4})/i },
-  // 2018 arşivi binlik ayracı kullanıyor: "A.E.1.093" = A.E. 1093.
+  // The 2018 archive uses a thousands separator: "A.E.1.093" = A.E. 1093.
   { type: 'ae', pattern: /A\.E\.\s?(\d+(?:\.\d{3})+|\d+)/ },
   { type: 'sm', pattern: /Ş\.M\.\s?(\d+)/ },
   { type: 'mt', pattern: /M\.T\.\s?(\d+)/ },
 ];
 
 /**
- * Birincil referanslar gazetenin kendi yayım numaralarıdır ve bir kaydın
- * başlangıcını işaretler. İkincil olanlar (Rekabet Kurulu KARAR SAYISI,
- * Eski Eserler KARAR NO, GENELGE MİA) kararın kendi iç numarasıdır ve
- * çoğunlukla bir A.E. kaydının BAŞLIĞI içinde geçer.
+ * Primary references are the gazette's own publication numbers and mark where a
+ * record starts. Secondary ones (Competition Board KARAR SAYISI, Antiquities
+ * KARAR NO, GENELGE MİA) are the decision's own internal number and mostly occur
+ * inside the TITLE of an A.E. record.
  *
- * Bu ayrım olmadan "A.E. 1070 REKABET KURULU KARARI-KARAR SAYISI:318/2025 KONU:..."
- * satırı iki kayda bölünüyordu; oysa tek kayıt. Satırda hiç birincil referans
- * yoksa ikincil olan kaydın referansı olarak kullanılır.
+ * Without this distinction the line "A.E. 1070 REKABET KURULU KARARI-KARAR
+ * SAYISI:318/2025 KONU:..." was split into two records, when it is one. If a
+ * line has no primary reference at all, the secondary one is used as the
+ * record's reference.
  */
 const PRIMARY_REF_TYPES = new Set<RefType>([
   'ae',
@@ -85,7 +88,7 @@ const PRIMARY_REF_TYPES = new Set<RefType>([
   'yo',
 ]);
 
-/** Bölüm başlığı satırı mı, öyleyse hangi bölüm. */
+/** Whether this line is a section heading, and if so which section. */
 function matchSectionHeading(line: string): Section | null {
   const trimmed = line.trim().replace(/\s+/g, ' ').replace(/[:.]+$/, '');
   for (const [pattern, section] of SECTION_HEADINGS) {
@@ -95,8 +98,8 @@ function matchSectionHeading(line: string): Section | null {
 }
 
 /**
- * Bir satırdaki tüm referansları bulur. Tek satırda birden çok referans
- * olabiliyor; hepsini döndürüyoruz ki kayıt sayısı doğru çıksın.
+ * Finds every reference on a line. A single line can carry several references;
+ * we return all of them so the record count comes out right.
  */
 function findRefs(text: string): Array<{ type: RefType; number: string; index: number }> {
   const found: Array<{ type: RefType; number: string; index: number }> = [];
@@ -106,15 +109,16 @@ function findRefs(text: string): Array<{ type: RefType; number: string; index: n
     let match: RegExpExecArray | null;
 
     while ((match = global.exec(text)) !== null) {
-      // Ü(K-I) deseni Ü(K-II) içinde de eşleşir; daha uzun eşleşme kazansın.
+      // The Ü(K-I) pattern also matches inside Ü(K-II); let the longer match win.
       const overlapping = found.some(
         (item) => match!.index >= item.index && match!.index < item.index + 12,
       );
       if (!overlapping) {
         /*
-         * Binlik ayracı at: 2018'in "A.E.1.093"ü ile 2025'in "A.E.1071"i aynı
-         * seriden. Nokta korunursa aynı referans iki ayrı numara gibi
-         * saklanır ve alarm eşleşmesi yıllar arasında kopar.
+         * Drop the thousands separator: 2018's "A.E.1.093" and 2025's
+         * "A.E.1071" are from the same series. Keeping the dot stores one
+         * reference as two different numbers and breaks alert matching across
+         * years.
          */
         const number = type === 'ae' ? match[1]!.replace(/\./g, '') : match[1]!;
         found.push({ type, number, index: match.index });
@@ -126,13 +130,14 @@ function findRefs(text: string): Array<{ type: RefType; number: string; index: n
 }
 
 /**
- * Bir metindeki BİRİNCİL referansları döndürür — dışarıya açık yüz.
+ * Returns the PRIMARY references in a text — the public face.
  *
- * Tadil/iptal kayıtlarının konusunu atıf yaptıkları karardan devralmak için
- * gerekiyor (scripts/reclassify/inherit.ts): "Ü(K-I) 1880-2024 SAYI VE ...
- * KARARIN TADİL EDİLMESİ" başlığındaki referansın çözülmesi lazım. İkincil
- * referanslar (Rekabet KARAR SAYISI vb.) bilerek dışarıda: onlar kararın iç
- * numarası, ayrı bir kayda işaret etmiyor.
+ * Needed so that amendment/annulment records can inherit their topic from the
+ * decision they cite (scripts/reclassify/inherit.ts): the reference in a title
+ * like "Ü(K-I) 1880-2024 SAYI VE ... KARARIN TADİL EDİLMESİ" has to be resolved.
+ * Secondary references (Competition KARAR SAYISI and the like) are deliberately
+ * left out: those are a decision's internal number and do not point at a
+ * separate record.
  */
 export function findPrimaryRefs(text: string): Array<{ type: RefType; number: string }> {
   return findRefs(text)
@@ -140,7 +145,7 @@ export function findPrimaryRefs(text: string): Array<{ type: RefType; number: st
     .map((ref) => ({ type: ref.type, number: ref.number }));
 }
 
-/** KONU: sonrasını ayırır. */
+/** Splits off whatever follows KONU:. */
 function splitSubject(text: string): { title: string; subject: string | null } {
   const match = /\bKONU:\s*/i.exec(text);
   if (!match) return { title: text.trim(), subject: null };
@@ -152,12 +157,12 @@ function splitSubject(text: string): { title: string; subject: string | null } {
 }
 
 /**
- * Kayıt sınırlarını bulur.
+ * Finds record boundaries.
  *
- * Gazete dökümünde her kayıt kendi satırında olmayabiliyor; referans numarası
- * kaydın başlangıcını işaretliyor. Referansı olmayan bloklar (örneğin mahkeme
- * duyuruları) da kayıt sayılıyor ama refType null kalıyor — bunları atmak
- * gazetenin bir kısmını görünmez yapardı.
+ * In the gazette dump a record does not always sit on its own line; the
+ * reference number marks where a record starts. Blocks with no reference (court
+ * notices, for instance) still count as records but keep refType null —
+ * discarding those would make part of the gazette invisible.
  */
 export function parseIndexCell(raw: string): ParsedRecord[] {
   const lines = raw
@@ -177,13 +182,13 @@ export function parseIndexCell(raw: string): ParsedRecord[] {
       continue;
     }
 
-    // Bölüm başlığı gibi görünen ama olmayan tek kelimelik satırları atla
+    // Skip one-word lines that look like a section heading but are not
     if (line.length < 6) continue;
 
     const allRefs = findRefs(line);
     const isCorrection = /^DÜZELTME\s*:/i.test(line);
 
-    // Satırda birincil referans varsa kayıt sınırlarını yalnızca onlar belirler.
+    // If the line has primary references, only those determine record boundaries.
     const primary = allRefs.filter((ref) => PRIMARY_REF_TYPES.has(ref.type));
     const refs = primary.length ? primary : allRefs;
 
@@ -202,19 +207,20 @@ export function parseIndexCell(raw: string): ParsedRecord[] {
     }
 
     /*
-     * Satırda birden çok referans varsa her biri ayrı kayıt. Başlık, o
-     * referanstan bir sonrakine kadar olan metin. Bu, "GLOBAL INVESTMENT ...,
-     * NICOSIA LANGUAGE CENTRE LIMITED, ..." gibi tek satıra sıkıştırılmış
-     * çoklu şirket kayıtlarını doğru bölüyor (spec 7.3 zor vakası).
+     * If a line carries several references, each one is a separate record. The
+     * title is the text from that reference up to the next. This correctly
+     * splits multi-company records squeezed onto one line, such as "GLOBAL
+     * INVESTMENT ..., NICOSIA LANGUAGE CENTRE LIMITED, ..." (spec 7.3's hard
+     * case).
      */
     for (let i = 0; i < refs.length; i += 1) {
       const ref = refs[i]!;
       const next = refs[i + 1];
       const segment = line.slice(ref.index, next ? next.index : undefined).trim();
       /*
-       * DÜZELTME öneki referanstan önce geliyor ve dilimleme onu kesiyor.
-       * Öneki geri ekliyoruz: hem başlık kaynağa sadık kalıyor hem de
-       * sınıflandırıcı kaydın bir düzeltme olduğunu görebiliyor.
+       * The DÜZELTME prefix comes before the reference and slicing cuts it off.
+       * We add it back: the title stays faithful to the source, and the
+       * classifier can see that the record is a correction.
        */
       const withPrefix = isCorrection && i === 0 ? 'DÜZELTME: ' + segment : segment;
       const { title, subject } = splitSubject(withPrefix || line);
@@ -234,45 +240,46 @@ export function parseIndexCell(raw: string): ParsedRecord[] {
   return records;
 }
 
-/** Hücre metnini karşılaştırılabilir hâle getirir: &nbsp; ve katlanmış boşluklar. */
+/** Makes cell text comparable: &nbsp; and collapsed whitespace. */
 function cellText(raw: string): string {
   return raw.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /**
- * Bir referans hücresi ne kadar uzun olabilir. Referanslar kısa ("S(K-II)
- * 566-2006" 16 karakter); başlıklar uzun. Eşik, uzun bir başlığın içindeki
- * atıfın referans hücresi sanılmasını engelliyor.
+ * How long a reference cell may be. References are short ("S(K-II) 566-2006" is
+ * 16 characters); titles are long. The threshold stops a citation inside a long
+ * title from being mistaken for a reference cell.
  */
 const REF_CELL_MAX = 40;
 
 /**
- * İÇERİK hücresinin İÇ TABLOSUNU ayrıştırır — gerçek arşivin biçimi bu.
+ * Parses the INNER TABLE of the İÇERİK cell — this is the real archive's format.
  *
- * Neden ayrı bir yol: parseIndexCell düz metin dökümü varsayıyor ve referansın
- * başlıkla AYNI satırda olmasına dayanıyor. Gerçek arşivde İÇERİK hücresi
+ * Why a separate path: parseIndexCell assumes a flat text dump and relies on the
+ * reference being on the SAME line as the title. In the real archive the İÇERİK
+ * cell is a columnar <table>:
  *
- *     BÖLÜM | REFERANS | BAŞLIK | (artık sütun)
+ *     SECTION | REFERENCE | TITLE | (leftover column)
  *
- * sütunlu bir <table>. Metne düzleştirilince her hücre kendi satırına düşüyor
- * ve her kayıt ikiye bölünüyordu: biri referansı taşıyıp başlığı "A.E.1071"
- * olan, diğeri başlığı taşıyıp referansı olmayan. 2025 için 3.977 gerçek
- * satırdan 7.170 sahte kayıt çıkıyordu, %48'i referanssız.
+ * Flattened to text, every cell falls onto its own line and each record was
+ * split in two: one carrying the reference with "A.E.1071" as its title, and one
+ * carrying the title with no reference. For 2025 that turned 3,977 real lines
+ * into 7,170 bogus records, 48% of them reference-less.
  *
- * Yapıdan okumanın metne düzleştirmeye üstünlüğü yalnızca doğruluk değil:
- * referans HÜCREDEN geldiği için başlık içindeki atıflar ("KARAR İPTALİ
- * (S-1265-2005 ...)") artık hayalet kayıt üretemiyor. Metin yolunda bu ancak
- * sınır bulma sezgisiyle çözülebiliyordu.
+ * Reading the structure beats flattening to text for more than accuracy: because
+ * the reference comes FROM THE CELL, citations inside a title ("KARAR İPTALİ
+ * (S-1265-2005 ...)") can no longer produce phantom records. On the text path
+ * that could only be handled by boundary-finding heuristics.
  *
- * Tablo yoksa null döner; çağıran metin yoluna düşer (2025'te 262 sayının
- * 2'si, 2018'de 194'ün 1'i böyle).
+ * Returns null when there is no table; the caller falls back to the text path (2
+ * of 262 issues in 2025, 1 of 194 in 2018).
  *
- * Ölçülen biçim çeşitliliği (2006, 2012, 2018, 2025 — 13.750 satır):
- * - Sütun sayısı yıla göre değişiyor: 2018 çoğunlukla 3, diğerleri 4, kimi
- *   satır 5. Bu yüzden sütunlar sabit indeksle değil İÇERİĞE göre bulunuyor.
- * - BÖLÜM sütunu satırların ancak ~%15'inde dolu; blok başlığı ve aşağı
- *   taşınıyor.
- * - Referansı olmayan kayıt normal (yasalar: EK I BÖLÜM I, numarasız).
+ * Measured format variation (2006, 2012, 2018, 2025 — 13,750 rows):
+ * - Column count varies by year: 2018 is mostly 3, the others 4, some rows 5.
+ *   Columns are therefore located by CONTENT rather than by fixed index.
+ * - The SECTION column is filled on only ~15% of rows; it is a block heading and
+ *   carries downward.
+ * - A record without a reference is normal (laws: EK I BÖLÜM I, unnumbered).
  */
 export function parseIndexTable(html: string): ParsedRecord[] | null {
   const $ = cheerio.load(html);
@@ -283,7 +290,7 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
   let ordinal = 0;
 
   for (const row of $('tr').toArray()) {
-    // Sarmalayıcı satırlar (içinde tablo olanlar) veri değil, yalnızca kap.
+    // Wrapper rows (those containing a table) are containers, not data.
     if ($(row).find('table').length > 0) continue;
 
     const cells = $(row)
@@ -294,9 +301,9 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
     if (cells.every((cell) => !cell)) continue;
 
     /*
-     * Sütun 1 bölüm başlığı. Tanınmayan değer (tek başına "EK V", ya da
-     * klavye kazası) bilerek yok sayılıyor: taşınan bölüm korunuyor.
-     * Tahmin etmek yanlış bölüme yazmaktan iyi değil.
+     * Column 1 is the section heading. An unrecognised value (a bare "EK V", or
+     * a typo) is deliberately ignored: the carried-down section is preserved.
+     * Guessing is no better than writing the wrong section.
      */
     if (cells[0]) {
       const heading = matchSectionHeading(cells[0]);
@@ -305,7 +312,7 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
 
     const rest = cells.slice(1);
 
-    // Referans hücresi: kısa VE içinde birincil referans olan ilk hücre.
+    // The reference cell: the first cell that is short AND contains a primary reference.
     let refIndex = -1;
     let ref: { type: RefType; number: string } | null = null;
 
@@ -322,9 +329,9 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
     }
 
     /*
-     * Başlık: kalan hücrelerin en uzunu. Sabit indeks kullanılamıyor çünkü
-     * başlık 2018'de 3., 2025'in bazı satırlarında 4. sütunda. "En uzun"
-     * ikisini de doğru buluyor ve artık boş sütunları eliyor.
+     * The title is the longest of the remaining cells. A fixed index will not
+     * do, because the title is in column 3 in 2018 and column 4 on some 2025
+     * rows. "Longest" finds both correctly and filters out leftover columns.
      */
     let title = '';
     for (let i = 0; i < rest.length; i += 1) {
@@ -334,21 +341,22 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
     }
 
     /*
-     * Referansı olup başlığı olmayan satır kaydı hak ediyor — gazete o
-     * numarayı yayımlamış. Başlık yerine referans etiketi konuyor ki kayıt
-     * künyesiz kalmasın.
+     * A row with a reference but no title still deserves a record — the gazette
+     * published that number. The reference label is used in place of a title so
+     * the record is not left without any identifying text.
      */
     if (!title && ref) title = cells[refIndex + 1] ?? '';
     if (!title && !ref) continue;
 
     /*
-     * Referans sütunu boşsa başlığın içine bak. Yasa tasarısı ve önerilerinin
-     * numarası tasarım gereği başlığın içinde yazılı ("... YASA TASARISI
-     * (Y.T.NO:2/2006)"), ayrı sütunda değil; EK VI'nın neredeyse tamamı böyle.
+     * If the reference column is empty, look inside the title. Bill and proposal
+     * numbers are written inside the title by design ("... YASA TASARISI
+     * (Y.T.NO:2/2006)") rather than in a separate column; nearly all of EK VI is
+     * like this.
      *
-     * Yalnızca referans hücresi BULUNAMADIĞINDA çalışıyor. Hücresi olan
-     * satırda başlıktaki atıflar ("KARAR İPTALİ (S-1265-2005 ...)") kaydın
-     * referansını gasbedemesin diye.
+     * This only runs when NO reference cell was found, so that on a row that has
+     * one, citations in the title ("KARAR İPTALİ (S-1265-2005 ...)") cannot
+     * hijack the record's reference.
      */
     if (!ref) {
       const inTitle = findRefs(title).filter((item) => PRIMARY_REF_TYPES.has(item.type));
@@ -373,18 +381,18 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
 }
 
 /**
- * PDF metninden bir kaydın gövdesini çıkarır.
+ * Extracts a record's body from the PDF text.
  *
- * Referans numarasının PDF metninde geçtiği yeri bulup bir sonraki referansa
- * kadar olan kısmı alıyoruz. Bulunamazsa null — uydurulmuş bir gövde,
- * gövdesizlikten kötü.
+ * We find where the reference number occurs in the PDF text and take everything
+ * up to the next reference. If it is not found, null — an invented body is worse
+ * than no body.
  */
 export function extractBody(
   pdfText: string,
   refLabel: string | null,
   /**
-   * Aynı sayıdaki DİĞER kayıtların referans etiketleri. Bitişi bunlar
-   * belirliyor.
+   * The reference labels of the OTHER records in the same issue. These determine
+   * where the body ends.
    */
   otherLabels: readonly string[] = [],
 ): { body: string | null; pageFrom: number | null } {
@@ -394,20 +402,21 @@ export function extractBody(
   if (start === -1) return { body: null, pageFrom: null };
 
   /*
-   * Bitiş, BAŞLANGIÇTAN SONRAKİ EN YAKIN diğer referans.
+   * The end is the NEAREST other reference AFTER THE START.
    *
-   * Eskiden yalnızca içindekiler sırasındaki BİR SONRAKİ kaydın etiketi
-   * aranıyordu; bulunamazsa gövde PDF'in sonuna kadar uzuyordu. Bulunamaması
-   * sık: gazetenin fiziksel sırası içindekiler sırasıyla aynı olmak zorunda
-   * değil ve etiket PDF'te biraz farklı dizilmiş olabiliyor.
+   * It used to look only for the label of the NEXT record in contents order; if
+   * that was not found, the body ran to the end of the PDF. Not finding it is
+   * common: the gazette's physical order need not match the contents order, and
+   * the label may be typeset slightly differently in the PDF.
    *
-   * Sonuç ölçüldü: 3.646 gövdeli kaydın 184'ünde (%5) gövde başka kayıtlara
-   * taşıyordu — taşan kayıt başına ortalama 7,9 yabancı referans, 13–18 KB'lık
-   * gövdeler (medyan 1.219 karakter). Aramada da bu metin indekslendiği için
-   * kayıt, kendisiyle ilgisi olmayan kelimelerle bulunabiliyordu.
+   * The effect was measured: of 3,646 records with a body, 184 (5%) had bodies
+   * spilling into other records — on average 7.9 foreign references per
+   * overflowing record, with 13-18 KB bodies (median 1,219 characters). Since
+   * that text is also indexed for search, a record could be found by words that
+   * had nothing to do with it.
    *
-   * Hiçbiri bulunamazsa gövde sona kadar gidiyor; bu, PDF'teki SON kayıt için
-   * doğru davranış.
+   * If none is found the body runs to the end; that is the right behaviour for
+   * the LAST record in the PDF.
    */
   const from = start + refLabel.length;
   let end = pdfText.length;
@@ -419,18 +428,18 @@ export function extractBody(
 
   const body = pdfText.slice(start, end).trim();
 
-  // pdftotext sayfa ayracı olarak form feed basıyor; kaçıncı sayfada olduğunu
-  // buradan sayıyoruz.
+  // pdftotext emits a form feed as the page separator; that is how we count
+  // which page we are on.
   const pageFrom = pdfText.slice(0, start).split('').length;
 
   return { body: body.length > 40 ? body : null, pageFrom };
 }
 
 /**
- * Referans etiketini metinde arar; bulunursa mutlak konumunu döndürür.
+ * Looks for a reference label in the text; returns its absolute offset if found.
  *
- * Boşluklar esnek (`\s*`): PDF'te "Ü(K-I) 2497-2025" bazen "Ü(K-I)2497-2025"
- * diye, bazen satır sonuyla bölünmüş çıkıyor.
+ * Whitespace is flexible (`\s*`): in the PDF "Ü(K-I) 2497-2025" sometimes comes
+ * out as "Ü(K-I)2497-2025", and sometimes broken across a line end.
  */
 function findLabel(text: string, label: string, from: number): number {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*');

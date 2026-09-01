@@ -11,11 +11,12 @@ import { GUIDES } from '@/lib/content/guides';
 import { ARCHIVE_START_YEAR, absoluteUrl } from './config';
 
 /**
- * Sitemap önceliklendirmesi — spec 8.2 madde 1.
+ * Sitemap prioritisation — spec 8.2 rule 1.
  *
- * 100 bin+ sayfada crawl budget yönetimi şart. Kural: son 24 ay yüksek öncelik
- * ve aylık changefreq, eski arşiv düşük öncelik ve yıllık. Yeni kayıtlar ayrı
- * bir parçada tutuluyor çünkü Google en sık onu çekiyor.
+ * At 100k+ pages, crawl budget management is essential. The rule: the last 24
+ * months get high priority and monthly changefreq, the older archive gets low
+ * priority and yearly. New records are kept in a separate chunk because Google
+ * fetches that one most often.
  */
 
 const RECENT_MONTHS = 24;
@@ -34,7 +35,7 @@ function entry(
   };
 }
 
-/** Statik sayfalar ve konu girişleri. */
+/** Static pages and topic entries. */
 export function staticEntries(): MetadataRoute.Sitemap {
   const now = new Date();
 
@@ -55,7 +56,7 @@ export function staticEntries(): MetadataRoute.Sitemap {
   ];
 }
 
-/** Son 24 ayın kayıtları — Google'ın en sık çektiği parça. */
+/** Records from the last 24 months — the chunk Google fetches most often. */
 export async function recentRecordEntries(): Promise<MetadataRoute.Sitemap> {
   const rows = await db.execute<Row<{ slug: string; published_at: string | Date }>>(sql`
     select slug, published_at
@@ -75,7 +76,7 @@ export async function recentRecordEntries(): Promise<MetadataRoute.Sitemap> {
   );
 }
 
-/** Eski arşiv — düşük öncelik, yıllık changefreq. */
+/** The older archive — low priority, yearly changefreq. */
 export async function archiveRecordEntries(page: number, pageSize = 45000): Promise<MetadataRoute.Sitemap> {
   const rows = await db.execute<Row<{ slug: string; published_at: string | Date }>>(sql`
     select slug, published_at
@@ -95,7 +96,7 @@ export async function archiveRecordEntries(page: number, pageSize = 45000): Prom
   );
 }
 
-/** Sayı sayfaları ve yıl dizinleri. */
+/** Issue pages and year indexes. */
 export async function issueEntries(): Promise<MetadataRoute.Sitemap> {
   const rows = await db.execute<Row<{ year: number; number: number; published_at: string | Date }>>(sql`
     select year, number, published_at from issues order by published_at desc
@@ -128,8 +129,9 @@ export async function issueEntries(): Promise<MetadataRoute.Sitemap> {
 }
 
 /**
- * Varlık sayfaları — record_count >= 2 eşiği burada da geçerli (spec 8.2 madde 3).
- * Boş varlık sayfası üretilmiyorsa sitemap'e de girmemeli.
+ * Entity pages — the record_count >= 2 threshold applies here too (spec 8.2 rule
+ * 3). If an empty entity page is not generated, it must not enter the sitemap
+ * either.
  */
 export async function entityEntries(): Promise<MetadataRoute.Sitemap> {
   const rows = await db.execute<Row<{ kind: string; slug: string; record_count: number }>>(sql`
@@ -150,7 +152,7 @@ export async function entityEntries(): Promise<MetadataRoute.Sitemap> {
   );
 }
 
-/** Konu × yıl arşiv sayfaları. */
+/** Topic x year archive pages. */
 export function topicYearEntries(): MetadataRoute.Sitemap {
   const currentYear = new Date().getFullYear();
   const entries: MetadataRoute.Sitemap = [];

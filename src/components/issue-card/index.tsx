@@ -12,7 +12,7 @@ interface IssueCardProps {
   className?: string;
 }
 
-/** Ana sayfa yan sütunundaki "Son yayımlanan sayı" kartı (artboard 1d). */
+/** The "latest published issue" card in the home page side column (artboard 1d). */
 export function IssueCard({
   year,
   number,
@@ -34,8 +34,8 @@ export function IssueCard({
           Sayıdaki kayıtlar
         </Link>
         {/*
-         * PDF orijinal kaynağa gidiyor, bize değil — PDF saklamıyoruz (spec 3.6).
-         * rel="noopener" dış bağlantı olduğu için.
+         * The PDF points at the original source, not at us — we do not store PDFs
+         * (spec 3.6). rel="noopener" because it is an external link.
          */}
         <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-base">
           Resmî PDF

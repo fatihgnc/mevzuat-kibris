@@ -13,7 +13,7 @@ import { TR_WEEKDAYS, formatDateWithWeekday, nextWeekday } from '@/lib/text/date
 
 export const dynamic = 'force-dynamic';
 
-/** Takip ve hesap sayfaları indekslenmez (spec 8.1). */
+/** The follow and account pages are not indexed (spec 8.1). */
 export const metadata: Metadata = {
   title: 'Takiplerim',
   robots: { index: false, follow: false },
@@ -41,7 +41,7 @@ export default async function FollowPage({ searchParams }: Props) {
           Takiplerim
         </h1>
 
-        {/* Onay ekranı — artboard 1h adım 3. */}
+        {/* The confirmation screen — artboard 1h step 3. */}
         {status === 'onay' ? (
           <div className="mt-6 rounded-md border border-line bg-surface-muted p-5">
             <div className="flex items-center gap-2.5">

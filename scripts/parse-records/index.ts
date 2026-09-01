@@ -13,14 +13,14 @@ import { summarize } from '../summarize/rules';
 import { extractBody, parseIndexCell, parseIndexTable } from './parser';
 
 /**
- * Aşama 4-7 — bir sayıyı uçtan uca işler.
+ * Stages 4-7 — processes one issue end to end.
  *
- * Idempotent: kayıt slug'ı deterministik ve ON CONFLICT ile güncelleniyor.
- * Slug bir kez üretildikten sonra değişmiyor (spec 8.1) — başlık düzeltilse
- * bile mevcut slug korunuyor, çünkü çakışmada slug'a dokunmuyoruz.
+ * Idempotent: the record slug is deterministic and updated via ON CONFLICT. Once
+ * generated, a slug never changes (spec 8.1) — even if the title is corrected
+ * the existing slug is preserved, because we do not touch it on conflict.
  */
 
-/** Kendi sayfasını hak etmeyen ince kayıt kuralı — spec 8.2 madde 2. */
+/** The thin-record rule: too slight to deserve its own page — spec 8.2 rule 2. */
 const THIN_BODY_LIMIT = 200;
 
 export interface ProcessResult {
@@ -42,16 +42,16 @@ export async function processIssue(issue: {
   const touchedEntities = new Set<string>();
 
   /*
-   * Yapıdan oku, olmazsa metne düş.
+   * Read from the structure; fall back to text.
    *
-   * Gerçek arşivde İÇERİK hücresi sütunlu bir iç tablo, düz metin dökümü
-   * değil (bkz. parseIndexTable). Tablo yolu referansı kendi hücresinden
-   * aldığı için kayıtları doğru bölüyor; metin yolu her hücreyi ayrı satır
-   * sanıp her kaydı ikiye bölüyordu.
+   * In the real archive the İÇERİK cell is a columnar inner table, not a flat
+   * text dump (see parseIndexTable). The table path splits records correctly
+   * because it takes the reference from its own cell; the text path treated
+   * every cell as a separate line and split each record in two.
    *
-   * Metin yolu yine de duruyor: dört yılın taramasında sayıların küçük bir
-   * azınlığında İÇERİK tablosuz geliyor (2025'te 262'nin 2'si, 2018'de
-   * 194'ün 1'i). Onlarda tek seçenek metin.
+   * The text path still exists: across four years of crawling, a small minority
+   * of issues arrive with no İÇERİK table (2 of 262 in 2025, 1 of 194 in 2018).
+   * For those, text is the only option.
    */
   const rawIndex = issue.rawIndexHtml ?? '';
   const fromTable = parseIndexTable(rawIndex);
@@ -61,7 +61,7 @@ export async function processIssue(issue: {
     log.warn('içindekiler hücresinden kayıt çıkmadı', { year: issue.year, number: issue.number });
   }
 
-  // PDF metni — indirilir, kullanılır, silinir (spec 3.6).
+  // PDF text — downloaded, used, deleted (spec 3.6).
   let pdfText = '';
   let textStatus = 'failed';
   let quality: number | null = null;
@@ -95,11 +95,11 @@ export async function processIssue(issue: {
   let written = 0;
 
   /*
-   * Bu sayıdaki bütün referans etiketleri. `extractBody` gövdenin bitişini
-   * bunlarla belirliyor: kendi başlangıcından sonraki EN YAKIN başka referans.
-   * Yalnızca bir sonraki kaydın etiketine bakmak yetmiyordu — gazetenin
-   * fiziksel sırası içindekiler sırasıyla aynı olmayabiliyor ve etiket
-   * bulunamayınca gövde PDF'in sonuna kadar uzuyordu.
+   * Every reference label in this issue. `extractBody` uses them to decide where
+   * a body ends: the NEAREST other reference after its own start. Looking only
+   * at the next record's label was not enough — the gazette's physical order need
+   * not match the contents order, and when the label was not found the body ran
+   * to the end of the PDF.
    */
   const allRefLabels = parsed
     .map((item) => formatRef(item.refType, item.refNumber))
@@ -135,9 +135,9 @@ export async function processIssue(issue: {
     const entities = extractEntities({ title: record.title, bodyText });
 
     /*
-     * İnce içerik kuralı (spec 8.2 madde 2): gövdesi 200 karakterden kısa ve
-     * varlık bağlantısı olmayan kayıt kendi sayfasını almıyor. Kayıt yine
-     * saklanıyor ve sayı sayfasında listeleniyor; yalnızca ayrı URL almıyor.
+     * Thin content rule (spec 8.2 rule 2): a record with a body shorter than 200
+     * characters and no entity links does not get its own page. The record is
+     * still stored and listed on the issue page; it just gets no separate URL.
      */
     const hasOwnPage = (bodyText?.length ?? 0) >= THIN_BODY_LIMIT || entities.length > 0;
 
@@ -213,10 +213,11 @@ export async function processIssue(issue: {
 }
 
 /**
- * Aynı konunun hem EK III'te A.E. hem EK IV BÖLÜM I'de Ü(K-I) numarasıyla
- * görünmesi (spec 3.3). İkisi ayrı kayıt olarak duruyor, burada bağlanıyor.
- * Eşleştirme normalize edilmiş başlık üzerinden; aynı sayı içinde iki farklı
- * referans tipiyle aynı başlık pratikte hep bu ikili demek.
+ * The same subject can appear both in EK III under an A.E. number and in EK IV
+ * BÖLÜM I under a Ü(K-I) number (spec 3.3). The two stay as separate records and
+ * are linked here. Matching is on the normalised title; within one issue, the
+ * same title under two different reference types in practice always means this
+ * pairing.
  */
 async function linkRelatedRecords(issueId: number): Promise<void> {
   await sql`
@@ -232,7 +233,7 @@ async function linkRelatedRecords(issueId: number): Promise<void> {
        and a.related_record_id is null
   `;
 
-  // DÜZELTME kayıtlarını kaynak kayda bağla (spec 3.3).
+  // Link DÜZELTME (correction) records to the record they correct (spec 3.3).
   await sql`
     update records d
        set corrects_id = src.id
@@ -247,7 +248,7 @@ async function linkRelatedRecords(issueId: number): Promise<void> {
   `;
 }
 
-/** İÇERİK hücresi HTML olabiliyor; etiketleri satır sonuna çeviriyoruz. */
+/** The İÇERİK cell may be HTML; we turn its tags into line breaks. */
 export function stripHtml(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')

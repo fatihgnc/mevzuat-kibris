@@ -7,9 +7,8 @@ import { cn } from '@/lib/utils';
 
 const NAV = [
   /*
-   * '/konu' dizin sayfası — eskiden doğrudan '/konu/munhal'e gidiyordu, yani
-   * çoğul etiket tek bir konuyu açıyor ve diğer yedisine buradan
-   * ulaşılamıyordu.
+   * The '/konu' index page — it used to go straight to '/konu/munhal', so a plural
+   * label opened a single topic and the other seven were unreachable from here.
    */
   { href: '/konu', label: 'Konular' },
   { href: '/sayilar', label: 'Sayılar' },
@@ -19,15 +18,15 @@ const NAV = [
 
 interface SiteHeaderProps {
   /**
-   * `nav`    — ana sayfa ve kayıt sayfası: marka solda, gezinme sağda.
-   * `search` — arama ve konu sayfaları: arama kutusu başlığın yanında, geniş.
+   * `nav`    — home page and record page: brand on the left, navigation on the right.
+   * `search` — search and topic pages: the search box next to the brand, wide.
    *
-   * Tasarımda iki başlık var ve fark kasıtlı: aramanın içindeyken arama kutusu
-   * her zaman görünür ve dolu; başka yerdeyken gezinme öncelikli.
+   * The design has two headers and the difference is deliberate: inside search, the
+   * search box is always visible and filled; elsewhere, navigation takes priority.
    */
   variant?: 'nav' | 'search';
   query?: string;
-  /** Arama kutusu odaklı mı görünsün (sonuç sayfasında dolu, konu sayfasında pasif). */
+  /** Whether the search box should look focused (filled on the results page, passive on a topic page). */
   searchActive?: boolean;
   className?: string;
 }
@@ -41,13 +40,13 @@ export function SiteHeader({
   return (
     <header
       /*
-       * Yükseklik SABİT ve `--header-h` ile aynı kaynaktan geliyor.
+       * The height is FIXED and comes from the same source as `--header-h`.
        *
-       * Bırakıldığında yükseklik varyanta göre değişiyordu: arama kutulu
-       * başlık 70px, kutusuz ana sayfa başlığı 62px. Yapışan yan sütunlar
-       * konumlarını başlığın altından aldığı için aradaki boşluk da sayfadan
-       * sayfaya kayıyordu (32px yerine 40px). Yüksekliği burada sabitleyince
-       * `--header-h` her sayfada DOĞRU oluyor, tahmin olmaktan çıkıyor.
+       * Left free, the height varied by variant: 70px for the header with a search
+       * box, 62px for the home page header without one. Because the sticky side
+       * columns take their position from below the header, the gap shifted from page
+       * to page too (40px instead of 32px). Fixing the height here makes
+       * `--header-h` CORRECT on every page instead of a guess.
        */
       className={cn(
         'sticky top-0 z-20 h-[var(--header-h)] border-b border-line bg-surface',
@@ -100,8 +99,8 @@ export function SiteHeader({
           </nav>
         )}
 
-        {/* Her iki varyantta da en sağda; arama kutusu flex-1 olduğu için
-            kutunun genişliğini daraltmadan yanına oturuyor. */}
+        {/* Rightmost in both variants; because the search box is flex-1 it sits
+            beside the box without narrowing it. */}
         <ThemeToggle />
       </div>
     </header>

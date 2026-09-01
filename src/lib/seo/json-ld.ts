@@ -4,7 +4,7 @@ import type { RecordDetail } from '@/types/record';
 
 import { SITE_NAME, SITE_URL, SOURCE_NAME, absoluteUrl } from './config';
 
-/** Spec 8.3 — sayfa tiplerine göre şema seçimi. */
+/** Spec 8.3 — schema selection by page type. */
 
 export function websiteJsonLd() {
   return {
@@ -49,15 +49,16 @@ const LEGISLATION_TYPES = new Set([
 const JOB_TYPES = new Set(['munhal_ilani']);
 
 /**
- * Kayıt sayfası şeması. Üç yol var ve seçim veriye bakıyor, sayfaya değil:
+ * The record page schema. There are three paths, and the choice follows the data
+ * rather than the page:
  *
- *   mevzuat  -> Legislation
- *   münhal   -> JobPosting, YALNIZCA deadline_at doluysa
- *   diğer    -> Article
+ *   legislation -> Legislation
+ *   vacancy     -> JobPosting, ONLY if deadline_at is filled in
+ *   otherwise   -> Article
  *
- * JobPosting'in `validThrough` alanı zorunlu. Boş `deadline_at` ile basılırsa
- * Search Console hata üretir ve tüm sayfa tipini riske atar (spec 8.3), o yüzden
- * o kayıtlar Article'a düşüyor.
+ * JobPosting's `validThrough` field is mandatory. Emitted with an empty
+ * `deadline_at` it produces Search Console errors and puts the whole page type at
+ * risk (spec 8.3), so those records fall back to Article.
  */
 export function recordJsonLd(record: RecordDetail) {
   const url = absoluteUrl('/karar/' + record.slug);

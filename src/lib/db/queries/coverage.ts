@@ -9,30 +9,31 @@ import { coverageSince, dativeYear } from '@/lib/text/turkish-number';
 import { formatCount, type Row } from './shared';
 
 /**
- * Gerçek arşiv kapsamı — spec 8.4'ün kapsam kuralının ikinci yarısı.
+ * Real archive coverage — the second half of spec 8.4's coverage rule.
  *
- * ARCHIVE_START_YEAR arşivin HEDEFLENEN başlangıcı ve tek kaynak olarak kalıyor
- * (sitemap, yıl navigasyonu, geçerli yıl aralığı hep oradan besleniyor). Ama
- * sayfada "2006'dan bugüne" YAZMAK ayrı bir şey: o bir kapsam İDDİASI ve
- * arkasında veri yoksa yalan oluyor.
+ * ARCHIVE_START_YEAR remains the archive's INTENDED start and the single source
+ * of truth (the sitemap, year navigation and the valid year range all feed from
+ * it). But WRITING "from 2006 to today" on the page is a different matter: that
+ * is a coverage CLAIM, and without data behind it, it is a lie.
  *
- * Backfill (spec 15 Milestone 5) arka planda ilerleyen bir iş; o bitene kadar
- * site 2006'yı iddia ederse, kullanıcı 2010'u aratıp boş sonuç alıyor ve spec
- * 8.4'ün "güveni tek seferde bitirir" dediği şey oluyor. Bu yüzden görünen
- * cümle veriden türetiliyor: elimizde ne varsa onu söylüyoruz.
+ * Backfill (spec 15 Milestone 5) is a job that advances in the background; until
+ * it finishes, a site claiming 2006 leaves a user searching 2010 with no results
+ * — exactly the thing spec 8.4 says "destroys trust in one go". So the sentence
+ * shown is derived from the data: we state what we actually have.
  */
 export interface ArchiveCoverage {
   earliestYear: number | null;
   latestYear: number | null;
   totalRecords: number;
-  /** Hedeflenen başlangıca ulaşıldı mı — ulaşılmadıysa backfill sürüyor. */
+  /** Whether the intended start has been reached — if not, backfill is still running. */
   isComplete: boolean;
 }
 
 /**
- * `topic` verilirse kapsam o konuya daraltılır. Konu sayfası da bir kapsam
- * iddiası yapıyor ("N kayıt, 2006'dan bugüne") ve o iddianın da veriye
- * dayanması gerekiyor: münhal 2019'dan beri işlenmişse öyle demeli.
+ * If `topic` is given, coverage is narrowed to that topic. A topic page makes a
+ * coverage claim too ("N records, from 2006 to today"), and that claim also has
+ * to rest on data: if vacancies have only been processed since 2019, it should
+ * say so.
  */
 export async function archiveCoverage(topic?: string): Promise<ArchiveCoverage> {
   const scope = topic
@@ -63,11 +64,12 @@ export async function archiveCoverage(topic?: string): Promise<ArchiveCoverage> 
 }
 
 /**
- * Kapsam cümlesi. Üç durum var ve üçü de farklı şey söylemek zorunda:
+ * The coverage sentence. There are three cases, and all three must say something
+ * different:
  *
- *   veri yok            -> kapsam iddiası YOK
- *   backfill sürüyor    -> elimizdeki gerçek aralık + sürdüğü bilgisi
- *   backfill tamam      -> hedeflenen kapsam
+ *   no data              -> NO coverage claim
+ *   backfill in progress -> the real range we hold, plus the fact it is ongoing
+ *   backfill complete    -> the intended coverage
  */
 export function coverageSentence(coverage: ArchiveCoverage): string {
   if (!coverage.totalRecords || coverage.earliestYear === null) {
@@ -96,7 +98,7 @@ export function coverageSentence(coverage: ArchiveCoverage): string {
   );
 }
 
-/** Footer ve statik sayfalar için kısa hâli. */
+/** The short form, for the footer and static pages. */
 export function coverageShort(coverage: ArchiveCoverage): string {
   if (!coverage.totalRecords || coverage.earliestYear === null) {
     return 'Arşiv hazırlanıyor';
@@ -111,7 +113,7 @@ export function coverageShort(coverage: ArchiveCoverage): string {
   return 'Arşiv ' + range + ', geriye doğru genişliyor';
 }
 
-/** Yalnızca yıl aralığı — konu sayfası ve filtre rayı etiketleri için. */
+/** The year range only — for topic page and filter rail labels. */
 export function coverageRange(coverage: ArchiveCoverage): string | null {
   if (!coverage.totalRecords || coverage.earliestYear === null) return null;
   if (coverage.isComplete) return coverageSince(ARCHIVE_START_YEAR);

@@ -22,7 +22,7 @@ import {
   coverageShort,
 } from "@/lib/db/queries/coverage";
 
-// ISR + tag: ingest bittiğinde revalidateTag('latest') bu sayfayı tazeler (spec 11.1).
+// ISR + tag: when ingest finishes, revalidateTag('latest') refreshes this page (spec 11.1).
 export const revalidate = 3600;
 
 export default async function HomePage() {
@@ -93,15 +93,15 @@ export default async function HomePage() {
                 Konular
               </h2>
               {/*
-                Izgara eskiden `-mx-4` ile kapsayıcının 16px dışına taşıyordu;
-                hücrelerin `px-4` dolgusu metni geri içeri alıyor, böylece metin
-                hizada duruyor ama hücre ZEMİNİ dışarı sarkıyordu. Hover'da bu
-                sarkma görünür hâle geliyor: vurgulanan zemin "Konular"
-                başlığının ve sayfanın kenar çizgisinin solundan başlıyordu.
+                The grid used to overflow its container by 16px via `-mx-4`; the
+                cells' `px-4` padding pulled the text back in, so the text stayed
+                aligned but the cell BACKGROUND hung outside. On hover that overhang
+                became visible: the highlighted ground started to the left of the
+                "Konular" heading and of the page's edge line.
 
-                Taşma kaldırıldı — ızgara artık kapsayıcıyla aynı çizgide
-                başlıyor. Metin, hücre dolgusu kadar (16px) içeride kalıyor;
-                bu, zeminin layout dışına taşmasından daha az rahatsız edici.
+                The overflow was removed — the grid now starts on the same line as
+                the container. The text sits inset by the cell padding (16px); that
+                is less jarring than a background spilling outside the layout.
               */}
               <TopicStrip counts={counts} />
             </section>
@@ -114,14 +114,16 @@ export default async function HomePage() {
           </div>
 
           {/*
-            Yan sütun sticky. Yapışan öğe ASIDE'IN KENDİSİ OLAMAZ: aside ızgara
-            hücresi ve hücre satır yüksekliğine geriliyor, yani öğe ile
-            kapsayıcısı aynı boyda oluyor ve kayacak alan kalmıyor. Bu yüzden
-            yapışkanlık içteki sarmalayıcıda; aside gerilmiş kapsayıcı olarak
-            kalıyor ve içerideki blok onun içinde hareket ediyor.
+            The side column is sticky. The sticky element CANNOT BE THE ASIDE
+            ITSELF: the aside is a grid cell and the cell stretches to the row
+            height, so the element and its container end up the same size and there
+            is no room to scroll. The stickiness therefore lives on an inner wrapper;
+            the aside stays as the stretched container and the block inside moves
+            within it.
 
-            Yükseklik sınırı + kendi kaydırması, filtre rayındaki gerekçeyle
-            aynı: içerik pencereden uzunsa alt kısmı erişilemez hâle gelirdi.
+            The height limit plus its own scrolling has the same rationale as the
+            filter rail: if the content is taller than the window, its lower part
+            would become unreachable.
           */}
           <aside>
             <div className="flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">

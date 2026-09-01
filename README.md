@@ -33,6 +33,9 @@ docker run -d --name mk-pg -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGR
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/mevzuat
 ```
 
+Yerelde `DATABASE_URL_POOLED` gerekmiyor — pooler yok, uygulama da aynı URL'e
+düşüyor. Supabase'de ikisi de gerekli; gerekçesi `.env.example` içinde.
+
 Port 55432 seçildi ki makinede zaten çalışan bir Postgres varsa çakışmasın.
 Kap `docker stop mk-pg` ile durur, `docker start mk-pg` ile veriyi kaybetmeden
 geri gelir.
@@ -56,11 +59,60 @@ fonksiyonunu yerelde bulamazsa geçici bir gölge kuruyor; RLS politikaları
 | `npm run db:seed`        | `fixtures/` içeriğinden örnek kayıt üretir                     |
 | `npm run db:reset`       | Şemayı sıfırlayıp yeniden kurar ve tohumlar                    |
 | `npm run ingest:daily`   | Tam ingest hattı (yıl parametresi opsiyonel)                   |
+| `npm run ingest:backfill`| Bir yılın işlenmemiş sayıları (`<yıl> [--skip-crawl]`)         |
+| `npm run reclassify`     | Saklanan başlıklardan belge türü ve konuları yeniden hesaplar  |
+| `npm run summarize`      | Özetsiz kayıtlar için kademeli özet üretimi (spec 3.8)         |
 | `npm run alerts:dispatch`| Alarm eşleştirme ve e-posta gönderimi                          |
 
-Ingest'in `pdftotext`, `ocrmypdf` ve `tesseract-ocr-tur` araçlarına ihtiyacı var
-(spec 7.2). GitHub Actions workflow'u bunları kendisi kuruyor; yerelde ingest
-çalıştıracaksanız elle kurmanız gerekiyor.
+Ingest'in `pdftotext`, `ocrmypdf`, `tesseract-ocr-tur` ve `ghostscript`
+araçlarına ihtiyacı var (spec 7.2). GitHub Actions workflow'u bunları kendisi
+kuruyor; yerelde ingest çalıştıracaksanız elle kurmanız gerekiyor.
+
+Windows'ta (yönetici PowerShell):
+
+```powershell
+choco install -y ghostscript tesseract
+curl.exe -L -o "C:\Program Files\Tesseract-OCR\tessdata\tur.traineddata" `
+  https://github.com/tesseract-ocr/tessdata/raw/main/tur.traineddata
+pip install --user ocrmypdf
+```
+
+`pip`'in kurduğu `ocrmypdf.exe` PATH'te olmalı — `commandExists` onu PATH'ten
+arıyor ve bulamazsa OCR'ı sessizce atlayıp sayıyı `failed` damgalıyor.
+
+### `npm run summarize`
+
+Özeti olmayan kayıtları kademeli üretimle dolduruyor (spec 3.8): önce kural
+katmanı, tutmazsa LLM, o da olmazsa özet yok. `OPENAI_API_KEY` gerekiyor;
+anahtar yokken betik çalışmıyor ama ingest ve kural katmanı etkilenmiyor.
+
+| Bayrak | Ne yapar |
+| --- | --- |
+| `--dry`   | Hiç çağrı yapmaz, kaç grup ve kaç kayıt olduğunu sayar |
+| `--limit` | İlk N grup — gerçek anahtarla ilk denemede kullanın |
+| `--year`  | Tek yıl |
+| `--retry` | Daha önce reddedilenleri de yeniden dener (istem/denetim değiştiyse) |
+
+Çalıştırma sonunda `declinedBy` kırılımı basılıyor: hangi denetimin kaç kez
+tuttuğu. **Tek bir sebep baskınsa bu neredeyse her zaman denetimdeki bir hatadır,
+modelin davranışı değil** — iki hata tam olarak böyle bulundu (`baslikla-ayni` ve
+`cok-cumle` ikisi birlikte gerçek bir çalıştırmanın dörtte birini çöpe atıyordu).
+`model-declined` beklenen sonuçtur: model o başlıktan güvenli özet çıkmadığını
+söylüyor ve kayıt 3. basamağa düşüyor.
+
+Hız, `OPENAI_TPM` ile sınırlanıyor. İstek başına ~1.000 token gidiyor (sistem
+istemi her çağrıda yeniden gönderiliyor), yani 200.000 TPM'de tavan dakikada
+~165 istek. Betik bu bütçeyi kendisi gözetiyor; sınırı aşıp 429 yemiyor.
+
+Aynı başlık bir kez soruluyor — hem koşum içinde hem **koşumlar arasında**: her
+koşum, mevcut bir özeti aynı istemi üretecek yeni kayıtlara hiç çağrı yapmadan
+kopyalayarak başlıyor (`mevcut özetten dolduruldu` satırı). Kesilirse kaldığı
+yerden devam ediyor; ödenmiş çağrı ikinci kez ödenmiyor.
+
+**Aynı anda iki koşum çalıştırma.** İkisi de aynı sırayla ilerlediği için aynı
+grupları sorar, öndeki yazar, arkadaki ürettiğini çöpe atar — fatura iki katına
+çıkar. Belirtisi: ilerleme satırında `records` sayısı `llm` sayısından belirgin
+düşükse başka bir koşum aynı grupları dolduruyordur.
 
 ---
 

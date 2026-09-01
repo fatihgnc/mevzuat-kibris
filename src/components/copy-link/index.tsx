@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-/** "Bağlantıyı kopyala" — kayıt sayfası eylem şeridi (artboard 1a). */
+/** "Copy link" — the record page action row (artboard 1a). */
 export function CopyLink({ url, label = 'Bağlantıyı kopyala' }: { url: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -16,7 +16,7 @@ export function CopyLink({ url, label = 'Bağlantıyı kopyala' }: { url: string
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Pano yoksa kullanıcı adres çubuğundan kopyalayabilir; sessizce geçiyoruz.
+      // With no clipboard the user can copy from the address bar; we pass silently.
     }
   }
 

@@ -10,13 +10,12 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 /**
- * Dinamik og:image — spec 8.4: başlık + tarih + sayı numarası.
+ * The dynamic og:image — spec 8.4: title + date + issue number.
  *
- * Sitede raster görsel yok (spec 14.3); tek istisna bu. Kart tasarımın
- * paletiyle çiziliyor ki paylaşılan bağlantı siteyle aynı görünsün.
- * Font indirilmiyor: ImageResponse'un varsayılan gövde fontu Türkçe
- * karakterleri taşıyor ve her kayıt için font indirmek üretim süresini
- * gereksiz uzatırdı.
+ * The site has no raster imagery (spec 14.3); this is the only exception. The card
+ * is drawn with the design's palette so a shared link looks like the site. No font
+ * is downloaded: ImageResponse's default body font carries the Turkish characters,
+ * and downloading a font for every record would lengthen generation needlessly.
  */
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

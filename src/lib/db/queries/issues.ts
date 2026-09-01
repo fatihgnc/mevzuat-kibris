@@ -46,7 +46,7 @@ const ISSUE_COLUMNS = `
   (select count(*)::int from records r where r.issue_id = i.id) as n
 `;
 
-/** /sayilar — yıl listesi ve her yılın sayı adedi. */
+/** /sayilar — the year list and each year's issue count. */
 export async function listYears(): Promise<Array<{ year: number; issueCount: number; recordCount: number }>> {
   const rows = await db.execute<Row<{ year: number; issues: string; records: string }>>(sql`
     select i.year,
@@ -87,8 +87,8 @@ export async function getIssue(year: number, number: number): Promise<IssueSumma
 }
 
 /**
- * Sayı içeriği — bölüme göre gruplanmış. İnce kayıtlar da burada listelenir
- * (kendi sayfaları yok ama sayı sayfasında anchor alıyorlar, spec 8.2).
+ * Issue contents — grouped by section. Thin records are listed here too (they
+ * have no page of their own but do get an anchor on the issue page, spec 8.2).
  */
 export async function getIssueContents(issueId: number): Promise<RecordListItem[]> {
   const rows = await db.execute<Row<RawListRow & { section: string }>>(sql`
@@ -101,7 +101,7 @@ export async function getIssueContents(issueId: number): Promise<RecordListItem[
   return rows.map((row) => mapListItem(row));
 }
 
-/** Sayı içeriğini bölüm sırasına göre gruplar. */
+/** Groups the issue contents in section order. */
 export async function getIssueSections(
   issueId: number,
 ): Promise<Array<{ section: string; records: RecordListItem[] }>> {
@@ -123,7 +123,7 @@ export async function getIssueSections(
   return [...groups.entries()].map(([section, records]) => ({ section, records }));
 }
 
-/** Önceki/sonraki sayı navigasyonu. */
+/** Previous/next issue navigation. */
 export async function adjacentIssues(
   year: number,
   number: number,
@@ -145,7 +145,7 @@ export async function adjacentIssues(
   };
 }
 
-/** Bir yılın ortalama metin kalitesi — "arşiv kalitesi düşük" etiketi için (spec 7.2). */
+/** A year's average text quality — for the "low archive quality" label (spec 7.2). */
 export async function yearTextQuality(year: number): Promise<number | null> {
   const rows = await db.execute<Row<{ avg: number | null }>>(sql`
     select avg(text_quality)::real as avg from issues where year = ${year} and text_quality is not null

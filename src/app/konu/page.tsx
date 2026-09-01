@@ -10,7 +10,7 @@ import { topicCounts } from '@/lib/db/queries/records';
 import { formatCount } from '@/lib/db/queries/shared';
 import { buildMetadata } from '@/lib/seo/metadata';
 
-// Konu sayfalarıyla aynı ISR penceresi (spec 11.1).
+// The same ISR window as the topic pages (spec 11.1).
 export const revalidate = 3600;
 
 export const metadata: Metadata = buildMetadata({
@@ -21,16 +21,16 @@ export const metadata: Metadata = buildMetadata({
 });
 
 /**
- * Konu dizini.
+ * The topic index.
  *
- * Başlıktaki "Konular" bağlantısı eskiden doğrudan `/konu/munhal`e gidiyordu:
- * çoğul bir etiket tek bir konuyu açıyordu, diğer yedi konuya buradan
- * ulaşılamıyordu ve münhal ile ilgilenmeyen kullanıcı yanlış sayfada
- * başlıyordu. Bu sayfa o boşluğu dolduruyor.
+ * The "Konular" link in the header used to go straight to `/konu/munhal`: a plural
+ * label opened a single topic, the other seven were unreachable from there, and a
+ * user with no interest in vacancies started on the wrong page. This page fills that
+ * gap.
  *
- * Sayılar VERİDEN geliyor (spec 8.4): kayıt yoksa sayı yazılmıyor, sıfır
- * yazmak yerine hiç yazmamak tercih ediliyor — arkasında veri olmayan bir
- * iddia, iddia hiç yapmamaktan kötü.
+ * The numbers come FROM THE DATA (spec 8.4): if there are no records, no number is
+ * written — writing nothing is preferred to writing zero, because a claim with no
+ * data behind it is worse than making no claim.
  */
 export default async function TopicsPage() {
   const [counts, coverage] = await Promise.all([topicCounts(), archiveCoverage()]);

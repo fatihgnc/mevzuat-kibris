@@ -6,23 +6,24 @@ import { maskTitle } from '@/lib/search/mask-title';
 import type { RecordListItem } from '@/types/record';
 
 /**
- * drizzle'ın db.execute jeneriği Record<string, unknown> kısıtı koyuyor.
- * Ham satır arayüzlerini bu kısıtı sağlayacak şekilde sarmalıyoruz; alan
- * tipleri korunuyor, yalnızca indeks imzası ekleniyor.
+ * drizzle's db.execute generic imposes a Record<string, unknown> constraint. We
+ * wrap the raw row interfaces so they satisfy it; the field types are preserved
+ * and only an index signature is added.
  */
 export type Row<T> = T & Record<string, unknown>;
 
 /**
- * JS dizilerini SQL'e taşımanın güvenli yolu.
+ * The safe way to get JS arrays into SQL.
  *
- * drizzle'ın sql şablonu parametreleri postgres-js'e konumsal olarak veriyor ve
- * bu yolda postgres-js'in dizi serileştirmesi DEVREYE GİRMİYOR: `= any(${dizi})`
- * ifadesinde Postgres parametreyi düz metin olarak alıp "malformed array literal"
- * ile patlıyor. ::text[] cast'i de kurtarmıyor, çünkü sorun taşımada.
+ * drizzle's sql template passes parameters to postgres-js positionally, and on
+ * that path postgres-js's array serialisation IS NOT INVOKED: in `= any(${array})`
+ * Postgres receives the parameter as plain text and fails with "malformed array
+ * literal". A ::text[] cast does not save it either, because the problem is in the
+ * transport.
  *
- * Karşılaştırma için `in (...)`, saklama için `array[...]` kullanıyoruz; ikisi de
- * her değeri ayrı parametre olarak geçirdiği için dizi serileştirmesine hiç
- * ihtiyaç duymuyor ve SQL enjeksiyonuna kapalı kalıyor.
+ * We use `in (...)` for comparison and `array[...]` for storage; both pass every
+ * value as a separate parameter, so they never need array serialisation and stay
+ * closed to SQL injection.
  */
 export function inList(values: readonly (string | number)[]) {
   return sql.join(
@@ -36,7 +37,7 @@ export function arrayParam(values: readonly (string | number)[], cast: string) {
   return sql`array[${inList(values)}]::${sql.raw(cast)}`;
 }
 
-/** Liste sorgularının ortak SELECT gövdesi — tek yerde dursun ki alanlar ayrışmasın. */
+/** The shared SELECT body of the list queries — kept in one place so the fields cannot drift. */
 export const LIST_COLUMNS = `
   r.id,
   r.slug,
@@ -56,9 +57,9 @@ export const LIST_COLUMNS = `
 `;
 
 /**
- * Konu listesi ve birincil kurum lateral join ile geliyor. Lateral, kayıt başına
- * en fazla birkaç satır okuyor; GROUP BY ile yapılsaydı sayfalama öncesi tüm
- * sonuç kümesi gruplanmak zorunda kalırdı.
+ * The topic list and the primary institution come from a lateral join. The
+ * lateral reads at most a few rows per record; done with GROUP BY, the whole
+ * result set would have to be grouped before pagination.
  */
 export const LIST_JOINS = `
   join issues i on i.id = r.issue_id
@@ -102,10 +103,10 @@ function toDateString(value: string | Date | null): string | null {
 }
 
 /**
- * Birincil konu — satırdaki renkli noktayı belirler. Kayıt birden çok konuya
- * ait olabiliyor (spec 3.5); tasarımda tek nokta var, o yüzden konu sırasına
- * göre en öndeki seçiliyor. Sıra sabit olduğu için aynı kayıt her listede aynı
- * rengi alır.
+ * The primary topic — it determines the coloured dot on the row. A record can
+ * belong to several topics (spec 3.5); the design has a single dot, so the one
+ * earliest in topic order is picked. Because that order is fixed, the same record
+ * gets the same colour in every list.
  */
 function pickPrimaryTopic(topics: TopicSlug[]): TopicSlug | null {
   if (!topics.length) return null;
@@ -113,11 +114,12 @@ function pickPrimaryTopic(topics: TopicSlug[]): TopicSlug | null {
 }
 
 /**
- * Ham satırı liste öğesine çevirir; maskeleme ve vurgulama burada yapılır.
+ * Turns a raw row into a list item; masking and highlighting happen here.
  *
- * `query` verilirse hem başlık maskesine hem snippet'e eşleşme bindirilir.
- * ts_headline zaten kendi ayraçlarını koyuyor ama başlık ts_headline'dan
- * geçmiyor (maskelenmiş hâli lazım), o yüzden vurgu uygulama tarafında.
+ * If `query` is given, the match is overlaid on both the title mask and the
+ * snippet. ts_headline already inserts its own delimiters, but the title does not
+ * go through ts_headline (we need its masked form), so its highlighting is done
+ * application-side.
  */
 export function mapListItem(row: RawListRow, query = ''): RecordListItem {
   const topics = (row.topics ?? []).filter(isTopicSlug);
@@ -147,8 +149,8 @@ export function mapListItem(row: RawListRow, query = ''): RecordListItem {
 }
 
 /**
- * Kayıt bağlantısı — ince kayıtlar kendi sayfasını almaz (spec 8.2 madde 2),
- * sayı sayfasındaki anchor'a gider.
+ * The record link — thin records get no page of their own (spec 8.2 rule 2) and
+ * point at their anchor on the issue page instead.
  */
 export function recordHref(item: Pick<RecordListItem, 'slug' | 'hasOwnPage' | 'issueYear' | 'issueNumber' | 'refLabel'>): string {
   if (item.hasOwnPage) return '/karar/' + item.slug;
@@ -156,7 +158,7 @@ export function recordHref(item: Pick<RecordListItem, 'slug' | 'hasOwnPage' | 'i
   return '/sayilar/' + item.issueYear + '/' + item.issueNumber + anchor;
 }
 
-/** Sayı listelemelerinde kullanılan biçim: "1.280" */
+/** The format used in issue listings: "1.280" */
 export function formatCount(value: number): string {
   return value.toLocaleString('tr-TR');
 }
