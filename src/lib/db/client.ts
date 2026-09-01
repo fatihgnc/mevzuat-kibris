@@ -58,10 +58,11 @@ declare global {
  * build on the session pooler produced 3.399/3.399 pages with no query even
  * exceeding 5 s.
  *
- * The session pooler's 15-client cap is what `experimental.cpus: 1` in
- * next.config.ts is for — it pins the build to one prerender worker, so the build
- * opens ~8 clients instead of the ~32 that blew the cap before. The two settings
- * are one decision; changing either alone breaks the build.
+ * The session pooler's 15-client cap is what `experimental.cpus` in
+ * next.config.ts is for — it pins the prerender worker count so the build opens
+ * 12 clients (3 workers x max 4) instead of the 60+ that an unpinned build asks
+ * for on a 16-core machine. The two settings are one decision; changing either
+ * alone breaks the build.
  */
 function poolUrl(): string | undefined {
   const build = process.env.NEXT_PHASE === 'phase-production-build';

@@ -34,7 +34,7 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Auth (magic link) | ⚠️ Kod yazıldı; Supabase Auth artık gerçek ama akış uçtan uca denenmedi |
 
 Doğrulama: `tsc` temiz, `eslint` temiz, **107 test** geçiyor,
-`next build` Supabase'e karşı **3.399 sayfa** üretiyor (13 dk, tek işçi),
+`next build` Supabase'e karşı **3.399 sayfa** üretiyor (**2m49s**, bkz. §6.5),
 First Load JS 103 kB (spec hedefi <120 kB).
 
 ---
@@ -628,8 +628,9 @@ Kalan işler, öncelik sırasıyla:
    LLM çağrısı — bu oturumdaki doldurmanın ~11 katı.
 3. ~~**`next build`'i geçir**~~ — **YAPILDI**, §6.4. Sebep: transaction pooler
    cevap kaybediyordu. Derleme artık session pooler'a bağlanıyor
-   (`poolUrl()`, `NEXT_PHASE`) ve `experimental.cpus: 1` ile tek işçide kalıyor.
-   3.399 sayfa, 13 dk, exit 0. **Vercel'e çıkmadan önce oradaki ortam
+   (`poolUrl()`, `NEXT_PHASE`) ve `experimental.cpus` ile işçi sayısı pinli.
+   3.399 sayfa, **2m49s**, exit 0 — süre ölçümü §6.5. **Vercel'e çıkmadan önce
+   build bölgesini `fra1` yap (§6.5) ve oradaki ortam
    değişkenlerini denetle:** derlemenin `DATABASE_URL`'i (session pooler, 5432)
    de tanımlı olmalı; yalnızca `DATABASE_URL_POOLED` konursa derleme sessizce
    transaction pooler'a düşer ve eski arıza geri gelir.
@@ -891,7 +892,7 @@ Kural ya da çıkarma mantığı değiştiğinde mevcut kayıtlara uygulamanın 
 
 ---
 
-### 6.4 Supabase — veri taşındı, uygulama çalışıyor, DERLEME AÇIK SORUN
+### 6.4 Supabase — veri taşındı, uygulama çalışıyor, derleme geçiyor
 
 Veri **yeniden üretilmedi, taşındı**. Özet bir hesaplama değil, `records.summary`
 sütununda metin. Aktarım sıfır LLM çağrısı ve sıfır kaynak-site isteğiyle yapıldı.
@@ -1001,11 +1002,13 @@ NEXT_PHASE="phase-production-build" NODE_ENV=production port=5432
   argv1=...next/dist/compiled/jest-worker/processChild.js
 ```
 
-`next.config.ts`'teki **`experimental.cpus: 1` KALICI ve zorunlu** — hız için
-değil, bağlantı tavanı için: session pooler 15 istemcilik, varsayılan ~8 işçi ×
-`max: 4` = ~32 bağlantı EMAXCONNSESSION veriyordu (yukarıdaki bölüm). Tek işçiyle
-~8 bağlantı açılıyor. **İkisi tek bir karar; birini tek başına değiştirmek
-derlemeyi kırar.** Değiştirmek isteyen önce ikisini birlikte ölçsün.
+`next.config.ts`'teki **`experimental.cpus` KALICI ve zorunlu** — hız için değil,
+bağlantı tavanı için: session pooler 15 istemcilik. Ayar olmadığında Next çekirdek
+sayısı kadar işçi açıyor (bu makinede 16 çekirdek → **15+ işçi ölçüldü**), her işçi
+kendi havuzunu açtığı için 60+ bağlantı isteniyor ve EMAXCONNSESSION geliyor.
+`cpus: 3` × `max: 4` = 12 bağlantı. **İkisi tek bir karar; birini tek başına
+değiştirmek derlemeyi kırar.** Değeri yükseltmek isteyen önce hesabı yapsın:
+işçi × 4 < 15.
 
 ### ⚠️ Bu hata çalışma zamanında da vardır — sadece derlemede ölümcül değil
 
@@ -1047,6 +1050,55 @@ VARKEN bile şema üzerinde CREATE yetkisi istiyor; Supabase'de `auth` şeması
 `supabase_auth_admin`'e ait. Artık `auth.users` var mı diye bakıp yalnızca
 gerçekten yokken kuruluyor.
 
+
+### 6.5 Derleme süresi: 13m36s → 2m49s
+
+Derleme yeşile döndükten sonra ölçüldü, çünkü `cpus: 1` ile 13 dakika sürüyordu ve
+bu her Vercel dağıtımında ödenecek bir bedeldi.
+
+**Önce nereye gittiği ölçüldü.** Prerender edilen 3.035 sayfanın **3.016'sı
+`/karar`**. OG görselleri build'de üretilmiyor (`.next`'te 0 png), yani satori CPU
+maliyeti yok. Her `/karar` sayfası `getRecordBySlug`'ı **iki kez** çağırıyordu
+(`generateMetadata` + sayfanın kendisi), her çağrı 5 sorgu → sayfa başına ~10.
+Toplam ~30.000 sorgu / 800 sn ≈ **37 sorgu/sn**, 4 bağlantılık havuz üzerinden
+**sorgu başına ~107 ms**.
+
+**Sonuç: derleme CPU'ya değil AĞA bağlı.** Veritabanı Frankfurt'ta, her sorgu bir
+gidiş-dönüş. Bu, iki kaldıracın da neden işe yaradığını açıklıyor.
+
+| yapılandırma | süre | not |
+| --- | --- | --- |
+| `cpus: 1`, cache yok | 13m36s | taban |
+| `cpus: 1` + `cache()` | 6m59s | sorgular yarıya indi |
+| **`cpus: 3` + `cache()`** | **2m49s / 2m47s / 2m50s** | üç ardışık koşum, 3.035 sayfa, 0 hata |
+
+**Kaldıraç 1 — `getRecordBySlug` React `cache()` ile sarıldı.**
+`generateMetadata` ile sayfa AYNI render pass'te çalışıyor, yani ikinci çağrı
+ilkinin sonucuyla karşılanıyor. Süre neredeyse tam yarıya indi — sorgu sayısının
+yarıya inmesiyle birebir tutarlı. **Çalışma zamanına da yarıyor:** her `/karar`
+isteği artık yarısı kadar sorgu yapıyor.
+
+`opengraph-image` AYRI bir render'dır ve kapsamın dışında kalır — kalmalı da;
+kapsam paylaşsalardı istekler arası sızıntı olurdu.
+
+**Kaldıraç 2 — `cpus: 1` → `cpus: 3`.** İş ağa bağlı olduğu için paralel
+gidiş-dönüş sayısı doğrudan süreye yansıyor.
+
+**ELENEN ŞIK: `cpus`'u tamamen serbest bırakmak.** Cazip görünüyordu, ölçüldü,
+olmuyor: bu makinede 16 çekirdek var ve Next **15+ işçi** açıyor. `max: 1` yapılsa
+bile 16 bağlantı eder, session pooler'ın tavanı 15. Yani işçi sayısı PİNLENMEK
+zorunda. `cpus: 3` seçildi çünkü 3 × 4 = 12, tavanın 3 altında, ve sayı bir ÜST
+SINIR olduğu için daha az çekirdekli makinelerde (Vercel) kendiliğinden daha
+güvenli tarafa düşüyor.
+
+**Daha ileri gitmek isteyen için, ölçülmemiş iki şık:**
+
+- **Vercel build bölgesi.** Veritabanı `eu-central-1`. Vercel'in varsayılanı
+  `iad1` (Washington); orada her sorgu Atlantik'i geçer ve buradaki sayılar
+  bozulur. `fra1`'e almak bedava. **Vercel'e çıkıldığında İLK ölçülecek şey bu** —
+  buradaki 2m49s bu makinenin Frankfurt'a olan gecikmesiyle çıktı.
+- **`generateStaticParams`'ı 12 aydan kısaltmak.** Doğrudan çarpan ama spec 11.1
+  kararı ve ürün tercihi: prerender edilmeyen sayfa ilk isteğinde yavaş açılır.
 
 ---
 

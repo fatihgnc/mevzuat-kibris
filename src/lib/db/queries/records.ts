@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db/client';
@@ -369,7 +370,10 @@ interface RawDetailRow extends RawListRow {
   text_quality: number | null;
 }
 
-export async function getRecordBySlug(slug: string): Promise<RecordDetail | null> {
+/**
+ * ÇAĞRI BAŞINA BİR KEZ — `cache()` sarmalayıcısı için bkz. `getRecordBySlug`.
+ */
+async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
   const rows = await db.execute<Row<RawDetailRow>>(sql`
     select ${sql.raw(LIST_COLUMNS)},
            null::text as snippet,
@@ -487,6 +491,21 @@ export async function getRecordBySlug(slug: string): Promise<RecordDetail | null
     sameIssue: sameIssueRows.map((r) => mapListItem(r)),
   };
 }
+
+/**
+ * Kayıt sayfası bu sorguyu iki kez istiyor: bir `generateMetadata`, bir de
+ * sayfanın kendisi. İkisi AYNI render pass'te çalıştığı için React'in `cache()`
+ * sarmalayıcısı ikinci çağrıyı ilkinin sonucuyla karşılıyor — sayfa başına 10
+ * sorgu 5'e iniyor.
+ *
+ * Ölçülen etkisi §6.5'te. Derleme ağa bağlı olduğu için (sorgu başına ~107 ms
+ * gidiş-dönüş) bu doğrudan süreye yansıyor; çalışma zamanında da her istek
+ * yarısı kadar sorgu yapıyor.
+ *
+ * `opengraph-image` AYRI bir render'dır, onun çağrısı bu kapsamın dışında kalır
+ * ve dışında kalmalıdır — kapsam paylaşsalardı istekler arası sızıntı olurdu.
+ */
+export const getRecordBySlug = cache(loadRecordBySlug);
 
 /** For ISR generateStaticParams: the last 12 months only (spec 11.1). */
 export async function recentRecordSlugs(months = 12): Promise<string[]> {

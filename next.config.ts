@@ -9,18 +9,27 @@ const nextConfig: NextConfig = {
     // Liste ve kayıt sayfaları tamamen server component; paket import'larını ağaç-budama.
     optimizePackageImports: ['lucide-react'],
     /*
-     * TEK PRERENDER İŞÇİSİ — bağlantı tavanı için, hız için değil.
+     * PRERENDER İŞÇİ SAYISI — bağlantı tavanı için, hız için değil.
      *
      * Derleme, `src/lib/db/client.ts` içindeki `poolUrl()` gereği SESSION
-     * pooler'a bağlanır ve o pooler 15 istemciyle sınırlıdır. Varsayılan işçi
-     * sayısıyla (~8) her işçi kendi havuzunu açar (max: 4) → ~32 bağlantı ve
-     * derleme `EMAXCONNSESSION` ile ölür. Tek işçiyle ~8 bağlantı açılıyor,
-     * tavanın altında kalıyor: 3.399 sayfa, 13 dk.
+     * pooler'a bağlanır ve o pooler 15 istemciyle sınırlıdır. Bu ayar
+     * OLMADIĞINDA Next çekirdek sayısı kadar işçi açıyor (bu makinede 16 çekirdek
+     * → 15+ işçi ölçüldü) ve her işçi kendi havuzunu açtığı için (`max: 4`)
+     * 60+ bağlantı isteniyor: `EMAXCONNSESSION`.
+     *
+     * 3 işçi × `max: 4` = 12 bağlantı, tavanın 3 altında. Sayı bir ÜST SINIR
+     * olduğu için daha az çekirdekli makinelerde (Vercel) kendiliğinden daha
+     * güvenli tarafa düşüyor.
+     *
+     * Neden 3 ve 1 değil: derleme ağa bağlı (sorgu başına ~107 ms gidiş-dönüş,
+     * Frankfurt), yani işçi sayısı doğrudan süreye yansıyor. Ölçüm §6.5'te —
+     * 1 işçi 6m59s, 3 işçi 2m49s. Yükseltmek isteyen ÖNCE bağlantı hesabını
+     * yapsın: işçi × 4 < 15.
      *
      * Bu ayar client.ts'teki pooler seçimiyle TEK bir karardır; birini tek
      * başına değiştirmek derlemeyi kırar.
      */
-    cpus: 1,
+    cpus: 3,
   },
   async headers() {
     return [
