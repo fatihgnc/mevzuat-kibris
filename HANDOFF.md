@@ -972,12 +972,23 @@ sorgular 310 ms. Dev sunucusu `globalThis.__mkDb` ile TEK havuz paylaşıyor
 (`max: 4`) ve preview aracının 2 saniyede bir attığı `HEAD /` istekleriyle
 doyuyor. Pooler'ı suçlamadan önce dev sunucusunu kapat.
 
-**Sıradaki adım.** `next.config.ts`'e `experimental.cpus: 1` konup tek işçiyle
-derleme denendi; sonucu bu dosyaya yazılmadıysa oturum orada bitmiş demektir,
-ilk iş onu çalıştırmak. Geçerse sorun eşzamanlılıkta demektir ve kalıcı çözüm
-işçi sayısını sınırlamak ya da havuzu küçültmek (`max: 1`) olur; geçmezse
-prerender yolunda veriden bağımsız bir hata var demektir ve tek işçiyle hata
-mesajı da net gelir.
+**Sıradaki adım — TEK İŞÇİYLE DERLEME. Denendi ama SONUÇSUZ kaldı:** oturum
+biterken `next.config.ts`'e `experimental.cpus: 1` konup çalıştırıldı, 15+
+dakikada tek bir ilerleme satırı bile üretmedi ve süre dolduğu için durduruldu.
+Yapılandırma commit'e girmedi (doğrulanmamış deneme commit'lenmez), yani ilk iş
+onu yeniden koyup **sonuna kadar bekletmek**.
+
+Neyi ayırt edeceği: geçerse sorun eşzamanlılıktadır ve kalıcı çözüm işçi
+sayısını sınırlamak ya da uygulama havuzunu küçültmektir (`max: 1`); geçmezse
+prerender yolunda veriden bağımsız bir hata var demektir — ve tek işçiyle hata
+mesajı da (worker'lar arası karışmadan) net gelir.
+
+İkinci bir ipucu daha var, izlenmeye değer: `Cannot read properties of undefined
+(reading 'replace')` hatası, bir kayıt satırının `title` alanının undefined
+gelmesi demek. `getRecordBySlug` satırı bulduysa `title` NOT NULL bir sütun;
+yani satır eksik dönmüş oluyor. Bu, `db.execute` sonucunun beklenen şekilde
+gelmediği bir durumu işaret edebilir — sorgu katmanının dönüş şeklini (drizzle
+`execute` + postgres-js) doğrulamak üçüncü adım olsun.
 
 **Yerel veritabanı olduğu gibi duruyor** (Docker `mk-pg`, 39 MB). Aktarım tek
 yönlüydü; bir terslik olursa bozulmamış kopya orada.
