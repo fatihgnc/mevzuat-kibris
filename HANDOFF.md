@@ -1283,8 +1283,14 @@ Geriye env değerleri kaldı — **Vercel'e çıkarken yapılacaklar:**
   `/iletisim` ve `/gizlilik` sayfalarında yayımlanıyor ve site "kaldırma
   talepleri **yedi gün içinde** yanıtlanır" diyor; ayrıca arşivi tarayan botun
   User-Agent'ında da bu adres var. Yönlendirme kurulmazsa hepsi geri döner.
-- DMARC kaydı henüz DNS'te görünmüyor (Resend'de opsiyonel). Teslimatı
-  iyileştirir, eklenmesi iyi olur.
+- DMARC eklendi: `_dmarc` TXT = `v=DMARC1; p=none;`, yetkili sunucudan
+  doğrulandı ve **tek kayıt**. `_dmarc`'ta birden fazla TXT olursa RFC 7489
+  gereği DMARC tamamen geçersiz sayılır — mükerrer kayıt hiç olmamasından kötü.
+  Birkaç hafta sonra `p=quarantine`'e sıkılaştırılabilir.
+- **Resend'de "Enable Receiving" KAPALI kalmalı.** Açılırsa Resend kök alan
+  adına kendi MX kayıtlarını yazmak ister ve posta ALMAYI kuran Cloudflare Email
+  Routing'in MX'leriyle çakışır. İş bölümü: gönderme Resend (`send.` alt alanı),
+  alma Cloudflare (kök MX).
 
 **PKCE akışı TEK TARAYICIYA bağlı — kısıt duruyor, ekran DÜZELTİLDİ.**
 `code_challenge_method: s256` ölçüldü. `code_verifier` çerezini
