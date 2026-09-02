@@ -29,7 +29,7 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | OCR | ✅ Çalışıyor. 33 taranmış sayının 32'si kurtarıldı; kalite 0,887–0,999 — bkz. §6.1 |
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
-| Alarm/e-posta | ⚠️ Resend anahtarı var ve Supabase SMTP'sine bağlandı; `dispatch-alerts` hâlâ hiç koşmadı |
+| Alarm/e-posta | ✅ Resend ile gerçek digest gönderildi ve alındı (§6.7); bir açık karar var |
 | Supabase | ✅ Veri taşındı, uygulama çalışıyor, `next build` geçiyor — bkz. §6.4 |
 | Auth (magic link) | ✅ Uçtan uca gerçek e-postayla doğrulandı (§6.6) |
 
@@ -639,8 +639,10 @@ Kalan işler, öncelik sırasıyla:
    oluşturma da geçti. SMTP olarak Resend kuruldu.
    Akış sırasında çıkan transaction pooler arızası da kapatıldı: çalışma zamanı
    artık session pooler'da (§6.6 karar maddesi).
-5. **Resend.** `dispatch-alerts` hiç çalışmadı; kota bekçisi ve haftanın gününe
-   dağıtım mantığı test edilmedi.
+5. ~~**Resend.**~~ — **YAPILDI**, §6.7. Gerçek digest gönderildi ve alındı.
+   **AMA AÇIK KARAR VAR:** eşleştirme `created_at`'e bakıyor ve toplu göç/backfill
+   tüm arşivi "yeni" gösteriyor — backfill gününde her aboneye 19 yıllık digest
+   gider. Backfill'e (madde 2) BAŞLAMADAN önce çözülmeli.
 6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
    basılmıyor, yalnızca ayrılmış kutu görünüyor. Spec §14.5: başvuru Milestone 4
    bitmeden yapılmamalı.
@@ -1295,6 +1297,77 @@ Belge türü filtreli bir takip kartı eklenirse sessizce kaybolur.
 3. **Preview aracı dev sunucusunu 2 saniyede bir yokluyor** (`HEAD /`) ve bu
    sekmeyi kapatınca DURMUYOR, sunucu çalıştığı sürece sürüyor. Havuzu meşgul
    ediyor (§6.4).
+
+### 6.7 Resend / alarm gönderimi — ÇALIŞTI, bir tuzak açığa çıktı
+
+Gerçek bir digest üretilip gerçek adrese gönderildi ve alındı.
+
+```
+gönderim kuyruğu {"daily":0,"weekly":1,"queue":1}
+batch gönderildi {"size":1}
+alarm gönderimi bitti {"sent":1}
+```
+
+`alert_deliveries`: `status='sent'`, Resend `provider_id` döndü, `last_sent_at`
+güncellendi — yani aynı kayıtlar ertesi koşumda tekrar gönderilmiyor.
+
+**Kurulum.** Aynı Resend anahtarı İKİ ayrı yerde kullanılıyor, karıştırması kolay:
+
+| kullanım | nereye |
+| --- | --- |
+| magic link (auth) | Supabase Auth → Custom SMTP (`smtp.resend.com:587`, kullanıcı `resend`, şifre anahtar) |
+| alarm digest'i | `RESEND_API_KEY` env — `.env.local` ve GitHub Actions **Secrets** |
+
+`RESEND_FROM` GitHub'da **Variables** sekmesine gidiyor, Secrets'a değil
+(workflow `vars.RESEND_FROM` diyor). **Vercel'e hiçbiri gerekmiyor** —
+`dispatch-alerts` GitHub Actions'ta koşuyor, çalışma zamanı Resend'e hiç
+dokunmuyor.
+
+Gönderen şu an `onboarding@resend.dev`: alan adı alınmadığı için doğrulanmış
+alan adımız yok ve bu sandbox adres yalnızca Resend hesabının kendi e-postasına
+gönderebiliyor. **Yani bugün bu kurulumla ürün sahibinden başkasına e-posta
+GİDEMEZ.** Alan adı alınıp Resend'de doğrulanınca `RESEND_FROM` gerçek adrese
+çevrilecek.
+
+### ⚠️ AÇIK KARAR: `created_at` toplu göçte tüm arşivi "yeni" gösteriyor
+
+`findMatches` eşleşmeyi şuna bağlıyor:
+
+```sql
+r.created_at > coalesce(a.last_sent_at, now() - interval '7 days')
+```
+
+`created_at` yayın tarihi DEĞİL, satırın veritabanına yazılma anı. Supabase'e
+taşıma 6.915 kaydın tamamını tek seferde insert etti, dolayısıyla **bütün arşiv
+"son 7 günde eklendi" görünüyor.** Ölçüldü: `created_at` aralığı
+`2026-08-31 19:51` – `23:06`, yani 6.915 kaydın hepsi. Test alarmı bu yüzden
+**613 kayıt** eşleştirdi.
+
+Bugün zararsız kaldı çünkü tek abone ürün sahibi ve şablon zaten en fazla 15
+kayıt gösteriyor (`MAX_RECORDS_PER_EMAIL`), gerisini "+598 daha" diye yazıyor.
+
+**Ama 2006–2024 backfill'i (§6 madde 2) yapıldığı gün, o sırada aktif olan her
+aboneye 19 yıllık arşivi kapsayan bir digest gider.** Aynı şey herhangi bir
+toplu yeniden işlemede de olur. Bu bir hata değil, kaçırılmış bir varsayım:
+betik günlük ingest ritmi için yazılmış, toplu göç için değil.
+
+**Kod DEĞİŞTİRİLMEDİ, karar ürün sahibinin.** İki yön:
+
+1. Eşleşmeyi `published_at`'e bağlamak. Daha doğru ama davranışı değiştirir:
+   geç işlenen eski bir sayı artık hiç bildirilmez.
+2. Toplu işten HEMEN ÖNCE bütün aktif alarmların `last_sent_at`'ini `now()`
+   yapmak. Kod değişmez, ama unutulabilir bir el işlemidir — backfill betiğine
+   bir adım olarak konursa unutulmaz.
+
+**Test için değiştirilenler geri alındı:** alarmın `preferred_weekday`'i
+`assign_weekday`'in verdiği gerçek değere (3) döndürüldü. Test sırasında UTC
+gününe hizalanmıştı — haftalık alarmlar yalnızca `preferred_weekday` UTC gününe
+eşitken kuyruğa giriyor, bu yüzden elle denerken hizalamak gerekiyor.
+
+**Denenmemiş kalan:** kota bekçisi (`DAILY_CAP = 100`, `SAFETY_MARGIN = 10`) ve
+`deferred` yolu hiç tetiklenmedi — bunun için 90'dan fazla gönderim gerekiyor.
+Günlük (`daily`) sıklık yolu da denenmedi; kuyrukta `daily: 0` vardı.
+
 ---
 
 ## 7. Yön bulma
