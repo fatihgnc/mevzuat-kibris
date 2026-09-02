@@ -179,6 +179,16 @@ async function main() {
   log.info('gönderim kuyruğu', { daily: daily.length, weekly: weekly.length, queue: queue.length });
 
   let budget = DAILY_CAP - SAFETY_MARGIN - (await sentToday());
+  /*
+   * Counted for the closing line, and counted SEPARATELY on purpose. It used to
+   * report `payloads.length` — the number of digests BUILT, not delivered — so a
+   * run where every send failed still finished with "sent: 1". This job runs
+   * nightly in Actions, catches its own errors and exits 0, which means that one
+   * line is the whole summary a human reads. Overstating it hides a total outage.
+   */
+  let sentCount = 0;
+  let failedCount = 0;
+  let deferredCount = 0;
   const payloads: Array<{
     alertId: number;
     recordIds: number[];
@@ -206,6 +216,7 @@ async function main() {
         insert into alert_deliveries (alert_id, record_ids, status)
         values (${alertId}, ${recordIds}, 'deferred')
       `;
+      deferredCount += 1;
       log.warn('günlük kota doldu, gönderim ertelendi', { alertId });
       continue;
     }
@@ -261,8 +272,10 @@ async function main() {
         await sql`update alerts set last_sent_at = now() where id = ${item.alertId}`;
       }
 
+      sentCount += chunk.length;
       log.info('batch gönderildi', { size: chunk.length });
     } catch (error) {
+      failedCount += chunk.length;
       log.error('batch gönderilemedi', { message: String(error) });
       for (const item of chunk) {
         await sql`
@@ -273,7 +286,11 @@ async function main() {
     }
   }
 
-  log.info('alarm gönderimi bitti', { sent: payloads.length });
+  log.info('alarm gönderimi bitti', {
+    sent: sentCount,
+    failed: failedCount,
+    deferred: deferredCount,
+  });
 }
 
 main()

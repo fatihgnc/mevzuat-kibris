@@ -1486,7 +1486,42 @@ aynı commit'te geri alınması gerektiğini söyleyen yorum konuldu.
 alarm, profil ve teslimat kaydı yok. Yeni test için `/takip`'ten yeniden takip
 kurmak gerekiyor.
 
-**Hâlâ denenmemiş:** `failed` yolu (Resend'in hata döndürmesi).
+### `failed` yolu — DENENDİ, ve bir raporlama hatası ortaya çıkardı
+
+Sahte bir `RESEND_API_KEY` ile koşuldu (böylece e-posta gitmiyor):
+
+```
+ERROR batch gönderilemedi {"message":"Error: API key is invalid"}
+```
+
+Veritabanı tarafı doğru: `status='failed'` kaydı **23 kayıt id'sini saklayarak**
+yazıldı, `provider_id` null, ve **`last_sent_at` GÜNCELLENMEDİ**. Hemen ardından
+gerçek anahtarla tekrar koşuldu: aynı kayıtlar tekrar eşleşti ve gönderildi.
+Yani başarısızlık kurtarılabilir, hiçbir şey kaybolmuyor — `alert_deliveries`'te
+ikisi yan yana duruyor (`failed` sonra `sent`, ikisi de 23 kayıt).
+
+**DÜZELTİLEN HATA — kapanış satırı başarısızlığı başarı gibi gösteriyordu.**
+Son satır `sent: payloads.length` yazıyordu, yani ÜRETİLEN digest sayısını;
+gönderilen değil. Her gönderim başarısız olduğu koşumda bile
+`alarm gönderimi bitti {"sent":1}` diyordu.
+
+Bunun önemi şurada: bu iş gecelik GitHub Actions'ta koşuyor, hatasını kendi
+yakalıyor ve **0 ile çıkıyor** — yani iş yeşil kalıyor ve insanın okuduğu tek
+özet o satır. Tam bir gönderim kesintisi başarılı koşum gibi görünüyordu.
+
+Artık üç sayaç ayrı ayrı sayılıyor ve ölçüldü:
+
+```
+sahte anahtar  -> alarm gönderimi bitti {"sent":0,"failed":1,"deferred":0}
+gerçek anahtar -> alarm gönderimi bitti {"sent":1,"failed":0,"deferred":0}
+```
+
+**AÇIK KALAN, kasıtlı:** iş hâlâ 0 ile çıkıyor, yani gönderim tamamen çökse de
+Actions yeşil kalır. Bunu kırmızıya çevirmek bir POLİTİKA kararı ve §6.2'de
+`OPENAI_API_KEY` için bilinçli olarak tersi seçilmişti (kurulmamış bir anahtar
+yüzünden asıl işi kırmızıya boyamamak). Alarm gönderiminde ise sessiz kesinti
+kullanıcıya doğrudan zarar veriyor. Ürün sahibi karar versin; şu an en azından
+log satırı doğruyu söylüyor.
 
 **Ayrıca dikkat:** `ALERT_UNSUBSCRIBE_SECRET` hiçbir yerde tanımlı değil, hem
 jetonu üreten (`scripts/dispatch-alerts/template.ts`) hem doğrulayan
