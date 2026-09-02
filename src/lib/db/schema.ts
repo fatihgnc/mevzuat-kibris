@@ -155,7 +155,6 @@ export const recordEntities = pgTable(
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey(),
   email: text('email').notNull(),
-  digestHour: smallint('digest_hour').notNull().default(8),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

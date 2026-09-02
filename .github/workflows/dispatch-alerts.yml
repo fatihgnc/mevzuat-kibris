@@ -5,7 +5,10 @@ on:
     workflows: [daily-ingest]
     types: [completed]
   schedule:
-    - cron: '0 5 * * *' # 08:00 TRT, günlük digest penceresi
+    # 08:00 TRT. Gönderim saatini BELİRLEYEN yer burasıdır ve herkes için aynıdır;
+    # kullanıcı başına saat tercihi yok (profiles.digest_hour migration 0010'da
+    # kaldırıldı, gerekçe HANDOFF §3.3). Saati değiştirmek isteyen burayı değiştirsin.
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 concurrency:

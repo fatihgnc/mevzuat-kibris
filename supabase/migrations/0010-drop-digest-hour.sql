@@ -1,0 +1,25 @@
+-- Removes profiles.digest_hour — a column nothing ever read.
+--
+-- Spec 10.3 promised "the send window follows the user's digest_hour preference,
+-- default 08:00 TRT". The column was created with that default and then never
+-- touched again: no query selected it, no interface set it, and the dispatch job
+-- ignored it entirely.
+--
+-- What actually decides the send time is the cron in dispatch-alerts.yml, which
+-- fires once a day at 05:00 UTC — 08:00 TRT. So every subscriber already gets the
+-- default hour, and the column agreed with reality only by coincidence.
+--
+-- Honouring it properly would mean running the job HOURLY (24 scheduled runs a day
+-- instead of one), converting TRT to UTC at match time, and building a control for
+-- the user to pick an hour. None of that changes a single delivery until such a
+-- control exists, because every row holds the default. Measured before dropping:
+-- both profiles rows were 8, so no preference is being discarded.
+--
+-- It is dropped rather than left in place because a column that is never read,
+-- with a spec sentence standing behind it, invites the next person to build half
+-- the feature and believe the other half already works.
+--
+-- To bring it back: re-add the column with the same default, switch the cron to
+-- hourly, and filter on the hour in findMatches. The deviation is recorded in
+-- HANDOFF section 3.
+alter table profiles drop column if exists digest_hour;

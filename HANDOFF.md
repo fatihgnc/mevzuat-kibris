@@ -188,6 +188,21 @@ Yıl ekleri okunuşa göre hesaplanıyor (`src/lib/text/turkish-number.ts`):
 - `genelge` doc_type eklendi.
 - `instant` alarm frekansı enum'a hiç girmedi (spec §10.3 madde 6 kapalı diyor;
   arayüzden yanlışlıkla seçilemesin diye şemada da yok).
+- **`profiles.digest_hour` KALDIRILDI (migration 0010).** Spec §10.3 "gönderim
+  penceresi kullanıcının `digest_hour` tercihine göre, varsayılan 08:00 TRT"
+  diyordu. Sütun o varsayılanla kuruldu ve **bir daha hiç okunmadı**: hiçbir
+  sorgu seçmiyordu, hiçbir arayüz yazmıyordu, dispatch tamamen yok sayıyordu.
+  Gönderim saatini gerçekte `dispatch-alerts.yml`'deki cron belirliyor — günde
+  bir kez 05:00 UTC, yani 08:00 TRT. Yani zaten herkes varsayılan saati alıyordu
+  ve sütun gerçekle yalnızca tesadüfen örtüşüyordu.
+  **Gerçekten uygulamak** işi saatlik koşturmayı (günde 1 yerine 24 zamanlanmış
+  koşum), eşleşme anında TRT→UTC çevirisini ve saati seçtiren bir denetimi
+  gerektiriyordu; hiçbiri tek bir gönderimi bile değiştirmiyordu çünkü bütün
+  satırlar varsayılandaydı (düşürmeden önce ölçüldü: iki profilin ikisi de 8).
+  Okunmayan bir sütun, arkasında bir spec cümlesi dururken, bir sonraki kişiyi
+  özelliğin yarısını yazıp diğer yarısını hazır sanmaya davet ediyor.
+  **Geri getirmek istenirse:** sütunu aynı varsayılanla ekle, cron'u saatliğe
+  çevir, `findMatches`'te saate göre süz.
 
 ---
 
