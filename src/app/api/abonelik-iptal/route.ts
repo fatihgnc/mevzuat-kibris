@@ -24,7 +24,12 @@ export const dynamic = 'force-dynamic';
  * id must never unsubscribe a user, so the prefix is part of what is signed.
  */
 function expectedToken(subject: string): string {
-  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET ?? process.env.REVALIDATE_SECRET ?? '';
+  // `||`, NOT `??`. An env var set to an empty string is not nullish, so `??`
+  // would hand HMAC an EMPTY KEY instead of falling back — silently, and only
+  // on the side that has the empty value, so the two sides stop agreeing and
+  // every unsubscribe link reads as invalid. `.env.example` ships this name
+  // with an empty value, which is exactly how someone ends up there.
+  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET || process.env.REVALIDATE_SECRET || '';
   return createHmac('sha256', secret).update(subject).digest('base64url');
 }
 

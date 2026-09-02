@@ -40,7 +40,12 @@ function escapeHtml(value: string): string {
  * tek tıkla çıkma bağlantısı ve List-Unsubscribe header'ı ZORUNLU (spec 10.3).
  */
 export function unsubscribeToken(alertId: number): string {
-  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET ?? process.env.REVALIDATE_SECRET ?? '';
+  // `||`, NOT `??`. An env var set to an empty string is not nullish, so `??`
+  // would hand HMAC an EMPTY KEY instead of falling back — silently, and only
+  // on the side that has the empty value, so the two sides stop agreeing and
+  // every unsubscribe link reads as invalid. `.env.example` ships this name
+  // with an empty value, which is exactly how someone ends up there.
+  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET || process.env.REVALIDATE_SECRET || '';
   return createHmac('sha256', secret).update('alert:' + alertId).digest('base64url');
 }
 
@@ -61,7 +66,12 @@ export function unsubscribeUrl(alertId: number): string {
  * interchangeable, or an alert id would unsubscribe a user and vice versa.
  */
 export function userUnsubscribeToken(userId: string): string {
-  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET ?? process.env.REVALIDATE_SECRET ?? '';
+  // `||`, NOT `??`. An env var set to an empty string is not nullish, so `??`
+  // would hand HMAC an EMPTY KEY instead of falling back — silently, and only
+  // on the side that has the empty value, so the two sides stop agreeing and
+  // every unsubscribe link reads as invalid. `.env.example` ships this name
+  // with an empty value, which is exactly how someone ends up there.
+  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET || process.env.REVALIDATE_SECRET || '';
   return createHmac('sha256', secret).update('user:' + userId).digest('base64url');
 }
 
