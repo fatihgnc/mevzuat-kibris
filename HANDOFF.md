@@ -23,19 +23,20 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Konu sınıflandırması | ✅ Gerçek veriyle kalibre; konusuz oran %52 → %17 (§3.7) |
 | Özet üretimi | ✅ Kural + LLM; 6.915 kaydın 5.887'sinde özet (%85,1). Kalan %14,9 spec 3.8'in 3. basamağı — bkz. §6.2 |
 | Rehber içerikleri (8 adet) | ✅ Elle yazıldı |
-| SEO (sitemap, JSON-LD, robots) | ✅ Build'de 59 sayfa üretiliyor |
-| Ingest (2025 + 2026) | ✅ 422 sayı, 6.915 kayıt, 0 hata — gerçek veri |
+| SEO (sitemap, JSON-LD, robots) | ✅ Üretimde doğrulandı; sitemap indeksi §6.9'da düzeltildi |
+| Ingest (2025 + 2026) | ✅ 423 sayı, 6.924 kayıt, 0 hata; günlük ingest üretimde koştu (§6.9) |
 | PDF metin çıkarma | ✅ 384 çıkarıldı + 32 OCR; 5 gözden geçirme, 1 kaynakta ölü bağlantı |
 | OCR | ✅ Çalışıyor. 33 taranmış sayının 32'si kurtarıldı; kalite 0,887–0,999 — bkz. §6.1 |
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
 | Alarm/e-posta | ✅ Resend ile gerçek digest gönderildi ve alındı (§6.7) |
-| Supabase | ✅ Veri taşındı, uygulama çalışıyor, `next build` geçiyor — bkz. §6.4 |
+| Supabase | ✅ Veri taşındı; havuz tavanı 40'a çıkarıldı (§6.9) |
+| **Vercel / canlı** | ✅ **`https://mevzuatkibris.com` yayında** — §6.9 |
 | Auth (magic link) | ✅ Uçtan uca gerçek e-postayla doğrulandı (§6.6) |
 
-Doğrulama: `tsc` temiz, `eslint` temiz, **107 test** geçiyor,
-`next build` Supabase'e karşı **3.399 sayfa** üretiyor (**4m37s**, bkz. §6.5),
-First Load JS 103 kB (spec hedefi <120 kB).
+Doğrulama: `tsc` temiz, `eslint` temiz, **110 test** geçiyor,
+`next build` **3.399 sayfa** üretiyor (Vercel'de ~7,5 dk; havuz `max: 4`'e geri
+alındıktan sonra düşmesi bekleniyor, §6.9), First Load JS 103 kB (spec <120 kB).
 
 ---
 
@@ -641,23 +642,16 @@ Kalan işler, öncelik sırasıyla:
    yapılmıştı, artık üretiyor (§6.1). **Özet maliyetini de hesaba kat:** yılda
    ~4.000 kayıt × 19 yıl ≈ 76.000 kayıt, kural katmanı düştükten sonra ~67.000
    LLM çağrısı — bu oturumdaki doldurmanın ~11 katı.
-3. ~~**`next build`'i geçir**~~ — **YAPILDI**, §6.4. Sebep: transaction pooler
-   cevap kaybediyordu. Derleme artık session pooler'a bağlanıyor
-   (`poolUrl()`, `NEXT_PHASE`) ve `experimental.cpus` ile işçi sayısı pinli.
-   3.399 sayfa, **4m37s**, exit 0 — süre ölçümü §6.5. **Vercel'e çıkmadan önce
-   build bölgesini `fra1` yap (§6.5) ve oradaki ortam
-   değişkenlerini denetle:** derlemenin `DATABASE_URL`'i (session pooler, 5432)
-   de tanımlı olmalı; yalnızca `DATABASE_URL_POOLED` konursa derleme sessizce
-   transaction pooler'a düşer ve eski arıza geri gelir.
+3. ~~**`next build`'i geçir**~~ — **YAPILDI**, §6.4, ve Vercel'de canlı (§6.9).
 4. ~~**Auth akışını dene**~~ — **YAPILDI, uçtan uca çalışıyor** (§6.6). Magic
    link → callback → alarm → onay ekranı, 2,7 sn. Listeleme/silme/oturumlu
    oluşturma da geçti. SMTP olarak Resend kuruldu.
    Akış sırasında çıkan transaction pooler arızası da kapatıldı: çalışma zamanı
    artık session pooler'da (§6.6 karar maddesi).
-5. ~~**Resend.**~~ — **YAPILDI**, §6.7. Gerçek digest gönderildi ve alındı.
-   Çıkan `created_at` tuzağı da kapatıldı: yayın yaşı guard'ı (`MAX_AGE_DAYS`)
-   backfill'i kendiliğinden güvenli yapıyor. Kalan: kota bekçisi ve `daily` yolu
-   hiç tetiklenmedi.
+5. ~~**Resend.**~~ — **YAPILDI**, §6.7. Gönderim, `daily`, kota bekçisi,
+   `failed` yolu ve abonelikten çıkma — hepsi denendi. `created_at` tuzağı
+   `MAX_AGE_DAYS` guard'ıyla kapatıldı, digest'ler kullanıcı bazında
+   birleştirildi ve `MAX_ALERTS_PER_USER` kondu (§6.8).
 6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
    basılmıyor, yalnızca ayrılmış kutu görünüyor. Spec §14.5: başvuru Milestone 4
    bitmeden yapılmamalı.
@@ -1719,6 +1713,38 @@ Parça sayısı `SITEMAP_CHUNK_COUNT` ile tek yerden geliyor.
 
 **Ders:** yalnızca makinelerin istediği yollar (robots, sitemap, RSS, OG) yerel
 gezinmede hiç denenmez. Dağıtımdan sonra tek tek `curl`'lenmeli.
+
+### Günlük ingest üretimde koştu — halka kapandı
+
+`workflow_dispatch` ile elle tetiklendi, **0 hata, 2m35s**:
+
+```
+/ARŞİV/2026 boş döndü -> ana sayfaya düşüldü        (§3.5'teki yürüyen-yıl düzeltmesi)
+ana sayfada 161 sayı, 1 YENİ eklendi
+sayı 161: metin çıkarıldı, kalite 0,974, 9 sayfa, OCR gerekmedi
+9 yeni kayıt
+özetleme: 8 grup -> 5 LLM, 3 model reddi
+revalidation: 10 hedef -> https://mevzuatkibris.com
+```
+
+Sonra canlı sitede doğrulandı: yeni kaydın sayfası 200, `/sayilar/2026/161` 200,
+ana sayfada ve RSS'te görünüyor. **Hiçbir deploy yapılmadan.**
+
+**Bu, prerender penceresi tartışmasının dayanağıdır:** içerik akışı deploy
+gerektirmiyor, dolayısıyla build süresi yalnızca KOD değişikliklerinde ödeniyor.
+Ölçülen fark (§6.5'in devamı): prerender edilmiş sayfa ilk istekte 0,49 sn,
+edilmemiş 3,29 sn. Yani pencereyi kısaltmak maliyeti senden alıp kullanıcıya ve
+Googlebot'a yıkıyor. **Öneri: spec 11.1'deki 12 aylık pencere korunsun.**
+
+Zamanlanmış işler artık kendiliğinden çalışıyor: `daily-ingest` 07:00 ve 18:00
+TRT, `dispatch-alerts` 08:00 TRT ve her ingest sonrası.
+
+### Test verisi temizlendi
+
+Oturum boyunca üretilen alarm, teslimat ve profil kayıtları silindi (0/0/0).
+`records` ve `issues` bozulmadı. **`auth.users`'ta üç test adresi kaldı** —
+bilerek: iptal akışı `auth.users`'a dokunmuyor (§6.7) ve gizlilik metni de bunu
+söylüyor. Silinmesi istenirse Supabase panelinden.
 
 ### Alan adı ve DNS
 
