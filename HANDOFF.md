@@ -1424,10 +1424,68 @@ yalnızca koşum başındaki sayıya bakmıyor.
 `weekly` + `preferred_weekday = 3` hâline döndürüldü. Veritabanında yalnızca 3
 gerçek gönderim kaydı kaldı (613, 23, 23).
 
-**Hâlâ denenmemiş:** `failed` yolu (Resend'in hata döndürmesi) ve
-`/api/abonelik-iptal` (e-postadaki tek tık çıkış bağlantısı) — ikincisi HMAC
-jetonuyla çalışıyor ve `ALERT_UNSUBSCRIBE_SECRET` iki tarafta da tanımlı
-değilken `REVALIDATE_SECRET`'e düşüyor (§6.7 başındaki uyarı).
+### Abonelikten çıkma — DENENDİ, üç yol da doğru; ama bir SÖZ TUTULMUYOR
+
+Gerçek jetonla, çalışan sunucuya karşı denendi:
+
+| deneme | sonuç |
+| --- | --- |
+| yanlış jeton, POST | `400 {"ok":false}` — alarm silinmedi |
+| doğru jeton, POST (RFC 8058 tek tık) | `200 {"ok":true}` — alarm silindi |
+| doğru jeton, GET (maildeki bağlantı) | `307` → `/takip?durum=iptal` |
+
+Silme zinciri de doğru: son alarm gidince `profiles` satırı siliniyor,
+`alert_deliveries` de alarma bağlı FK ile birlikte gidiyor.
+
+### ⚠️ Ama `auth.users` KALIYOR — gizlilik sayfası yanlış söylüyor
+
+Ölçüldü. İptalden sonra:
+
+```
+alerts             0
+profiles           0
+alert_deliveries   0
+auth.users         1   <- e-posta adresi HÂLÂ BURADA
+auth.sessions      4   <- kullanıcı hâlâ giriş yapmış durumda
+```
+
+Gizlilik sayfası (`src/app/gizlilik/page.tsx`) şunu diyor:
+
+> "Çıktığınızda adresiniz kaydımızdan silinir."
+
+`/takip` iptal ekranı da "adresinizi kaydımızdan sildik" diyor. **İkisi de doğru
+değil.** Adres `auth.users`'da duruyor ve oturumlar açık kalıyor; kullanıcı
+teknik olarak hâlâ giriş yapmış sayılıyor.
+
+Sebep yapısal: `profiles` bizim tablomuz, `auth.users` Supabase Auth'un. Handler
+yalnızca kendi tablosunu siliyor. `auth.users` satırını silmek Admin API
+(`supabase.auth.admin.deleteUser`) gerektiriyor, o da **çalışma zamanında
+`SUPABASE_SERVICE_ROLE_KEY`** demek — şu an uygulama o anahtarı çalışma zamanında
+hiç kullanmıyor ve servis rolü RLS'i baypas ediyor.
+
+**KOD DEĞİŞTİRİLMEDİ — karar ürün sahibinin.** İki yön:
+
+1. **Sözü tut:** iptalde Admin API ile `auth.users` satırını da sil. Oturumlar da
+   kapanır. Bedeli: servis rolü anahtarını çalışma zamanı ortamına koymak.
+2. **Sözü düzelt:** gizlilik sayfasındaki ve iptal ekranındaki cümleyi
+   gerçeğe uydur ("takipleriniz ve adresinizle bağınız silinir, giriş kaydınız
+   Supabase Auth'ta kalır" gibi).
+
+Hangisi seçilirse seçilsin **ikisi birden düzeltilmeli** — bugün kod ile sayfa
+birbirini yalanlıyor.
+
+**Test verisi kalmadı.** Deneme sırasında iki alarm da silindi; veritabanında
+alarm, profil ve teslimat kaydı yok. Yeni test için `/takip`'ten yeniden takip
+kurmak gerekiyor.
+
+**Hâlâ denenmemiş:** `failed` yolu (Resend'in hata döndürmesi).
+
+**Ayrıca dikkat:** `ALERT_UNSUBSCRIBE_SECRET` hiçbir yerde tanımlı değil, hem
+jetonu üreten (`scripts/dispatch-alerts/template.ts`) hem doğrulayan
+(`src/app/api/abonelik-iptal/route.ts`) taraf `REVALIDATE_SECRET`'e düşüyor. Şu
+an tutarlı olduğu için çalışıyor; biri iki taraftan YALNIZCA BİRİNDE
+`ALERT_UNSUBSCRIBE_SECRET`'i tanımlarsa bütün çıkış bağlantıları sessizce bozulur
+ve kullanıcı yalnızca "bağlantı geçersiz" görür.
 
 ---
 
