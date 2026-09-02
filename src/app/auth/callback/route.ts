@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { isTopicSlug } from '@/lib/constants/topics';
-import { createAlert } from '@/lib/db/queries/alerts';
+import { AlertLimitReached, createAlert } from '@/lib/db/queries/alerts';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -63,7 +63,16 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.redirect(origin + '/takip?' + params.toString());
-  } catch {
+  } catch (error) {
+    /*
+     * The follow cap has to be told apart from a broken link. Both used to land on
+     * `durum=hata`, which says "the link is invalid or expired" — untrue, and it
+     * would send a user who is simply at the limit round the whole magic-link loop
+     * again to fail the same way.
+     */
+    if (error instanceof AlertLimitReached) {
+      return NextResponse.redirect(origin + '/takip?durum=limit');
+    }
     return NextResponse.redirect(origin + '/takip?durum=hata');
   }
 }

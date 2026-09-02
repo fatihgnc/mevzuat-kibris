@@ -67,7 +67,36 @@ export interface CreateAlertInput {
  * rule 5) — not silently: the caller must show the returned `frequency` to the
  * user.
  */
+/**
+ * How many follows one account may hold.
+ *
+ * The costly resource is EMAILS, not rows, and since digests are grouped per user
+ * (see dispatch-alerts) a user with twenty follows still costs one email — so this
+ * is not a quota defence, and it should not be set as if it were. What it defends
+ * is the rest: rows, the size of the matching query, and a digest so long nobody
+ * reads it.
+ *
+ * 20 is deliberately far above real use. Every follow already costs the abuser a
+ * working email address and a clicked magic link, so this is the backstop for the
+ * one case that gate does not cover — a single verified account scripting
+ * thousands of follows.
+ */
+export const MAX_ALERTS_PER_USER = 20;
+
+/** Raised by createAlert when the account is at MAX_ALERTS_PER_USER. */
+export class AlertLimitReached extends Error {
+  constructor() {
+    super('Takip sınırına ulaşıldı.');
+    this.name = 'AlertLimitReached';
+  }
+}
+
 export async function createAlert(input: CreateAlertInput): Promise<AlertRow> {
+  const owned = await db.execute<Row<{ n: string }>>(sql`
+    select count(*)::int as n from alerts where user_id = ${input.userId}
+  `);
+  if (Number(owned[0]?.n ?? 0) >= MAX_ALERTS_PER_USER) throw new AlertLimitReached();
+
   let frequency = input.frequency;
 
   if (frequency === 'daily') {

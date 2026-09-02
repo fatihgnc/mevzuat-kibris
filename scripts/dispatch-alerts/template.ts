@@ -48,25 +48,60 @@ export function unsubscribeUrl(alertId: number): string {
   return SITE_URL + '/api/abonelik-iptal?id=' + alertId + '&t=' + unsubscribeToken(alertId);
 }
 
-export interface DigestInput {
+/**
+ * The USER-level token, for the List-Unsubscribe header.
+ *
+ * One digest now covers several follows, and RFC 8058 gives the header exactly one
+ * URL which must act with no further interaction. "Stop this stream" is the only
+ * honest reading of one click on a mail that carries three follows, so the header
+ * stops all of them. Picking one is still possible — every follow has its own link
+ * in the body.
+ *
+ * A separate prefix from the per-alert token on purpose: the two must not be
+ * interchangeable, or an alert id would unsubscribe a user and vice versa.
+ */
+export function userUnsubscribeToken(userId: string): string {
+  const secret = process.env.ALERT_UNSUBSCRIBE_SECRET ?? process.env.REVALIDATE_SECRET ?? '';
+  return createHmac('sha256', secret).update('user:' + userId).digest('base64url');
+}
+
+export function userUnsubscribeUrl(userId: string): string {
+  return SITE_URL + '/api/abonelik-iptal?u=' + encodeURIComponent(userId) +
+    '&t=' + userUnsubscribeToken(userId);
+}
+
+export interface DigestFollow {
   alertId: number;
   label: string;
+  /** Already allocated by the caller — the 15-record budget is shared by the email. */
   records: DigestRecord[];
-  /** Total matching records; if more than 15, drives the "ve N kayıt daha" line. */
+  /** This follow's full match count, for its own heading line. */
   totalMatched: number;
 }
 
-export function renderDigestSubject(input: DigestInput): string {
-  const count = input.totalMatched;
-  return input.label + ': ' + count + ' yeni kayıt';
+export interface DigestInput {
+  userId: string;
+  follows: DigestFollow[];
+  /** Distinct records matched across every follow, minus those actually shown. */
+  remaining: number;
 }
 
-export function renderDigestHtml(input: DigestInput): string {
-  const shown = input.records.slice(0, MAX_RECORDS_PER_EMAIL);
-  const remaining = input.totalMatched - shown.length;
-  const unsubscribe = unsubscribeUrl(input.alertId);
+function totalMatched(input: DigestInput): number {
+  return input.follows.reduce((sum, follow) => sum + follow.totalMatched, 0);
+}
 
-  const items = shown
+export function renderDigestSubject(input: DigestInput): string {
+  const first = input.follows[0]!;
+  // One follow keeps the old, more specific subject; several name themselves so the
+  // reader can tell at a glance which follows fired.
+  if (input.follows.length === 1) return first.label + ': ' + first.totalMatched + ' yeni kayıt';
+  return (
+    totalMatched(input) + ' yeni kayıt · ' + input.follows.map((f) => f.label).join(', ')
+  );
+}
+
+function recordRowsHtml(records: DigestRecord[]): string {
+  return records
     .map((record) => {
       const heading = escapeHtml(record.summary ?? record.title);
       const meta = [
@@ -90,6 +125,35 @@ export function renderDigestHtml(input: DigestInput): string {
       ].join('');
     })
     .join('');
+}
+
+export function renderDigestHtml(input: DigestInput): string {
+  const many = input.follows.length > 1;
+
+  const sections = input.follows
+    .map((follow) => {
+      const heading = many
+        ? [
+            '<tr><td style="padding:18px 24px 0;">',
+            '<div style="font-size:14px;font-weight:600;color:#17181A;">',
+            escapeHtml(follow.label),
+            '</div>',
+            '<div style="margin-top:2px;font-size:13px;color:#6B6B75;">',
+            follow.totalMatched + ' yeni kayıt',
+            ' · <a href="' + unsubscribeUrl(follow.alertId) + '" style="color:#6B6B75;">durdur</a>',
+            '</div></td></tr>',
+          ].join('')
+        : '';
+
+      return (
+        heading +
+        '<tr><td style="padding:' + (many ? '2px' : '6px') + ' 24px 6px;">' +
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' +
+        recordRowsHtml(follow.records) +
+        '</table></td></tr>'
+      );
+    })
+    .join('');
 
   return [
     '<!doctype html><html lang="tr"><head><meta charset="utf-8">',
@@ -104,27 +168,31 @@ export function renderDigestHtml(input: DigestInput): string {
     '<tr><td style="padding:20px 24px;border-bottom:1px solid #E4E4E7;">',
     '<span style="font-size:17px;font-weight:700;color:#17181A;">' + SITE_NAME + '</span>',
     '<div style="margin-top:4px;font-size:14px;color:#6B6B75;">',
-    escapeHtml(input.label) + ' takibinizde ' + input.totalMatched + ' yeni kayıt',
+    many
+      ? input.follows.length + ' takibinizde toplam ' + totalMatched(input) + ' yeni kayıt'
+      : escapeHtml(input.follows[0]!.label) + ' takibinizde ' + input.follows[0]!.totalMatched +
+        ' yeni kayıt',
     '</div></td></tr>',
 
-    '<tr><td style="padding:6px 24px 18px;">',
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' + items + '</table>',
+    sections,
 
-    remaining > 0
-      ? '<div style="margin-top:16px;font-size:14px;"><a href="' +
+    input.remaining > 0
+      ? '<tr><td style="padding:0 24px 18px;"><div style="font-size:14px;"><a href="' +
         SITE_URL +
         '/takip" style="color:#1F6E7C;">ve ' +
-        remaining +
-        ' kayıt daha</a></div>'
+        input.remaining +
+        ' kayıt daha</a></div></td></tr>'
       : '',
-
-    '</td></tr>',
 
     '<tr><td style="padding:16px 24px;border-top:1px solid #E4E4E7;background:#F4F4F5;',
     'font-size:12px;line-height:1.5;color:#6B6B75;border-radius:0 0 6px 6px;">',
     SITE_NAME + ' resmî bir kurum değildir. Bağlayıcı olan, gazetede yayımlanan resmî metindir.',
     '<div style="margin-top:8px;">',
-    '<a href="' + unsubscribe + '" style="color:#6B6B75;">Bu takibi durdur</a>',
+    many
+      ? '<a href="' + userUnsubscribeUrl(input.userId) +
+        '" style="color:#6B6B75;">Tüm takipleri durdur</a>'
+      : '<a href="' + unsubscribeUrl(input.follows[0]!.alertId) +
+        '" style="color:#6B6B75;">Bu takibi durdur</a>',
     ' · <a href="' + SITE_URL + '/takip" style="color:#6B6B75;">Takiplerimi yönet</a>',
     '</div></td></tr>',
 
@@ -133,25 +201,37 @@ export function renderDigestHtml(input: DigestInput): string {
 }
 
 export function renderDigestText(input: DigestInput): string {
-  const shown = input.records.slice(0, MAX_RECORDS_PER_EMAIL);
-  const remaining = input.totalMatched - shown.length;
+  const many = input.follows.length > 1;
 
-  const lines = [
-    input.label + ' takibinizde ' + input.totalMatched + ' yeni kayıt',
+  const lines: string[] = [
+    many
+      ? input.follows.length + ' takibinizde toplam ' + totalMatched(input) + ' yeni kayıt'
+      : input.follows[0]!.label + ' takibinizde ' + input.follows[0]!.totalMatched + ' yeni kayıt',
     '',
-    ...shown.flatMap((record) => [
-      record.summary ?? record.title,
-      '  ' + formatDateShort(record.publishedAt) + ' · RG ' + record.issueNumber + '/' + record.issueYear,
-      '  ' + SITE_URL + '/karar/' + record.slug,
-      '',
-    ]),
   ];
 
-  if (remaining > 0) lines.push('ve ' + remaining + ' kayıt daha: ' + SITE_URL + '/takip', '');
+  for (const follow of input.follows) {
+    if (many) lines.push('— ' + follow.label + ' (' + follow.totalMatched + ' yeni kayıt)', '');
+    for (const record of follow.records) {
+      lines.push(
+        record.summary ?? record.title,
+        '  ' + formatDateShort(record.publishedAt) + ' · RG ' + record.issueNumber + '/' + record.issueYear,
+        '  ' + SITE_URL + '/karar/' + record.slug,
+        '',
+      );
+    }
+    if (many) lines.push('  Bu takibi durdur: ' + unsubscribeUrl(follow.alertId), '');
+  }
+
+  if (input.remaining > 0) {
+    lines.push('ve ' + input.remaining + ' kayıt daha: ' + SITE_URL + '/takip', '');
+  }
 
   lines.push(
     SITE_NAME + ' resmî bir kurum değildir. Bağlayıcı olan, gazetede yayımlanan resmî metindir.',
-    'Takibi durdur: ' + unsubscribeUrl(input.alertId),
+    many
+      ? 'Tüm takipleri durdur: ' + userUnsubscribeUrl(input.userId)
+      : 'Takibi durdur: ' + unsubscribeUrl(input.follows[0]!.alertId),
   );
 
   return lines.join('\n');

@@ -11,6 +11,7 @@ import {
   renderDigestSubject,
   renderDigestText,
   unsubscribeUrl,
+  userUnsubscribeUrl,
   type DigestRecord,
 } from './template';
 
@@ -62,6 +63,8 @@ interface MatchRow {
   alert_id: string;
   label: string;
   email: string;
+  /** Needed for the user-level unsubscribe token and for grouping. */
+  user_id: string;
   frequency: string;
   matched: Array<string | number>;
 }
@@ -97,6 +100,7 @@ async function findMatches(frequency: 'daily' | 'weekly', weekday: number): Prom
     select a.id as alert_id,
            a.label,
            p.email,
+           p.id as user_id,
            a.frequency,
            array_agg(distinct r.id) as matched
       from alerts a
@@ -146,7 +150,7 @@ async function findMatches(frequency: 'daily' | 'weekly', weekday: number): Prom
           or (cardinality(a.doc_types)  > 0 and r.doc_type   = any(a.doc_types))
           or (cardinality(a.entity_ids) > 0 and re.entity_id = any(a.entity_ids))
        )
-     group by a.id, a.label, p.email, a.frequency
+     group by a.id, a.label, p.email, p.id, a.frequency
   `;
 }
 
@@ -203,12 +207,39 @@ async function main() {
   // one breaks the promise of "every day".
   const queue = [...daily, ...weekly].filter((row) => row.matched.length > 0);
 
-  log.info('gönderim kuyruğu', { daily: daily.length, weekly: weekly.length, queue: queue.length });
+  /*
+   * ONE EMAIL PER USER PER FREQUENCY, not one per follow.
+   *
+   * Every weekly follow of a user already fires on the same day (assign_weekday
+   * hashes user_id), so a user with three follows used to receive three separate
+   * emails on the same morning - three times the annoyance and, because the quota
+   * is counted per EMAIL, three times the cost. Grouping turns the ceiling into a
+   * per-user one instead of a per-follow one, which is also what stops one account
+   * with many follows from eating the daily quota.
+   *
+   * Daily and weekly stay in separate groups on purpose: merged, a single daily
+   * follow would drag the weekly ones into a daily email and break the cadence the
+   * user chose.
+   */
+  const groups = new Map<string, MatchRow[]>();
+  for (const row of queue) {
+    const key = row.user_id + '|' + row.frequency;
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(row);
+    else groups.set(key, [row]);
+  }
+
+  log.info('gonderim kuyrugu', {
+    daily: daily.length,
+    weekly: weekly.length,
+    takip: queue.length,
+    eposta: groups.size,
+  });
 
   let budget = DAILY_CAP - SAFETY_MARGIN - (await sentToday());
   /*
    * Counted for the closing line, and counted SEPARATELY on purpose. It used to
-   * report `payloads.length` — the number of digests BUILT, not delivered — so a
+   * report `payloads.length` - the number of digests BUILT, not delivered - so a
    * run where every send failed still finished with "sent: 1". This job runs
    * nightly in Actions, catches its own errors and exits 0, which means that one
    * line is the whole summary a human reads. Overstating it hides a total outage.
@@ -217,8 +248,8 @@ async function main() {
   let failedCount = 0;
   let deferredCount = 0;
   const payloads: Array<{
-    alertId: number;
-    recordIds: number[];
+    /** One row per follow - history and last_sent_at stay per follow. */
+    deliveries: Array<{ alertId: number; recordIds: number[] }>;
     message: {
       from: string;
       to: string[];
@@ -229,51 +260,100 @@ async function main() {
     };
   }> = [];
 
-  for (const row of queue) {
-    const alertId = Number(row.alert_id);
-    const recordIds = row.matched.map(Number);
+  for (const rows of groups.values()) {
+    const deliveries = rows.map((row) => ({
+      alertId: Number(row.alert_id),
+      recordIds: row.matched.map(Number),
+    }));
 
     if (budget <= 0) {
       /*
        * Quota guard (spec 10.3 rule 4). We do not drop silently: the deferral is
        * written to alert_deliveries and last_sent_at is left alone, so the same
-       * records match again on the next run.
+       * records match again on the next run. Every follow in the group gets its own
+       * row - the group is an email, but the bookkeeping stays per follow.
        *
-       * That 'deferred' row is what makes the retry work for WEEKLY alerts too —
+       * That 'deferred' row is what makes the retry work for WEEKLY alerts too -
        * see the catch-up condition in findMatches. Without it a deferred weekly
        * alert would wait for its own weekday to come round again, a full week.
        */
-      await sql`
-        insert into alert_deliveries (alert_id, record_ids, status)
-        values (${alertId}, ${recordIds}, 'deferred')
-      `;
+      for (const item of deliveries) {
+        await sql`
+          insert into alert_deliveries (alert_id, record_ids, status)
+          values (${item.alertId}, ${item.recordIds}, 'deferred')
+        `;
+      }
       deferredCount += 1;
-      log.warn('günlük kota doldu, gönderim ertelendi', { alertId });
+      log.warn('gunluk kota doldu, gonderim ertelendi', {
+        alertlar: deliveries.map((d) => d.alertId),
+      });
       continue;
     }
 
-    const records = await loadRecords(recordIds);
-    if (!records.length) continue;
+    const loaded = await Promise.all(rows.map((row) => loadRecords(row.matched.map(Number))));
 
+    /*
+     * The 15-record budget belongs to the EMAIL, and it is filled round-robin so a
+     * follow with 600 matches cannot crowd the others out entirely. Duplicates are
+     * dropped by slug: a record matching two follows is news once, and printing it
+     * twice would read as a bug.
+     */
+    const takenSlugs = new Set<string>();
+    const perFollow: DigestRecord[][] = rows.map(() => []);
+    let shown = 0;
+    for (let depth = 0; shown < MAX_RECORDS_PER_EMAIL; depth += 1) {
+      let progressed = false;
+      for (let f = 0; f < loaded.length && shown < MAX_RECORDS_PER_EMAIL; f += 1) {
+        const record = loaded[f]![depth];
+        if (!record) continue;
+        progressed = true;
+        if (takenSlugs.has(record.slug)) continue;
+        takenSlugs.add(record.slug);
+        perFollow[f]!.push(record);
+        shown += 1;
+      }
+      if (!progressed) break;
+    }
+
+    const follows = rows
+      .map((row, index) => ({
+        alertId: Number(row.alert_id),
+        label: row.label,
+        records: perFollow[index]!,
+        totalMatched: row.matched.length,
+      }))
+      .filter((follow) => follow.records.length > 0);
+
+    if (!follows.length) continue;
+
+    const distinctMatched = new Set(deliveries.flatMap((d) => d.recordIds)).size;
     const digest = {
-      alertId,
-      label: row.label,
-      records,
-      totalMatched: recordIds.length,
+      userId: rows[0]!.user_id,
+      follows,
+      remaining: Math.max(0, distinctMatched - shown),
     };
 
     payloads.push({
-      alertId,
-      recordIds,
+      deliveries,
       message: {
         from,
-        to: [row.email],
+        to: [rows[0]!.email],
         subject: renderDigestSubject(digest),
         html: renderDigestHtml(digest),
         text: renderDigestText(digest),
         headers: {
-          // MANDATORY (spec 10.3): one-click unsubscribe.
-          'List-Unsubscribe': '<' + unsubscribeUrl(alertId) + '>',
+          /*
+           * MANDATORY (spec 10.3): one-click unsubscribe. RFC 8058 allows exactly
+           * one URL and it must act without asking, so on a digest covering several
+           * follows the only honest meaning is "stop this stream" - all of them.
+           * Choosing one is still possible from the per-follow links in the body.
+           */
+          'List-Unsubscribe':
+            '<' +
+            (follows.length > 1
+              ? userUnsubscribeUrl(digest.userId)
+              : unsubscribeUrl(follows[0]!.alertId)) +
+            '>',
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           'List-Id': SITE_NAME + ' takip <takip.' + new URL(SITE_URL).hostname + '>',
         },
@@ -295,12 +375,14 @@ async function main() {
       const sentIds = result.data?.data ?? [];
 
       for (let j = 0; j < chunk.length; j += 1) {
-        const item = chunk[j]!;
-        await sql`
-          insert into alert_deliveries (alert_id, record_ids, status, provider_id)
-          values (${item.alertId}, ${item.recordIds}, 'sent', ${sentIds[j]?.id ?? null})
-        `;
-        await sql`update alerts set last_sent_at = now() where id = ${item.alertId}`;
+        // One provider id, several follows: the email is one, the bookkeeping is not.
+        for (const item of chunk[j]!.deliveries) {
+          await sql`
+            insert into alert_deliveries (alert_id, record_ids, status, provider_id)
+            values (${item.alertId}, ${item.recordIds}, 'sent', ${sentIds[j]?.id ?? null})
+          `;
+          await sql`update alerts set last_sent_at = now() where id = ${item.alertId}`;
+        }
       }
 
       sentCount += chunk.length;
@@ -308,11 +390,13 @@ async function main() {
     } catch (error) {
       failedCount += chunk.length;
       log.error('batch gönderilemedi', { message: String(error) });
-      for (const item of chunk) {
-        await sql`
-          insert into alert_deliveries (alert_id, record_ids, status)
-          values (${item.alertId}, ${item.recordIds}, 'failed')
-        `;
+      for (const payload of chunk) {
+        for (const item of payload.deliveries) {
+          await sql`
+            insert into alert_deliveries (alert_id, record_ids, status)
+            values (${item.alertId}, ${item.recordIds}, 'failed')
+          `;
+        }
       }
     }
   }

@@ -1576,6 +1576,72 @@ an tutarlı olduğu için çalışıyor; biri iki taraftan YALNIZCA BİRİNDE
 `ALERT_UNSUBSCRIBE_SECRET`'i tanımlarsa bütün çıkış bağlantıları sessizce bozulur
 ve kullanıcı yalnızca "bağlantı geçersiz" görür.
 
+
+### 6.8 Digest birleştirme ve kötüye kullanım sınırı
+
+**Bir kullanıcıya bir e-posta, takip başına bir tane değil.** `assign_weekday`
+kullanıcıyı hashlediği için bir kullanıcının bütün haftalık takipleri zaten aynı
+gün gidiyordu; üç takibi olan kişi aynı sabah **üç ayrı mail** alıyordu.
+
+Gruplama **(kullanıcı + sıklık)** bazında. Günlük ve haftalık bilerek ayrı: tek
+bir günlük takip haftalıkları her gün sürüklerdi ve kullanıcının seçtiği ritim
+bozulurdu.
+
+Ölçüldü — aynı kullanıcıya üç günlük takip:
+
+```
+gonderim kuyrugu {"daily":3,"weekly":0,"takip":3,"eposta":1}
+```
+
+Defter tutma takip bazında kaldı: üç `alert_deliveries` satırı **aynı
+`provider_id`** ile yazıldı, üçünün de `last_sent_at`'i güncellendi. Yani sitede
+takipler ayrı görünmeye devam ediyor, yalnızca posta tek.
+
+**Beklenmedik kazanç: kapasite.** Kota E-POSTA başına sayılıyor. Birleştirmeden
+önce tavan takip başınaydı (~270 takip); sonra kullanıcı başına oldu. Kaç takip
+kurulursa kurulsun kullanıcı kotadan bir düşürüyor.
+
+**15 kayıt bütçesi artık e-postanın**, round-robin dolduruluyor — 600 eşleşmesi
+olan bir takip diğerlerini tamamen dışarı itemesin diye. Aynı kayıt iki takibe
+birden uyuyorsa **slug'a göre tekilleştiriliyor**; iki kez basmak okuyana hata
+gibi görünürdü.
+
+### Abonelikten çıkma iki jetonlu oldu
+
+RFC 8058 başlığa tek URL veriyor ve tıklandığında soru sormadan iş yapmasını
+şart koşuyor. Üç takip taşıyan bir mailde tek tıkın tek dürüst anlamı "bu akışı
+durdur" — hepsi. Seçmek isteyen gövdedeki takip başına bağlantılardan seçiyor.
+
+| jeton | konu | nerede |
+| --- | --- | --- |
+| `alert:<id>` | tek takip | gövdedeki "durdur" bağlantıları |
+| `user:<uuid>` | hepsi | `List-Unsubscribe` başlığı |
+
+**Önek imzanın parçası, kasıtlı.** Aksi hâlde bir alarm id'si kullanıcıyı iptal
+edebilirdi. Ölçüldü: yanlış jeton 400, **alarm jetonunu kullanıcı yerine
+kullanmak 400**, doğru jeton 200 ve kullanıcının üç takibi de silindi (diğer
+kullanıcıya dokunulmadı, boşta kalan profil de temizlendi).
+
+### `MAX_ALERTS_PER_USER = 20`
+
+Ürün sahibinin sorusu buydu: bir kullanıcı 5-10 takip açarsa ne olur.
+
+**Cevabın çoğunu birleştirme veriyor** — asıl kıt kaynak e-posta ve artık 20
+takip de 1 e-posta. Sınır bu yüzden bir kota savunması DEĞİL, öyle ayarlanmamalı.
+Savunduğu şey geri kalanı: satırlar, eşleştirme sorgusunun büyüklüğü ve kimsenin
+okumayacağı uzunlukta bir digest.
+
+20 gerçek kullanımın çok üstünde. Her takip zaten saldırgana **çalışan bir
+e-posta adresi ve tıklanmış bir magic link** maliyeti yüklüyor; bu sınır o
+kapının örtmediği tek durum için: tek doğrulanmış hesabın binlerce takip
+açması.
+
+Sınıra çarpınca kullanıcı ne görüyor: oturum açıkken `409` ve kaç takip
+tutabileceğini söyleyen mesaj; magic link yolunda `/takip?durum=limit` ve ayrı
+bir kutu. **`durum=hata`'dan ayrıldı** — ikisi aynı olsaydı "bağlantı geçersiz"
+derdi, ki doğru değil, ve kullanıcıyı aynı sonuçla biten magic link turuna
+tekrar sokardı.
+
 ---
 
 ## 7. Yön bulma

@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { DOC_TYPES } from '@/lib/constants/doc-types';
 import { TOPIC_SLUGS } from '@/lib/constants/topics';
 import {
+  AlertLimitReached,
+  MAX_ALERTS_PER_USER,
   alertBelongsTo,
   createAlert,
   deleteAlert,
@@ -56,22 +58,37 @@ export async function POST(request: Request) {
 
   // If a session is already open there is no need for a magic link; we create the alert directly.
   if (user && user.email === input.email) {
-    const alert = await createAlert({
-      userId: user.id,
-      label: input.label,
-      query: input.query ?? null,
-      topics: input.topic ? [input.topic] : [],
-      docTypes: input.docTypes ?? [],
-      entityIds: input.entityId ? [input.entityId] : [],
-      frequency: input.frequency,
-    });
+    try {
+      const alert = await createAlert({
+        userId: user.id,
+        label: input.label,
+        query: input.query ?? null,
+        topics: input.topic ? [input.topic] : [],
+        docTypes: input.docTypes ?? [],
+        entityIds: input.entityId ? [input.entityId] : [],
+        frequency: input.frequency,
+      });
 
-    return NextResponse.json({
-      ok: true,
-      verified: true,
-      frequency: alert.frequency,
-      preferredWeekday: alert.preferredWeekday,
-    });
+      return NextResponse.json({
+        ok: true,
+        verified: true,
+        frequency: alert.frequency,
+        preferredWeekday: alert.preferredWeekday,
+      });
+    } catch (error) {
+      if (error instanceof AlertLimitReached) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              'En fazla ' + MAX_ALERTS_PER_USER + ' takip kurabilirsiniz. ' +
+              'Yeni bir tane için Takiplerim sayfasından birini durdurun.',
+          },
+          { status: 409 },
+        );
+      }
+      throw error;
+    }
   }
 
   /*

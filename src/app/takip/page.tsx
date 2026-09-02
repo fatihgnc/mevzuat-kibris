@@ -9,6 +9,7 @@ import { SiteHeader } from '@/components/site-header';
 import { TOPIC_LIST } from '@/lib/constants/topics';
 import { listAlerts } from '@/lib/db/queries/alerts';
 import { getCurrentUser } from '@/lib/supabase/server';
+import { MAX_ALERTS_PER_USER } from '@/lib/db/queries/alerts';
 import { TR_WEEKDAYS, formatDateWithWeekday, nextWeekday } from '@/lib/text/dates';
 
 export const dynamic = 'force-dynamic';
@@ -91,6 +92,16 @@ export default async function FollowPage({ searchParams }: Props) {
           * which is the ordinary way people read email. Without this sentence the user
           * sees only "invalid", retries in the same split way, and fails again.
           */}
+        {status === 'limit' ? (
+          <div className="mt-6 rounded-md border border-notice-border bg-notice p-5 text-base text-notice-ink">
+            <p className="m-0 font-semibold">Takip sınırına ulaştınız.</p>
+            <p className="m-0 mt-1.5">
+              Bir hesap en fazla {MAX_ALERTS_PER_USER} takip tutabilir. Yeni bir tane kurmak
+              için aşağıdan birini durdurun.
+            </p>
+          </div>
+        ) : null}
+
         {status === 'hata' ? (
           <div className="mt-6 rounded-md border border-notice-border bg-notice p-5 text-base text-notice-ink">
             <p className="m-0 font-semibold">Bağlantı geçersiz ya da süresi dolmuş.</p>
