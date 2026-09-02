@@ -36,6 +36,28 @@ const DAILY_CAP = 100;
 const SAFETY_MARGIN = 10;
 const BATCH_SIZE = 100;
 
+/**
+ * Nothing older than this is ever announced, no matter when it was ingested.
+ *
+ * THIS IS WHAT MAKES BULK WORK SAFE. The incremental cursor below is
+ * `records.created_at`, which is the moment the ROW WAS WRITTEN, not the day the
+ * gazette published it. Any bulk operation — the Supabase migration, the
+ * 2006-2024 backfill, a reprocessing run — rewrites created_at for the whole
+ * archive at once and makes twenty years of records look brand new. Measured on
+ * the real archive right after the migration: the test alert matched 613 records
+ * on created_at alone, and 23 with this guard.
+ *
+ * So the guard is not a tuning knob, it is the thing standing between a backfill
+ * and every subscriber receiving a digest of the entire archive. Removing it
+ * moves that failure back in.
+ *
+ * The cost, stated plainly: a record ingested more than this many days after its
+ * publication date is announced to NOBODY. That is deliberate — it is not news by
+ * then. 30 days is roughly four times the weekly cadence, so ordinary late
+ * publishing on the source site is still covered.
+ */
+const MAX_AGE_DAYS = 30;
+
 interface MatchRow {
   alert_id: string;
   label: string;
@@ -81,6 +103,11 @@ async function findMatches(frequency: 'daily' | 'weekly', weekday: number): Prom
       join profiles p on p.id = a.user_id
       join records r
         on r.created_at > coalesce(a.last_sent_at, now() - interval '7 days')
+       -- ::int IS REQUIRED. Untyped, the parameter makes Postgres read
+       -- current_date - $1 as date-minus-DATE, which yields an integer, and the
+       -- comparison dies with: operator does not exist: date > integer. It fails
+       -- at run time, not at build time, and no test covers this query.
+       and r.published_at > current_date - ${MAX_AGE_DAYS}::int
       left join record_topics rt   on rt.record_id = r.id
       left join record_entities re on re.record_id = r.id
      where a.is_active

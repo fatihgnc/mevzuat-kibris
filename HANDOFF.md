@@ -29,7 +29,7 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | OCR | ✅ Çalışıyor. 33 taranmış sayının 32'si kurtarıldı; kalite 0,887–0,999 — bkz. §6.1 |
 | Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
-| Alarm/e-posta | ✅ Resend ile gerçek digest gönderildi ve alındı (§6.7); bir açık karar var |
+| Alarm/e-posta | ✅ Resend ile gerçek digest gönderildi ve alındı (§6.7) |
 | Supabase | ✅ Veri taşındı, uygulama çalışıyor, `next build` geçiyor — bkz. §6.4 |
 | Auth (magic link) | ✅ Uçtan uca gerçek e-postayla doğrulandı (§6.6) |
 
@@ -640,9 +640,9 @@ Kalan işler, öncelik sırasıyla:
    Akış sırasında çıkan transaction pooler arızası da kapatıldı: çalışma zamanı
    artık session pooler'da (§6.6 karar maddesi).
 5. ~~**Resend.**~~ — **YAPILDI**, §6.7. Gerçek digest gönderildi ve alındı.
-   **AMA AÇIK KARAR VAR:** eşleştirme `created_at`'e bakıyor ve toplu göç/backfill
-   tüm arşivi "yeni" gösteriyor — backfill gününde her aboneye 19 yıllık digest
-   gider. Backfill'e (madde 2) BAŞLAMADAN önce çözülmeli.
+   Çıkan `created_at` tuzağı da kapatıldı: yayın yaşı guard'ı (`MAX_AGE_DAYS`)
+   backfill'i kendiliğinden güvenli yapıyor. Kalan: kota bekçisi ve `daily` yolu
+   hiç tetiklenmedi.
 6. **AdSense.** Slot id'leri boş; `NEXT_PUBLIC_ADSENSE_CLIENT` boşken reklam
    basılmıyor, yalnızca ayrılmış kutu görünüyor. Spec §14.5: başvuru Milestone 4
    bitmeden yapılmamalı.
@@ -1329,37 +1329,65 @@ gönderebiliyor. **Yani bugün bu kurulumla ürün sahibinden başkasına e-post
 GİDEMEZ.** Alan adı alınıp Resend'de doğrulanınca `RESEND_FROM` gerçek adrese
 çevrilecek.
 
-### ⚠️ AÇIK KARAR: `created_at` toplu göçte tüm arşivi "yeni" gösteriyor
+### ✅ ÇÖZÜLDÜ: `created_at` toplu göçte tüm arşivi "yeni" gösteriyordu
 
-`findMatches` eşleşmeyi şuna bağlıyor:
+`findMatches` eşleşmeyi şuna bağlıyordu:
 
 ```sql
 r.created_at > coalesce(a.last_sent_at, now() - interval '7 days')
 ```
 
 `created_at` yayın tarihi DEĞİL, satırın veritabanına yazılma anı. Supabase'e
-taşıma 6.915 kaydın tamamını tek seferde insert etti, dolayısıyla **bütün arşiv
-"son 7 günde eklendi" görünüyor.** Ölçüldü: `created_at` aralığı
-`2026-08-31 19:51` – `23:06`, yani 6.915 kaydın hepsi. Test alarmı bu yüzden
-**613 kayıt** eşleştirdi.
+taşıma 6.915 kaydın tamamını tek seferde insert ettiği için **bütün arşiv "son 7
+günde eklendi" görünüyordu.** Test alarmı 613 kayıt eşleştirdi.
 
-Bugün zararsız kaldı çünkü tek abone ürün sahibi ve şablon zaten en fazla 15
-kayıt gösteriyor (`MAX_RECORDS_PER_EMAIL`), gerisini "+598 daha" diye yazıyor.
+**Çözüm: kürsör `created_at` olarak KALDI, üstüne yayın yaşı guard'ı eklendi.**
 
-**Ama 2006–2024 backfill'i (§6 madde 2) yapıldığı gün, o sırada aktif olan her
-aboneye 19 yıllık arşivi kapsayan bir digest gider.** Aynı şey herhangi bir
-toplu yeniden işlemede de olur. Bu bir hata değil, kaçırılmış bir varsayım:
-betik günlük ingest ritmi için yazılmış, toplu göç için değil.
+```sql
+and r.published_at > current_date - ${MAX_AGE_DAYS}::int   -- MAX_AGE_DAYS = 30
+```
 
-**Kod DEĞİŞTİRİLMEDİ, karar ürün sahibinin.** İki yön:
+Ölçüldü, gerçek arşivde:
 
-1. Eşleşmeyi `published_at`'e bağlamak. Daha doğru ama davranışı değiştirir:
-   geç işlenen eski bir sayı artık hiç bildirilmez.
-2. Toplu işten HEMEN ÖNCE bütün aktif alarmların `last_sent_at`'ini `now()`
-   yapmak. Kod değişmez, ama unutulabilir bir el işlemidir — backfill betiğine
-   bir adım olarak konursa unutulmaz.
+| ölçüt | eşleşen münhal kaydı |
+| --- | --- |
+| guard yokken | 613 |
+| **guard varken** | **23** |
+| guard'ın elediği | 590 |
 
-**Test için değiştirilenler geri alındı:** alarmın `preferred_weekday`'i
+Sonra gerçek betikle uçtan uca doğrulandı: `alert_deliveries`'te iki kayıt yan
+yana duruyor — `id 1` 613 kayıtla (guard öncesi), `id 2` 23 kayıtla (sonrası).
+
+**Neden `created_at` tamamen `published_at` ile değiştirilmedi.** Kürsörün işi
+"bunu sana zaten söyledim mi" sorusunu cevaplamak. Yalnızca `published_at`'e
+bakılsaydı, 1'inde yayımlanıp 5'inde işlenen bir kayıt (3'ünde digest gitmişse)
+kimseye HİÇ bildirilmezdi — kaynak site geç yayımladığında gerçekten oluyor.
+İki ölçüt birlikte: kürsör "yeni işlendi" der, guard "gerçekten yeni haber" der.
+
+**Bedeli açıkça:** yayımından 30 günden fazla sonra işlenen bir kayıt HİÇ KİMSEYE
+bildirilmez. Bilinçli — o noktada haber değil. 30 gün haftalık ritmin ~4 katı,
+sıradan geç yayımlama kapsam içinde kalıyor.
+
+**Asıl kazanç, backfill'in artık kendiliğinden güvenli olması.** 2006–2024
+backfill'i eklenen kayıtların `published_at`'i yıllar öncesi olduğu için hiçbiri
+eşleşmez. Elle "önce `last_sent_at`'i ileri al" adımı gerekmiyor — unutulacak bir
+şey kalmadı.
+
+### TUZAK — `::int` cast'i zorunlu, ve bunu ancak ÇALIŞTIRARAK görürsün
+
+İlk yazılışta cast yoktu. `tsc` temiz geçti, `eslint` temiz geçti, sorgu
+çalıştırılınca patladı:
+
+```
+operator does not exist: date > integer
+```
+
+Parametre tipsiz gidince Postgres `current_date - $1`'i `date - date` diye
+çözüyor (o da integer veriyor) ve karşılaştırma ölüyor. **Bu sorgunun testi yok
+ve derleme zamanında yakalanmıyor** — gece çalışan `dispatch-alerts` job'ında
+patlardı. Bu dosyada SQL değiştiren herkes sorguyu gerçekten koştursun.
+
+**Test için değiştirilenler geri alındı:****Test için değiştirilenler geri alındı:** alarmın `preferred_weekday`'i
 `assign_weekday`'in verdiği gerçek değere (3) döndürüldü. Test sırasında UTC
 gününe hizalanmıştı — haftalık alarmlar yalnızca `preferred_weekday` UTC gününe
 eşitken kuyruğa giriyor, bu yüzden elle denerken hizalamak gerekiyor.
