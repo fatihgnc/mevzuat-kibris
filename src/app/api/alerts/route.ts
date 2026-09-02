@@ -3,7 +3,14 @@ import { z } from 'zod';
 
 import { DOC_TYPES } from '@/lib/constants/doc-types';
 import { TOPIC_SLUGS } from '@/lib/constants/topics';
-import { createAlert, deleteAlert, listAlerts } from '@/lib/db/queries/alerts';
+import {
+  alertBelongsTo,
+  createAlert,
+  deleteAlert,
+  listAlerts,
+  setAlertFrequency,
+  setUserWeekday,
+} from '@/lib/db/queries/alerts';
 import { createSupabaseServerClient, getCurrentUser } from '@/lib/supabase/server';
 import { SITE_URL } from '@/lib/seo/config';
 
@@ -102,6 +109,71 @@ export async function GET() {
   if (!user) return NextResponse.json({ ok: false, alerts: [] }, { status: 401 });
 
   return NextResponse.json({ ok: true, alerts: await listAlerts(user.id) });
+}
+
+const patchSchema = z
+  .object({
+    id: z.number().int().positive(),
+    frequency: z.enum(['daily', 'weekly']).optional(),
+    preferredWeekday: z.number().int().min(0).max(6).optional(),
+  })
+  .refine((v) => v.frequency !== undefined || v.preferredWeekday !== undefined, {
+    message: 'Değiştirilecek bir alan yok.',
+  });
+
+/**
+ * Changing an existing follow — spec 10.3 rule 2 ("the user can change their day").
+ *
+ * This route did not exist while two places in the interface already promised the
+ * change: the spec rule above, and the notice shown when the daily quota is full
+ * ("Dilediğiniz zaman değiştirebilirsiniz"). The promise came first; this is the
+ * code catching up to it.
+ *
+ * The weekday is applied to ALL of the user's weekly follows, not this one — see
+ * setUserWeekday for why that invariant matters. The frequency is per follow and
+ * may come back downgraded, so the effective values are returned rather than
+ * echoed.
+ */
+export async function PATCH(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false }, { status: 401 });
+
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Geçersiz istek.' }, { status: 400 });
+  }
+
+  const parsed = patchSchema.safeParse(payload);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: false, error: 'Geçersiz takip bilgisi.' }, { status: 400 });
+  }
+
+  const { id, frequency, preferredWeekday } = parsed.data;
+
+  /*
+   * Ownership is enforced in the queries (`and user_id = ...`) — RLS does not apply
+   * to this connection (see db/client.ts). It is checked HERE as well so the answer
+   * is honest: the weekday is applied user-wide and ignores `id`, so without this
+   * check a request naming someone else's follow would still return ok and quietly
+   * move the caller's own follows instead.
+   */
+  if (!(await alertBelongsTo(id, user.id))) {
+    return NextResponse.json({ ok: false, error: 'Takip bulunamadı.' }, { status: 404 });
+  }
+
+  const effectiveFrequency = frequency
+    ? await setAlertFrequency(id, user.id, frequency)
+    : undefined;
+
+  if (preferredWeekday !== undefined) await setUserWeekday(user.id, preferredWeekday);
+
+  return NextResponse.json({
+    ok: true,
+    frequency: effectiveFrequency ?? undefined,
+    downgraded: frequency !== undefined && effectiveFrequency !== frequency,
+  });
 }
 
 export async function DELETE(request: Request) {

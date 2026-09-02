@@ -95,6 +95,96 @@ export async function createAlert(input: CreateAlertInput): Promise<AlertRow> {
   return mapAlert(rows[0]!);
 }
 
+/** The ceiling on daily subscribers (spec 10.3 rule 5); see createAlert. */
+const DAILY_SUBSCRIBER_CAP = 60;
+
+/**
+ * Changes one alert's frequency. Spec 10.3 rule 5 applies here exactly as it does
+ * on creation: past the daily-subscriber ceiling the request becomes weekly.
+ *
+ * It returns the frequency that was ACTUALLY written, because the caller has to
+ * show it. Quietly storing something other than what the user picked is how the
+ * interface ends up lying — and this control exists precisely because the
+ * interface was already promising a change it could not perform.
+ */
+export async function setAlertFrequency(
+  alertId: number,
+  userId: string,
+  frequency: AlertFrequency,
+): Promise<AlertFrequency | null> {
+  let effective = frequency;
+
+  if (frequency === 'daily') {
+    const rows = await db.execute<Row<{ n: string }>>(sql`
+      select count(*)::int as n
+        from alerts
+       where is_active and frequency = 'daily' and id <> ${alertId}
+    `);
+    if (Number(rows[0]?.n ?? 0) >= DAILY_SUBSCRIBER_CAP) effective = 'weekly';
+  }
+
+  /*
+   * RETURNING is what tells us the row was actually ours. The `and user_id` filter
+   * already stops one user editing another's follow, but without reading the
+   * result the update is indistinguishable from a no-op — the first version of
+   * this returned the requested frequency either way, so the API answered
+   * "ok, daily" for somebody else's alert while changing nothing.
+   */
+  /*
+   * Coming BACK to weekly, the follow adopts the user's current day rather than
+   * keeping whatever it had. All of a user's weekly follows share one day — that
+   * is what setUserWeekday maintains and what the list screen tells the user
+   * ("changing one moves the others"). A follow parked on daily misses those
+   * updates, so without this it would return wearing a stale day and quietly break
+   * the invariant. Falling back to assign_weekday covers the case where this is
+   * the user's only weekly follow.
+   */
+  const updated = await db.execute<Row<{ id: string }>>(sql`
+    update alerts a set
+      frequency = ${effective},
+      preferred_weekday = ${
+        effective === 'weekly'
+          ? sql`coalesce(
+              (select w.preferred_weekday from alerts w
+                where w.user_id = a.user_id and w.frequency = 'weekly' and w.id <> a.id
+                limit 1),
+              assign_weekday(a.user_id::uuid)
+            )`
+          : sql`a.preferred_weekday`
+      }
+     where a.id = ${alertId} and a.user_id = ${userId}
+     returning a.id
+  `);
+
+  return updated.length ? effective : null;
+}
+
+/** Whether this follow exists AND belongs to this user. */
+export async function alertBelongsTo(alertId: number, userId: string): Promise<boolean> {
+  const rows = await db.execute<Row<{ id: string }>>(sql`
+    select id from alerts where id = ${alertId} and user_id = ${userId}
+  `);
+  return rows.length > 0;
+}
+
+/**
+ * Changes the weekday — FOR EVERY WEEKLY ALERT THE USER HAS, not just one.
+ *
+ * The day is a property of the user, not of a single follow: assign_weekday()
+ * hashes user_id, so all of a user's weekly alerts already share a day, and
+ * createAlert's contract depends on that (it is what would let several follows be
+ * combined into one email later). Letting one row drift would break that
+ * invariant silently.
+ *
+ * Spec 10.3 rule 2 reads the same way — the user changes THEIR day.
+ */
+export async function setUserWeekday(userId: string, weekday: number): Promise<void> {
+  await db.execute(sql`
+    update alerts set preferred_weekday = ${weekday}
+     where user_id = ${userId} and frequency = 'weekly'
+  `);
+}
+
 export async function setAlertActive(
   alertId: number,
   userId: string,

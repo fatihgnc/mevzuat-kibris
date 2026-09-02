@@ -87,7 +87,7 @@ export function FollowCard({
       // (spec 10.3 rule 5). We tell the user what happened; we do not change it silently.
       if (data.frequency && data.frequency !== frequency) {
         setMessage(
-          'Günlük özet kontenjanı dolu olduğu için haftalık özete kaydedildik. Dilediğiniz zaman değiştirebilirsiniz.',
+          'Günlük özet kontenjanı dolu olduğu için haftalık özete kaydedildik. Takiplerim sayfasından değiştirebilirsiniz.',
         );
       }
       if (typeof data.preferredWeekday === 'number') setAssignedWeekday(data.preferredWeekday);
