@@ -1463,16 +1463,24 @@ yalnızca kendi tablosunu siliyor. `auth.users` satırını silmek Admin API
 `SUPABASE_SERVICE_ROLE_KEY`** demek — şu an uygulama o anahtarı çalışma zamanında
 hiç kullanmıyor ve servis rolü RLS'i baypas ediyor.
 
-**KOD DEĞİŞTİRİLMEDİ — karar ürün sahibinin.** İki yön:
+**KARAR: söz düzeltildi, silme genişletilmedi.** Ürün sahibinin tercihi. Servis
+rolü anahtarını çalışma zamanına taşımak (Admin API şıkkı) RLS'i baypas eden bir
+anahtarı lambda'lara sokmak demekti; bunun yerine metin gerçeğe uyduruldu.
 
-1. **Sözü tut:** iptalde Admin API ile `auth.users` satırını da sil. Oturumlar da
-   kapanır. Bedeli: servis rolü anahtarını çalışma zamanı ortamına koymak.
-2. **Sözü düzelt:** gizlilik sayfasındaki ve iptal ekranındaki cümleyi
-   gerçeğe uydur ("takipleriniz ve adresinizle bağınız silinir, giriş kaydınız
-   Supabase Auth'ta kalır" gibi).
+Değişen iki yer — **birlikte değişmeliler, biri diğerini yalanlamasın:**
 
-Hangisi seçilirse seçilsin **ikisi birden düzeltilmeli** — bugün kod ile sayfa
-birbirini yalanlıyor.
+- `src/app/gizlilik/page.tsx` — "Çıktığınızda adresiniz kaydımızdan silinir"
+  cümlesi kaldırıldı. Yerine ne silindiği ("takipleriniz ve onlara bağlı e-posta
+  kaydınız"), neyin kaldığı ("giriş kaydınız kimlik doğrulama sağlayıcımızda")
+  ve çaresi (iletişim adresine yazmak) yazıldı.
+- `src/app/takip/page.tsx` — `durum=iptal` kutusu aynı şekilde düzeltildi.
+
+İkisinin de yanına, kodun gerçekte ne yaptığını ve silme tamamlanırsa metnin de
+aynı commit'te geri alınması gerektiğini söyleyen yorum konuldu.
+
+**Silme tamamlanmak istenirse yol açık:** iptal handler'ında son alarm gidince
+`supabase.auth.admin.deleteUser(userId)` çağırmak. Bedeli çalışma zamanında
+`SUPABASE_SERVICE_ROLE_KEY`.
 
 **Test verisi kalmadı.** Deneme sırasında iki alarm da silindi; veritabanında
 alarm, profil ve teslimat kaydı yok. Yeni test için `/takip`'ten yeniden takip

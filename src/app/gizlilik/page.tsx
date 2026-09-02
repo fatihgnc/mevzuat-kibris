@@ -25,9 +25,29 @@ export default function PrivacyPage() {
           kelime için yeni kayıt yayımlandığında bildirim göndermek için kullanılıyor. Pazarlama
           e-postası göndermiyoruz, adresinizi kimseyle paylaşmıyor ve satmıyoruz.
         </p>
+        {/*
+          * WORDED TO MATCH WHAT THE CODE ACTUALLY DOES — measured, not assumed.
+          *
+          * /api/abonelik-iptal deletes the alerts and, once none are left, the
+          * `profiles` row. It does NOT touch `auth.users`, which belongs to
+          * Supabase Auth and still holds the address; removing that needs the
+          * Admin API and a service-role key at run time, which the app
+          * deliberately does not carry. Verified after a real unsubscribe:
+          * alerts 0, profiles 0, alert_deliveries 0, auth.users 1.
+          *
+          * This paragraph used to promise "your address is deleted from our
+          * records", which was simply untrue. If the deletion is ever made
+          * complete, change this text back in the same commit — and the /takip
+          * `durum=iptal` box with it.
+          */}
         <p className="m-0">
-          Her e-postanın altında tek tıkla abonelikten çıkma bağlantısı var. Çıktığınızda adresiniz
-          kaydımızdan silinir.
+          Her e-postanın altında tek tıkla abonelikten çıkma bağlantısı var. Çıktığınızda
+          takipleriniz ve onlara bağlı e-posta kaydınız silinir; size bir daha e-posta gitmez.
+        </p>
+        <p className="m-0">
+          Giriş kaydınız — yalnızca e-posta adresiniz — kimlik doğrulama sağlayıcımızda kalır, ki
+          daha sonra aynı adresle yeniden giriş yapabilesiniz. Bunun da silinmesini isterseniz{' '}
+          <a href={'mailto:' + CONTACT_EMAIL}>{CONTACT_EMAIL}</a> adresine yazın.
         </p>
       </Section>
 

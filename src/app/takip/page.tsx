@@ -66,9 +66,15 @@ export default async function FollowPage({ searchParams }: Props) {
         {status === 'iptal' ? (
           <div className="mt-6 rounded-md border border-line bg-surface-muted p-5">
             <p className="m-0 text-2xl font-semibold text-ink">Takip durduruldu</p>
+            {/*
+              * Kept in step with the privacy page — see the note there. The
+              * endpoint deletes the alerts and the `profiles` row, not the
+              * Supabase Auth user, so we do not claim the address is gone.
+              */}
             <p className="mt-2 text-base leading-[1.55] text-ink-muted">
-              Bu konuda başka e-posta gitmeyecek. Başka takibiniz kalmadıysa adresinizi
-              kaydımızdan sildik.
+              Bu konuda başka e-posta gitmeyecek. Başka takibiniz kalmadıysa e-posta adresinizi
+              takip kayıtlarımızdan sildik; giriş kaydınız, yeniden giriş yapabilmeniz için
+              duruyor.
             </p>
             <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
               Yanlışlıkla yaptıysanız aşağıdan yeniden kurabilirsiniz.
