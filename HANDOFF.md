@@ -1392,9 +1392,42 @@ patlardı. Bu dosyada SQL değiştiren herkes sorguyu gerçekten koştursun.
 gününe hizalanmıştı — haftalık alarmlar yalnızca `preferred_weekday` UTC gününe
 eşitken kuyruğa giriyor, bu yüzden elle denerken hizalamak gerekiyor.
 
-**Denenmemiş kalan:** kota bekçisi (`DAILY_CAP = 100`, `SAFETY_MARGIN = 10`) ve
-`deferred` yolu hiç tetiklenmedi — bunun için 90'dan fazla gönderim gerekiyor.
-Günlük (`daily`) sıklık yolu da denenmedi; kuyrukta `daily: 0` vardı.
+### Kota bekçisi ve `daily` yolu — İKİSİ DE DENENDİ
+
+**`daily` yolu.** Alarm `frequency='daily'` yapılıp koşuldu:
+`{"daily":1,"weekly":0,"queue":1}` → gönderildi. Haftalık dalın
+`preferred_weekday` süzgeci bu yolda uygulanmıyor, doğrusu da bu.
+
+**Kota bekçisi — 90 e-posta göndermeden denendi.** `sentToday()` yalnızca
+`alert_deliveries`'te `status='sent'` ve `sent_at::date = current_date` olan
+satırları sayıyor, yani sayaç sentetik satırla doyurulabiliyor. 88 sahte satır
+eklendi (`provider_id = 'SENTETIK-TEST-*'`), sayaç 90 oldu,
+`budget = 100 - 10 - 90 = 0`.
+
+Sonuç, spec 10.3 kural 4'ün dediği gibi:
+
+```
+WARN  günlük kota doldu, gönderim ertelendi {"alertId":3}
+INFO  alarm gönderimi bitti {"sent":0}
+```
+
+- `alert_deliveries`'e `status='deferred'` kaydı yazıldı ve **23 kayıt id'sini
+  sakladı** — sessizce düşürülmedi.
+- `last_sent_at` **null bırakıldı**, yani aynı kayıtlar yarınki koşumda tekrar
+  eşleşecek.
+- Sıfır e-posta gitti.
+
+`budget` döngü içinde her gönderimde bir azalıyor (`budget -= 1`), yani bekçi
+yalnızca koşum başındaki sayıya bakmıyor.
+
+**Temizlendi:** 88 sentetik satır ve `deferred` kaydı silindi, alarm
+`weekly` + `preferred_weekday = 3` hâline döndürüldü. Veritabanında yalnızca 3
+gerçek gönderim kaydı kaldı (613, 23, 23).
+
+**Hâlâ denenmemiş:** `failed` yolu (Resend'in hata döndürmesi) ve
+`/api/abonelik-iptal` (e-postadaki tek tık çıkış bağlantısı) — ikincisi HMAC
+jetonuyla çalışıyor ve `ALERT_UNSUBSCRIBE_SECRET` iki tarafta da tanımlı
+değilken `REVALIDATE_SECRET`'e düşüyor (§6.7 başındaki uyarı).
 
 ---
 
