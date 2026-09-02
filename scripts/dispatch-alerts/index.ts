@@ -112,7 +112,34 @@ async function findMatches(frequency: 'daily' | 'weekly', weekday: number): Prom
       left join record_entities re on re.record_id = r.id
      where a.is_active
        and a.frequency = ${frequency}
-       ${frequency === 'weekly' ? sql`and a.preferred_weekday = ${weekday}` : sql``}
+       -- Weekly alerts fire on their assigned weekday, but a missed slot must not
+       -- cost a whole week. A weekly alert only ever matched preferred_weekday =
+       -- today, so if the quota guard deferred it or the send failed on that one
+       -- day, the next chance was seven days later. The quota-guard comment
+       -- promised "tomorrow's run", which was only ever true for DAILY alerts --
+       -- and weekly is the default frequency.
+       --
+       -- A slot is missed in exactly two ways and both write a row: deferred
+       -- (quota) and failed (send error). The catch-up reads that row instead of
+       -- guessing from dates, and it clears itself -- once a send succeeds,
+       -- last_sent_at moves past those rows and the EXISTS goes false.
+       --
+       -- Normal scheduling is untouched: a healthy alert still fires only on its
+       -- own weekday, so load stays spread (spec 10.3 rule 2) and the day promised
+       -- on the confirmation screen stays true.
+       ${
+         frequency === 'weekly'
+           ? sql`and (
+               a.preferred_weekday = ${weekday}
+               or exists (
+                 select 1 from alert_deliveries d
+                  where d.alert_id = a.id
+                    and d.status in ('deferred', 'failed')
+                    and d.sent_at > coalesce(a.last_sent_at, '-infinity'::timestamptz)
+               )
+             )`
+           : sql``
+       }
        and (
              (a.query is not null and r.search_vector @@ mk_tsquery(a.query))
           or (cardinality(a.topics)     > 0 and rt.topic     = any(a.topics))
@@ -208,9 +235,13 @@ async function main() {
 
     if (budget <= 0) {
       /*
-       * Quota guard (spec 10.3 rule 4). We do not drop silently: the deferred
-       * dispatch is logged, and because last_sent_at is unchanged the same records
-       * match again on tomorrow's run.
+       * Quota guard (spec 10.3 rule 4). We do not drop silently: the deferral is
+       * written to alert_deliveries and last_sent_at is left alone, so the same
+       * records match again on the next run.
+       *
+       * That 'deferred' row is what makes the retry work for WEEKLY alerts too —
+       * see the catch-up condition in findMatches. Without it a deferred weekly
+       * alert would wait for its own weekday to come round again, a full week.
        */
       await sql`
         insert into alert_deliveries (alert_id, record_ids, status)
