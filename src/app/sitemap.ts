@@ -7,22 +7,26 @@ import {
   recentRecordEntries,
   staticEntries,
   topicYearEntries,
+  SITEMAP_CHUNK_COUNT,
 } from '@/lib/seo/sitemap-chunks';
 
 /**
  * A chunked sitemap — spec 8.2 rule 1.
  *
- * Next.js generates /sitemap/[id].xml via generateSitemaps, and the root
- * /sitemap.xml becomes their index. Chunk 0 is static pages and topics, 1 the last
- * 24 months of records (fetched most often), 2 issues, 3 entities, 4 topic x year,
- * 5+ the older archive.
+ * generateSitemaps puts the chunks at /sitemap/<id>.xml. Chunk 0 is static pages
+ * and topics, 1 the last 24 months of records (fetched most often), 2 issues, 3
+ * entities, 4 topic x year, 5+ the older archive.
+ *
+ * THE INDEX AT /sitemap.xml IS OURS TO SERVE — see app/sitemap.xml/route.ts. Next
+ * does not create one when generateSitemaps is used; the comment here used to
+ * claim it did, and because nothing ever requested that path locally the claim
+ * survived until production returned 404 for it while robots.txt pointed straight
+ * at it.
  */
 export const revalidate = 86400;
 
-const ARCHIVE_CHUNKS = 6;
-
 export function generateSitemaps() {
-  return Array.from({ length: 5 + ARCHIVE_CHUNKS }, (_, id) => ({ id }));
+  return Array.from({ length: SITEMAP_CHUNK_COUNT }, (_, id) => ({ id }));
 }
 
 export default async function sitemap({

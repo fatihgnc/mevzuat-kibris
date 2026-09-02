@@ -21,7 +21,9 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/ara', '/takip', '/hesap', '/api/', '/auth/'],
       },
     ],
-    sitemap: SITE_URL + '/sitemap.xml',
+    // /sitemap.xml is Next's own metadata path and answers 404 here, because
+    // app/sitemap.ts uses generateSitemaps. See app/sitemap-index.xml/route.ts.
+    sitemap: SITE_URL + '/sitemap-index.xml',
     host: SITE_URL,
   };
 }

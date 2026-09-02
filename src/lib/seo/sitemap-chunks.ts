@@ -21,6 +21,17 @@ import { ARCHIVE_START_YEAR, absoluteUrl } from './config';
 
 const RECENT_MONTHS = 24;
 
+/**
+ * How many sitemap chunks exist: 5 fixed ones plus the archive pages.
+ *
+ * It lives here rather than in app/sitemap.ts because TWO routes need it and they
+ * must not drift: generateSitemaps produces /sitemap/<id>.xml, and the index at
+ * /sitemap.xml has to list exactly those ids. A mismatch is invisible until a
+ * crawler follows a link to a chunk that was never generated.
+ */
+export const SITEMAP_ARCHIVE_CHUNKS = 6;
+export const SITEMAP_CHUNK_COUNT = 5 + SITEMAP_ARCHIVE_CHUNKS;
+
 type Entry = MetadataRoute.Sitemap[number];
 
 function entry(
