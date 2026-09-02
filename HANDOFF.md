@@ -1648,6 +1648,89 @@ bir kutu. **`durum=hata`'dan ayrıldı** — ikisi aynı olsaydı "bağlantı ge
 derdi, ki doğru değil, ve kullanıcıyı aynı sonuçla biten magic link turuna
 tekrar sokardı.
 
+
+### 6.9 Vercel'e çıkış — ve bağlantı bütçesinin gerçekle çarpışması
+
+Site canlı: `https://mevzuatkibris.com`. Build 3.399 sayfa, `EMAXCONNSESSION` yok,
+sitemap zinciri çalışıyor, auth ve e-posta üretimde uçtan uca doğrulandı.
+
+Ölçülen build: 1m38s'te üretim başladı, 6m38s'te 2.999 sayfa ≈ **10 sayfa/sn**
+(yerelde 14). Yani Vercel ~1,6× yavaş — Atlantik ötesi bir build için beklenenden
+iyi. **Build bölgesi Hobby planında değiştirilemiyor**; "Functions → Region" ayarı
+çalışma zamanını düzeltir, build'i değil. (Bu dosyanın eski hâli `fra1` yapmayı
+söylüyordu, o eksik bir tavsiyeydi.)
+
+### ⚠️ ASIL DERS: çalışma zamanı bağlantı bütçesi ARİTMETİKLE KURULAMAZ
+
+`poolConfig` "derleme 9 + çalışma zamanı 6 = 15" diye kurulmuştu. **Bu bütçe,
+siteyi kimse kullanmadığı sürece tuttu.** Canlıya çıkıp gerçek istek gelmeye
+başlayınca session pooler doydu ve **arama üretimde 500 vermeye başladı**:
+
+```
+/                     200   (statik sayfalar etkilenmedi)
+/ara?q=ihale          500   ← EMAXCONNSESSION
+/api/status           500
+/sayilar/2026         200   ← doygunluk, tam tükenme değil
+```
+
+60 saniye sessizlikten sonra da düzelmedi, yani geçici yük değildi.
+
+**Sebep — bunu bir daha unutmayalım:** derlemenin işçi sayısı bizim elimizde,
+dolayısıyla kullanımı hesaplanabilir. **Lambda sayısı bizim elimizde değil** —
+Vercel trafiğe göre ölçekliyor. Üstelik lambda çağrılar arasında **donduruluyor**,
+o yüzden `idle_timeout` hiç tetiklenmiyor ve tuttuğu istemci slotu, örnek geri
+dönüştürülene kadar serbest kalmıyor. "6 lambda" varsayımının dayanağı yoktu.
+
+Bu, transaction pooler'ın serverless için önerilmesinin sebebidir. §6.6'da onu
+"cevap kaybediyor" diye elemiştik — ölçüme dayalı doğru bir karardı — ama yerine
+konan çözümün bu maliyeti vardı ve **yalnızca gerçek trafikte görünüyordu.**
+
+**ÇÖZÜM: pooler'ın havuzu panelden büyütüldü, 15 → 40.**
+Supabase → Database → Connection Pooling → Pool Size. Ücretsiz planda
+düzenlenebiliyor. Güvenli olduğu ölçüldü: Postgres `max_connections` **60** ve o
+sırada **30** kullanımdaydı. Değişiklikten hemen sonra arama 200'e döndü.
+
+Tavan yükseldiği için derleme havuzu da `max: 3` → `max: 4`'e geri alındı
+(3 × 4 = 12). Derlemeyi 4m37s'den ~2m49s'ye indirmesi bekleniyor — bir sonraki
+dağıtımda ölçülecek.
+
+**Bir daha `EMAXCONNSESSION` görülürse:** önce Pool Size'a bak, koda dokunma. Ama
+`max_connections`'ı da kontrol et — pooler onu aşamaz.
+
+### Üretimde bulunan hata: robots.txt 404'e işaret ediyordu
+
+Sağlık kontrolünde çıktı ve **yalnızca üretimde çıkabilirdi**:
+
+```
+robots.txt   →  Sitemap: /sitemap.xml
+/sitemap.xml →  404
+/sitemap/0..10.xml  →  hepsi 200
+```
+
+Google hiçbir sitemap bulamıyordu; 3.000+ URL kimseye duyurulmuyordu.
+`app/sitemap.ts`'teki yorum "Next kökü indeks yapar" diyordu — **yapmıyor.**
+Hiçbir sayfa `/sitemap.xml`'e link vermediği için yerelde hiç istenmemişti; o
+yolu yalnızca tarayıcılar ister.
+
+İndeks `/sitemap.xml`'e de konulamıyor: orası metadata kuralınca `app/sitemap.ts`'e
+ayrılmış ve oraya route handler koyunca **derleniyor ama istekte 500 dönüyor**
+(ölçüldü). `/sitemap-index.xml`'den servis ediliyor, robots.txt oraya bakıyor.
+Parça sayısı `SITEMAP_CHUNK_COUNT` ile tek yerden geliyor.
+
+**Ders:** yalnızca makinelerin istediği yollar (robots, sitemap, RSS, OG) yerel
+gezinmede hiç denenmez. Dağıtımdan sonra tek tek `curl`'lenmeli.
+
+### Alan adı ve DNS
+
+`mevzuatkibris.com` Cloudflare'da, apex Vercel'e **CNAME flattening** ile bağlı
+(`774e28ece5314738.vercel-dns-017.com`), **proxy KAPALI** (gri bulut). Doğrulandı:
+flattening apex'e adres koyuyor ama **MX ve TXT kayıtlarına dokunmuyor** — Email
+Routing, SPF, DKIM ve DMARC olduğu gibi duruyor.
+
+`www` ayrı bir kayıt olarak **308 kalıcı yönlendirme** ile apex'e gidiyor. Tek
+kanonik host olması şart: `NEXT_PUBLIC_SITE_URL` apex ve PKCE `code_verifier`
+çerezi host'a bağlı, iki host olsaydı magic link kırılırdı.
+
 ---
 
 ## 7. Yön bulma

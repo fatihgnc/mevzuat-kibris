@@ -10,3 +10,15 @@ tsconfig.tsbuildinfo
 next-env.d.ts.bak
 /tmp/
 .DS_Store
+
+# Gecici test ciktilari. jar.txt bir kez yanlislikla commit'lendi ve icinde
+# CANLI Supabase oturum cerezi vardi; bu satirlar onun tekrarini engelliyor.
+jar.txt
+cookie.txt
+payload*.json
+resp*.json
+final.html
+build-*.log
+repro-*.ts
+probe-*.ts
+q.ts

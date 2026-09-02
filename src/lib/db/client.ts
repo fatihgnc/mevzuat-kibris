@@ -44,28 +44,29 @@ declare global {
 }
 
 /**
- * The connection budget. Everything here is arithmetic against ONE number:
- * the session pooler allows 15 clients, and that is a free-tier limit we are
- * deliberately staying inside rather than paying to raise.
+ * The connection budget, against the session pooler's client ceiling.
+ *
+ * That ceiling is a DASHBOARD SETTING, not a law: it ships at 15 and was raised to
+ * 40 (Supabase -> Database -> Connection Pooling -> Pool Size) after production
+ * traffic exhausted it. Postgres itself allows 60 and was using 30 at the time, so
+ * 40 leaves real headroom.
  *
  *   build     3 prerender workers (experimental.cpus in next.config.ts)
- *             x max 3  =  9 clients
+ *             x max 4  =  12 clients
  *   runtime   1 per lambda; a Vercel lambda serves one request at a time, so a
  *             bigger pool would only sit idle
  *
- * The two have to be added together, not considered separately: during a deploy
- * the build runs while the PREVIOUS deployment is still serving traffic. 9 for
- * the build leaves 6 for concurrent lambdas. Most page views never reach a
- * lambda at all — record and list pages are prerendered and ISR-cached (spec
- * 11.1), so only /ara, /takip and cache misses draw from this budget.
+ * WHY THE RUNTIME SIDE CANNOT BE BUDGETED THE WAY THE BUILD SIDE CAN. The build's
+ * worker count is pinned, so its usage is arithmetic. The lambda count is not ours
+ * to set — Vercel scales it with traffic — and worse, a lambda is FROZEN between
+ * invocations, so `idle_timeout` never fires and its client slot stays held until
+ * the instance is recycled. The first budget here assumed "6 lambdas" and held for
+ * exactly as long as nobody used the site: once it was live, search returned 500
+ * with EMAXCONNSESSION while static pages kept serving.
  *
- * The cost of max 1 at runtime, stated plainly: the four queries in
- * getRecordBySlug's Promise.all are serialised, so a cache-miss render pays
- * about four round-trips instead of one. That is the trade for not failing
- * outright at the cap — latency degrades gracefully, EMAXCONNSESSION does not.
- *
- * If you raise any of these, redo the sum. If it exceeds 15 the build dies with
- * EMAXCONNSESSION and lambdas start failing to connect.
+ * So the runtime side is bounded by the ceiling, not by this file. If EMAXCONNSESSION
+ * appears again, raise Pool Size before touching anything here — and check
+ * `max_connections` first, because the pooler cannot exceed it.
  */
 function poolConfig(): { url: string | undefined; max: number } {
   const build = process.env.NEXT_PHASE === 'phase-production-build';
@@ -73,7 +74,7 @@ function poolConfig(): { url: string | undefined; max: number } {
     // DATABASE_URL_POOLED is only a fallback now — see the note above. Local
     // Postgres has no pooler at all, where either name resolves to the one URL.
     url: process.env.DATABASE_URL || process.env.DATABASE_URL_POOLED,
-    max: build ? 3 : 1,
+    max: build ? 4 : 1,
   };
 }
 
