@@ -1243,7 +1243,7 @@ tekrarla — sorun Supavisor tarafındaydı ve düzeldiğine dair bir kanıt yok
 ### Diğer notlar
 
 **SMTP kuruldu.** Supabase Auth → Custom SMTP → Resend (`smtp.resend.com:587`,
-kullanıcı `resend`, şifre API anahtarı), gönderen `onboarding@resend.dev`.
+kullanıcı `resend`, şifre API anahtarı), gönderen `bildirim@mevzuatkibris.com`.
 Rate limit ayrı alandan yükseltildi — custom SMTP açmak onu kendiliğinden
 yükseltmiyor.
 
@@ -1251,19 +1251,25 @@ yükseltmiyor.
 ayrı; arka arkaya iki istek atılırsa ikincisi `429 over_email_send_rate_limit`
 alır. Test ederken araya bekleme koy.
 
-**Mail SPAM'e düşüyor.** `onboarding@resend.dev` ortak sandbox alan adı, marka
-hizalaması yok. Gerçek alan adı doğrulanınca tekrar bakılmalı.
+**Mail artık GELEN KUTUSUNA düşüyor.** Sandbox döneminde spam'e düşüyordu;
+`mevzuatkibris.com` Resend'de doğrulandıktan (DKIM + SPF) sonra düzeldi.
 
-**ALAN ADI YOK, VE `mevzuatkibris.com` YALNIZCA YER TUTUCU.** Doğrulandı:
-NXDOMAIN (dns.google). Ürün sahibinin ifadesiyle "hiçbir şey alınmadı, tamamen
-localhost'tayız, spec'teki alan adı da geçici". Yani bu bir eksik değil, henüz
-gelmemiş bir karar — **isim de değişebilir.**
+**ALAN ADI ALINDI: `mevzuatkibris.com`.** Cloudflare Registrar'dan, DNS de
+orada. Koddaki varsayılanlar zaten bu adı taşıdığı için (`SITE_URL` ve
+`CONTACT_EMAIL`, `src/lib/seo/config.ts`) kodda değişiklik gerekmedi.
 
-Sonucu şu: koda gömülü hiçbir yerde bu ada bel bağlama. `SITE_URL`
-(`src/lib/seo/config.ts`) `NEXT_PUBLIC_SITE_URL`'den okuyor ve varsayılanı
-`https://mevzuatkibris.com`; sitemap/JSON-LD mutlak URL'leri, RSS ve magic
-link'in `emailRedirectTo`'su hep oradan geliyor. Alan adı belli olunca
-değiştirilecek TEK yer bu env değişkeni — varsayılanı da o zaman güncelle.
+Geriye env değerleri kaldı — **Vercel'e çıkarken yapılacaklar:**
+
+- `NEXT_PUBLIC_SITE_URL` → `https://mevzuatkibris.com` (yerelde dev portu)
+- GitHub Actions → **Variables**: `RESEND_FROM`, `SITE_URL`
+- Supabase → Auth → URL Configuration → Site URL + redirect izin listesi
+- Cloudflare → **Email Routing** (ücretsiz) → `iletisim@` ve `bildirim@`'i gerçek
+  bir kutuya yönlendir. **Bu opsiyonel değil:** `iletisim@mevzuatkibris.com`
+  `/iletisim` ve `/gizlilik` sayfalarında yayımlanıyor ve site "kaldırma
+  talepleri **yedi gün içinde** yanıtlanır" diyor; ayrıca arşivi tarayan botun
+  User-Agent'ında da bu adres var. Yönlendirme kurulmazsa hepsi geri döner.
+- DMARC kaydı henüz DNS'te görünmüyor (Resend'de opsiyonel). Teslimatı
+  iyileştirir, eklenmesi iyi olur.
 
 **PKCE akışı TEK TARAYICIYA bağlı — kısıt duruyor, ekran DÜZELTİLDİ.**
 `code_challenge_method: s256` ölçüldü. `code_verifier` çerezini
@@ -1323,11 +1329,36 @@ güncellendi — yani aynı kayıtlar ertesi koşumda tekrar gönderilmiyor.
 `dispatch-alerts` GitHub Actions'ta koşuyor, çalışma zamanı Resend'e hiç
 dokunmuyor.
 
-Gönderen şu an `onboarding@resend.dev`: alan adı alınmadığı için doğrulanmış
-alan adımız yok ve bu sandbox adres yalnızca Resend hesabının kendi e-postasına
-gönderebiliyor. **Yani bugün bu kurulumla ürün sahibinden başkasına e-posta
-GİDEMEZ.** Alan adı alınıp Resend'de doğrulanınca `RESEND_FROM` gerçek adrese
-çevrilecek.
+### ALAN ADI ALINDI — sandbox kısıtı kalktı, akış yabancı kullanıcı için çalışıyor
+
+`mevzuatkibris.com` Cloudflare'dan alındı ve Resend'de doğrulandı (DKIM TXT +
+SPF TXT + bounce MX; bağımsız `nslookup` ile de teyit edildi, nameserver'lar
+Cloudflare'da). Gönderen artık `Mevzuat Kıbrıs <bildirim@mevzuatkibris.com>`,
+hem alarm digest'lerinde (`RESEND_FROM`) hem Supabase Auth'un SMTP ayarında.
+
+**Kısıtın kalktığı ölçüldü.** Sandbox döneminde hesap sahibinden başkasına
+gönderim denemesi `502` veriyordu (`over_email_send_rate_limit` değil, Resend
+alıcıyı reddediyordu). Aynı istek doğrulamadan sonra `200` döndü.
+
+Sonra uçtan uca, **yepyeni bir kullanıcıyla** koşuldu
+(`fathgnc.dev+yeniuser@gmail.com` — Supabase açısından tamamen yeni bir kimlik):
+
+```
+POST /api/alerts            -> 200
+magic link                  -> GELEN KUTUSUNA düştü (spam'e değil)
+/auth/callback              -> /takip?durum=onay&takip=7&gun=5&siklik=weekly
+```
+
+Doğrulananlar: yeni `auth.users` satırı, trigger'ın kurduğu `profiles` satırı,
+alarm, ve Türkçe etiketin bozulmadan yazılması (`İhale ilanları`, baş harfi
+Türkçe İ). **`assign_weekday` gerçekten dağıtıyor:** iki kullanıcı 3 ve 5.
+günlere düştü — spec 10.3 kural 2'nin amacı buydu.
+
+**TUZAK — `NEXT_PUBLIC_SITE_URL` ile dev sunucusunun portu ayrı düşerse magic
+link ölü porta gider.** Dev sunucusu 3061'deyken `.env.local` hâlâ 3000
+diyordu; Supabase `redirect_to`'yu oradan aldığı için bağlantı hiçbir şeyin
+dinlemediği porta çıkıyordu. Elle düzeltilip takip edildi, sonra `.env.local`
+3061'e alındı. Portu değiştiren bu değişkeni de değiştirsin.
 
 ### ✅ ÇÖZÜLDÜ: `created_at` toplu göçte tüm arşivi "yeni" gösteriyordu
 
