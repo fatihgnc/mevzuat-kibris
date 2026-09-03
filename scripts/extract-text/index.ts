@@ -126,6 +126,73 @@ export function estimateQuality(text: string): number | null {
   return plausible / words.length;
 }
 
+/**
+ * Corruption the quality score CANNOT see: a dropped dotted capital İ.
+ *
+ * Some source PDFs carry a text layer whose İ comes out as a lowercase "i" in
+ * the middle of an otherwise capitalised word — "ÜRETiM", "iLAN", "ÖDENEKSiZ".
+ * `estimateQuality` scores that text 0.98-0.99, because it looks for four
+ * consonants in a row and a missing dot does not produce any. Measured across
+ * 1,012 issues that hold a body:
+ *
+ *   clean                         463
+ *   light   (<2 per 10k chars)    137
+ *   medium  (2-10 per 10k)        228
+ *   heavy   (>=10 per 10k)        184     quality still 0.985-0.997
+ *
+ * The pattern is CAPITAL + lowercase i + CAPITAL. Sampled against 400 random
+ * bodies, every match was real damage (ÖĞRETMENLERiN, TARiH, BENZiN); Turkish
+ * does not spell a word that way.
+ */
+const BROKEN_CAPITAL_I = /[A-ZÇĞÖŞÜ]{2,}i[A-ZÇĞÖŞÜ]/g;
+
+/** Damaged words in the text. */
+export function corruptionCount(text: string): number {
+  return text.match(BROKEN_CAPITAL_I)?.length ?? 0;
+}
+
+/**
+ * Word count, for comparing two readings of the SAME document. Digits count:
+ * the loss that started this was a tender table, and its numbers are the part a
+ * reader is looking for.
+ */
+export function countWords(text: string): number {
+  return text.match(/[\p{L}\p{N}]+/gu)?.length ?? 0;
+}
+
+/** Damaged words per 10,000 characters. */
+export function corruptionRate(text: string): number {
+  if (!text.length) return 0;
+  return (corruptionCount(text) * 10_000) / text.length;
+}
+
+/**
+ * When to re-read a page that already has text — EITHER measure can fire.
+ *
+ * The rate alone was tried first and it missed the worst issues in the archive.
+ * A long issue dilutes its own damage: 2025 issue 173 carries 102 damaged words
+ * and still scores 3.1 per 10k across 334,000 characters, while a 500-character
+ * issue with 4 damaged words scores 83. Measured over 1,012 issues:
+ *
+ *   0 damaged words        624
+ *   1-4                    259
+ *   5-9                     62
+ *   10-14                   19
+ *   15+                     48     <- the ones a reader actually notices
+ *
+ * So the rate catches short badly-damaged issues and the count catches long
+ * ones. Neither subsumes the other; the trigger is the OR of the two.
+ */
+const CORRUPTION_RATE_THRESHOLD = 2;
+const CORRUPTION_COUNT_THRESHOLD = 15;
+
+function needsReread(text: string): boolean {
+  return (
+    corruptionRate(text) >= CORRUPTION_RATE_THRESHOLD ||
+    corruptionCount(text) >= CORRUPTION_COUNT_THRESHOLD
+  );
+}
+
 async function commandExists(command: string): Promise<boolean> {
   try {
     await run(command, ['-v']);
@@ -171,8 +238,18 @@ async function pdfPageCount(path: string): Promise<number | null> {
  */
 const OCR_MODES = ['--redo-ocr', '--force-ocr'] as const;
 
-async function runOcr(dir: string, input: string, pdfUrl: string): Promise<string | null> {
-  for (const mode of OCR_MODES) {
+/**
+ * `modes` overrides the default order. The scanned path wants --redo-ocr first
+ * (it preserves a genuine text layer); the corruption path wants --force-ocr,
+ * because there the existing text layer is exactly what we are discarding.
+ */
+async function runOcr(
+  dir: string,
+  input: string,
+  pdfUrl: string,
+  modes: readonly string[] = OCR_MODES,
+): Promise<string | null> {
+  for (const mode of modes) {
     const ocrOutput = join(dir, 'ocr' + mode.replace(/-/g, '') + '.pdf');
     try {
       await run(
@@ -252,6 +329,84 @@ export async function extractPdfText(pdfUrl: string): Promise<ExtractionResult> 
       } else {
         log.warn('ocrmypdf kurulu değil, OCR atlandı', { pdfUrl });
         status = 'failed';
+      }
+    }
+
+    /*
+     * A text layer can be present and still be wrong. If it is damaged past
+     * CORRUPTION_THRESHOLD, rasterise the page and read it again — this is the
+     * one case where throwing away an existing text layer is the right call,
+     * so it uses --force-ocr rather than the --redo-ocr that `runOcr` prefers.
+     *
+     * Measured on 2021 issue 211: 20 damaged words before, 0 after, and the
+     * text grew from 72,525 to 88,138 characters in 19 seconds. Lines that read
+     * "BUÖDAY, YULAF, FİĞ (VIGO), TRITIKALB" came back as
+     * "BUĞDAY, YULAF, FİĞ (VİGO), TRİTİKALE".
+     *
+     * THE RESULT IS ONLY KEPT IF IT IS ACTUALLY BETTER. OCR can fail in its own
+     * ways, and silently replacing a merely-imperfect text layer with a worse
+     * one would be a downgrade nobody would notice.
+     */
+    const corruption = corruptionCount(text);
+    let reOcrSeconds: number | null = null;
+
+    if (status !== 'failed' && needsReread(text) && (await commandExists('ocrmypdf'))) {
+      const startedAt = Date.now();
+      const redone = await runOcr(dir, input, pdfUrl, ['--force-ocr']);
+      reOcrSeconds = Math.round((Date.now() - startedAt) / 1000);
+
+      /*
+       * A re-read that loses the document is not an improvement.
+       *
+       * Found by checking the output rather than trusting the corruption count:
+       * re-read issues came back up to 23% shorter and the loss was real content.
+       * On 2023 issue 113 — a tender list, all tables and figures — words fell
+       * 53,230 -> 47,690 and numeric tokens 7,233 -> 5,481. ABDOMEN, AKCİĞER,
+       * ANTİJEN simply vanished. Part of it is ocrmypdf dropping whole pages:
+       * that PDF has 193 pages and the re-read output has 189. Neither
+       * `--optimize 0` nor `--pages` avoids it (both measured).
+       *
+       * COUNTED IN WORDS, NOT CHARACTERS. OCR reflows whitespace, so characters
+       * move a few percent on their own and the signal to noise is poor. Words
+       * only fall when text is actually gone.
+       *
+       * 2% is deliberately tight. The first threshold here was 10% — chosen off
+       * a character-length distribution — and it silently accepted six issues
+       * that had lost between 2% and 10% of their text. Losing a fiftieth of a
+       * gazette issue is not an acceptable price for cosmetic letter repair.
+       *
+       * When it fires we KEEP the corrupted text. Broken İ's in a complete
+       * document beat a clean document with part of the tender list missing.
+       */
+      const wordsBefore = countWords(text);
+      const wordsAfter = redone === null ? 0 : countWords(redone);
+      const lostTooMuch = redone !== null && wordsAfter < wordsBefore * 0.98;
+
+      if (lostTooMuch) {
+        log.warn('yeniden okuma metni kısalttı, mevcut metin korundu', {
+          pdfUrl,
+          wordsBefore,
+          wordsAfter,
+          lossPct: Number((100 * (1 - wordsAfter / wordsBefore)).toFixed(1)),
+        });
+      } else if (redone !== null && corruptionCount(redone) < corruption) {
+        log.info('bozuk metin katmanı yeniden okundu', {
+          pdfUrl,
+          before: corruption,
+          after: corruptionCount(redone),
+          rateBefore: Number(corruptionRate(text).toFixed(1)),
+          charsBefore: text.length,
+          charsAfter: redone.length,
+          seconds: reOcrSeconds,
+        });
+        text = redone;
+        status = 'ocr';
+      } else {
+        log.warn('yeniden okuma iyileştirmedi, mevcut metin korundu', {
+          pdfUrl,
+          before: corruption,
+          after: redone === null ? null : corruptionCount(redone),
+        });
       }
     }
 
