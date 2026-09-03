@@ -29,8 +29,19 @@ const RECENT_MONTHS = 24;
  * must not drift: generateSitemaps produces /sitemap/<id>.xml, and the index at
  * /sitemap.xml has to list exactly those ids. A mismatch is invisible until a
  * crawler follows a link to a chunk that was never generated.
+ *
+ * ONE archive chunk, not six. Six was provisioned for an archive reaching back to
+ * 2006. The product owner scoped the archive to 2020-2026 instead, and the six
+ * left production advertising eleven chunks of which FIVE WERE EMPTY — measured
+ * against the live sitemap, chunks 6-10 returned zero URLs each. Google reports an
+ * empty sitemap as an error, so the over-provisioning was not free.
+ *
+ * The archive bucket (records older than 24 months) holds 10,707 URLs against a
+ * page size of 45,000, so one chunk covers it with room to spare. If the scope
+ * ever reopens, raise this AND check the count: anything past
+ * SITEMAP_ARCHIVE_CHUNKS * 45,000 falls out of the sitemap silently.
  */
-export const SITEMAP_ARCHIVE_CHUNKS = 6;
+export const SITEMAP_ARCHIVE_CHUNKS = 1;
 export const SITEMAP_CHUNK_COUNT = 5 + SITEMAP_ARCHIVE_CHUNKS;
 
 type Entry = MetadataRoute.Sitemap[number];
