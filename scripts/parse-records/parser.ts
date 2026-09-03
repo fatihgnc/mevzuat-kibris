@@ -50,6 +50,19 @@ const REF_PATTERNS: Array<{ type: RefType; pattern: RegExp }> = [
    */
   { type: 'skii', pattern: /S\(K-II\)\s?(\d+-\d{4}|\d+)/ },
   { type: 'teki', pattern: /TE\(K-I\)\s?(\d+-\d{4}|\d+)/ },
+  /*
+   * 2020-2022 prefixes (see the REF_TYPES note). These must come BEFORE the bare
+   * forms above them would ever be reached, and they are anchored on their own
+   * leading letter for the same reason `s` is narrow: `E.S(K-I)` and `F.S(K-I)`
+   * both contain `S(K-I`, so a looser pattern here would take the wrong prefix.
+   *
+   * `fskiii` before `fski`: "F.S(K-III)" starts with "F.S(K-I", so the shorter
+   * one would match inside the longer and lose the series.
+   */
+  { type: 'fskiii', pattern: /F\.S\.?\(K-III\)\s?(\d+-\d{4}|\d+)/ },
+  { type: 'fski', pattern: /F\.S\.?\(K-I\)\s?(\d+-\d{4}|\d+)/ },
+  { type: 'eski', pattern: /E\.S\.?\(K-I\)\s?(\d+-\d{4}|\d+)/ },
+  { type: 'etki', pattern: /E\.T\.?\(K-I\)\s?(\d+-\d{4}|\d+)/ },
   { type: 'kii', pattern: /K\(II\)[-\s]?(\d+-\d{4}|\d+)/ },
   { type: 's', pattern: /\bS-(\d{1,5}-\d{4})/ },
   { type: 'mia', pattern: /GENELGE\s+MİA\.(\d+\/\d{4})/i },
@@ -82,6 +95,10 @@ const PRIMARY_REF_TYPES = new Set<RefType>([
   'skii',
   'kii',
   'teki',
+  'eski',
+  'etki',
+  'fski',
+  'fskiii',
   'sm',
   'mt',
   'yt',

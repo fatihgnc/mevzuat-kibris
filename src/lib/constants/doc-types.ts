@@ -78,6 +78,29 @@ export function docTypeLabel(value: string): string {
  *   S-1642-2006 / S(K-II) 566-2006  ->  K(II)-2839-2012  ->  TE(K-I) 1555-2018
  *   ->  Ü(K-I) 2497-2025
  *
+ * `eski` / `etki` / `fski` / `fskiii` close the 2020-2022 gap in that chain, counted
+ * over every reference cell of 2020-2024 (17,514 records):
+ *
+ *   E.T(K-I) 1259-2020   1,210   2020
+ *   E.S(K-I) 27-2020     1,584   2020-2021
+ *   F.S(K-I) 152-2022      316   2021-2022   (also written "F.S.(K-I)")
+ *   F.S(K-III) 11-2022       9   2022
+ *
+ * Without them 3,119 records — 17.8% of 2020-2024 — parse with no reference at all,
+ * and EK IV BÖLÜM I's reference coverage reads 1% in 2020-2021 against 100% in 2024.
+ * That is what made the gap visible.
+ *
+ * NAMING: `eski` is E.S(K-I), NOT a shortening of `eskieser` below it. The names
+ * follow the same mechanical rule as `teki`/`skii`: the prefix's letters.
+ *
+ * MEASURED, so that the next reader does not expect more than this delivers: these
+ * DO NOT recover bodies. `extractBody` anchors on the reference label inside the
+ * PDF, and for these years the gazette does not print the decision's own number
+ * beside it — of 127 such records across two real issues, 1 label was found in the
+ * PDF text. What they do deliver is the faithful citation (the meta bar and the
+ * slug), and that is why they must exist BEFORE these years are ingested: the slug
+ * embeds the reference and never changes once written (spec 8.1).
+ *
  * They stay as separate types because the citation in the meta bar must remain
  * faithful to the source: a lawyer looks up the 2006 decision as "S-1642-2006",
  * not "Ü(K-I) 1642-2006". Collapsing them into one type would break search and
@@ -95,6 +118,10 @@ export const REF_TYPES = [
   'skii',
   'kii',
   'teki',
+  'eski',
+  'etki',
+  'fski',
+  'fskiii',
   'sm',
   'mt',
   'yt',
@@ -125,6 +152,16 @@ export function formatRef(refType: string | null, refNumber: string | null): str
       return `K(II)-${refNumber}`;
     case 'teki':
       return `TE(K-I) ${refNumber}`;
+    case 'eski':
+      return `E.S(K-I) ${refNumber}`;
+    case 'etki':
+      return `E.T(K-I) ${refNumber}`;
+    // The source's contents cells write this one both ways — "F.S.(K-I)" 261 times
+    // against "F.S(K-I)" 55 — so the label follows the majority spelling.
+    case 'fski':
+      return `F.S.(K-I) ${refNumber}`;
+    case 'fskiii':
+      return `F.S(K-III) ${refNumber}`;
     case 'sm':
       return `Ş.M. ${refNumber}`;
     case 'mt':

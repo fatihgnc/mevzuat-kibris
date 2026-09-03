@@ -376,6 +376,48 @@ describe('dönemsel Bakanlar Kurulu referansları', () => {
       expect(formatRef(record!.refType, record!.refNumber)).toBe(label);
     });
   }
+
+  /*
+   * 2020-2022, the gap in that chain. The rows below are copied verbatim out of
+   * the source's own İÇERİK cells; leaving these unmatched left 3,119 records of
+   * 2020-2024 with no reference at all, and the slug — which embeds the reference
+   * and never changes — would have been permanent.
+   */
+  const gap: Array<[string, string, string, string]> = [
+    ['E.S(K-I) 27-2020', 'eski', '27-2020', 'E.S(K-I) 27-2020'],
+    ['E.S(K-I)940-2021', 'eski', '940-2021', 'E.S(K-I) 940-2021'],
+    ['E.T(K-I) 1259-2020', 'etki', '1259-2020', 'E.T(K-I) 1259-2020'],
+    ['E.T(K-I)19-2020', 'etki', '19-2020', 'E.T(K-I) 19-2020'],
+    ['F.S.(K-I) 240-2021', 'fski', '240-2021', 'F.S.(K-I) 240-2021'],
+    ['F.S(K-I) 152-2022', 'fski', '152-2022', 'F.S.(K-I) 152-2022'],
+    ['F.S(K-III) 11-2022', 'fskiii', '11-2022', 'F.S(K-III) 11-2022'],
+  ];
+
+  for (const [cell, refType, refNumber, label] of gap) {
+    it(cell + ' → ' + refType, () => {
+      const html =
+        '<table><tr><td>EK IV BÖLÜM I</td><td>' +
+        cell +
+        "</td><td>ALİ ÖZCANLI'NIN SÖZLEŞMESİNİN YENİLENMESİ</td></tr></table>";
+      const record = parseIndexTable(html)![0]!;
+
+      expect(record.refType).toBe(refType);
+      expect(record.refNumber).toBe(refNumber);
+      expect(record.section).toBe('EK_IV_B_I');
+      // The title must stay the title — the reference cell must not become it.
+      expect(record.title).toBe("ALİ ÖZCANLI'NIN SÖZLEŞMESİNİN YENİLENMESİ");
+      expect(formatRef(record.refType, record.refNumber)).toBe(label);
+    });
+  }
+
+  /*
+   * F.S(K-III) starts with "F.S(K-I", so pattern order decides this one. If `fski`
+   * were tried first the third series would silently become the first.
+   */
+  it('F.S(K-III) kısa kalıba yakalanmıyor', () => {
+    const html = '<table><tr><td>EK IV BÖLÜM I</td><td>F.S(K-III) 11-2022</td><td>ASGARİ ÜCRETİN YENİDEN SAPTANMASI</td></tr></table>';
+    expect(parseIndexTable(html)![0]!.refType).toBe('fskiii');
+  });
 });
 
 describe('parseTurkishDate — TARİH hücresi', () => {
