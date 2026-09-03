@@ -21,20 +21,21 @@ uca çalışıyor ve gerçek Postgres 16'ya karşı doğrulandı.
 | Veritabanı şeması + RLS | ✅ 9 migration, hepsi geçiyor |
 | Arama (FTS, facet, öneri) | ✅ Çalışıyor, spec'ten sapma var (bkz. §3) |
 | Konu sınıflandırması | ✅ Gerçek veriyle kalibre; konusuz oran %52 → %17 (§3.7) |
-| Özet üretimi | ✅ Kural + LLM; 6.915 kaydın 5.887'sinde özet (%85,1). Kalan %14,9 spec 3.8'in 3. basamağı — bkz. §6.2 |
+| Özet üretimi | 🔄 Kural + LLM; 24.413 kaydın 14.895'inde özet (%61). 2020–2024'ün %51'i bitti, kalan 7.050 grup günlük kota yenilenince — §6.2 sonu |
 | Rehber içerikleri (8 adet) | ✅ Elle yazıldı |
 | SEO (sitemap, JSON-LD, robots) | ✅ Üretimde doğrulandı; sitemap indeksi §6.9'da düzeltildi |
-| Ingest (2025 + 2026) | ✅ 423 sayı, 6.924 kayıt, 0 hata; günlük ingest üretimde koştu (§6.9) |
+| Ingest (2020–2026) | ✅ 1.782 sayı, 24.413 kayıt, 0 hata; günlük ingest üretimde koştu (§6.9) |
 | PDF metin çıkarma | ✅ 384 çıkarıldı + 32 OCR; 5 gözden geçirme, 1 kaynakta ölü bağlantı |
 | OCR | ✅ Çalışıyor. 33 taranmış sayının 32'si kurtarıldı; kalite 0,887–0,999 — bkz. §6.1 |
-| Diğer yıllar (2006–2024) | ⬜ Yapılmadı; kapasite hesabı için §2.2 |
+| 2020–2024 backfill | ✅ 1.359 sayı, 17.476 kayıt, 0 hata; DB 47,5 → 112 MB (§2.2) |
+| Diğer yıllar (2006–2019) | ⬜ Yapılmadı; kapasite ve maliyet ölçüldü (§2.2, §6.2 sonu) |
 | Gövde sınırları | ✅ Taşma %5,0 → %0,17 (§3.8) |
 | Alarm/e-posta | ✅ Resend ile gerçek digest gönderildi ve alındı (§6.7) |
 | Supabase | ✅ Veri taşındı; havuz tavanı 40'a çıkarıldı (§6.9) |
 | **Vercel / canlı** | ✅ **`https://mevzuatkibris.com` yayında** — §6.9 |
 | Auth (magic link) | ✅ Uçtan uca gerçek e-postayla doğrulandı (§6.6) |
 
-Doğrulama: `tsc` temiz, `eslint` temiz, **110 test** geçiyor,
+Doğrulama: `tsc` temiz, `eslint` temiz, **117 test** geçiyor,
 `next build` **3.399 sayfa** üretiyor (Vercel'de ~7,5 dk; havuz `max: 4`'e geri
 alındıktan sonra düşmesi bekleniyor, §6.9), First Load JS 103 kB (spec <120 kB).
 
@@ -92,40 +93,133 @@ Sık sorulan soru: 4.400 PDF nereye sığacak? **Hiçbir yere — saklanmıyorla
 siliyor (başarıda da hatada da). Saklanan tek şey `body_text`
 (kayıt başına en fazla 20 KB, `BODY_TEXT_LIMIT_BYTES`).
 
-**ÖLÇÜLDÜ** — 2025 + 2026 (422 sayı, 6.915 kayıt) işlendikten sonra:
+**YENİDEN ÖLÇÜLDÜ (OCR çalışır hâldeyken).** Bu bölümün eski hâli OCR hiç metin
+üretmezken yazılmıştı ve iki yerinden yanlıştı; ikisi de aşağıda.
+
+Canlı Supabase, 423 sayı / 6.924 kayıt:
 
 | | |
 | --- | --- |
-| Veritabanının tamamı | **46 MB** |
-| Kayıt başına ortalama gövde | 2,2 KB (tavan 20 KB, tavana değen kayıt var) |
-| Gövde uzunluğu | medyan 1.208 · p90 2.308 |
-| En büyük indeks | `records_search_idx` (GIN) |
-| İkinci | `records_title_trgm_idx` |
+| Veritabanının tamamı | **47,5 MB** (tabloların toplamı 36,7 MB + 10,8 MB sabit ek yük) |
+| Kayıt başına toplam | **5.025 bayt** (`records` 4.652 + `record_entities` 215 + `record_topics` 157) |
+| Sayı başına (`issues`) | 2.769 bayt |
+| Varlık başına (`entities`) | 1.604 bayt |
+| Saklanan gövde | kayıt başına 1.049 bayt ham · medyan 1.284 · p90 2.562 · tavana değen 10 kayıt |
+| En büyük indeks | `records_search_idx` (GIN) 8,4 MB · `records_title_trgm_idx` 5,1 MB |
 
-Yani **sayı başına ~109 KB** — iki yıl üzerinden ölçüldüğü için tek yıllık
-tahminden (110 KB) daha güvenilir. 2006–2025 için ~4.400 sayı:
+Projeksiyonun ikinci yarısı **tahmin değil, kaynaktan sayıldı**: 2006–2024'ün
+19 arşiv sayfası çekilip İÇERİK hücreleri gerçek ayrıştırıcıdan geçirildi
+(tek bir PDF indirmeden — liste zaten sayfada):
 
 ```
-4.400 × 110 KB  ≈  480 MB
+4.338 sayı · 66.429 kayıt · sayı başına 15,3 kayıt · 2.872 yeni varlık
 ```
 
-⚠️ Supabase ücretsiz katmanı 500 MB (güncel limiti doğrula). Yani tam arşiv
-**teknik olarak sığıyor ama boşluk kalmıyor** — ve iki şey bu hesabı bozar:
+Eski tahmindeki "~4.400 sayı" tuttu, ama sayı başına kayıt 16,4 değil 15,3.
 
-1. **OCR.** 422 sayının 33'ü (%8) taranmış çıktı ve gövdesiz kaldı. OCR
-   açılırsa onlar 2 KB yerine 200 KB+ verir; eski yıllarda taranmış oranı
-   muhtemelen daha yüksek. Bkz. §6.1.
-2. Alarm/kullanıcı tabloları büyüdükçe.
+```
+66.429 × 5.025  +  4.338 × 2.769  +  2.872 × 1.604   ≈  334 MB
+mevcut 47,5 MB                                        ≈  382 MB toplam
+```
+
+**Ücretsiz katmanın 500 MB'ında ~118 MB (%24) boşluk kalıyor.** Eski hesap
+480 MB diyordu; fark, 109 KB/sayı ortalamasının sabit ek yükü her sayıya
+dağıtmasından geliyordu.
+
+**OCR bu hesabı BOZMUYOR — ölçüldü, eski uyarı yanlıştı.** "OCR'lanan sayı
+2 KB yerine 200 KB+ verir" cümlesi çıkarılan METNİ ölçüyordu; saklanan
+`body_text` değil. Gerçekte:
+
+| `text_status` | sayı | gövde/sayı | gövde/kayıt |
+| --- | --- | --- | --- |
+| `extracted` | 385 | 17.558 B | 1.033 B |
+| `ocr` | 32 | **14.350 B** | 1.359 B |
+
+OCR'lanan sayı, metin sayısından **daha az** gövde saklıyor. Sebebi: 104.954
+karakterlik OCR çıktısının kaydara bölünen kısmı küçük (`extractBody` referans
+etiketiyle eşleştiriyor), üstüne kayıt başına 20 KB tavanı var. Kayıt başına
+%32 fark bile 66.429 kayıtta 25 MB eder.
+
+**"Eski yıllarda taranmış oran daha yüksek" varsayımı da doğrulanmadı.**
+6 yıla ve yıl içinde farklı konumlara yayılmış 20 gerçek PDF indirilip aynı
+eşiklerle ölçüldü: **1/20 taranmış** (2019/100). 2025–26'daki oran %7,8'di.
+Örneklem küçük — bunu "oran düşük" diye değil "yüksek olduğuna dair kanıt yok"
+diye oku.
+
+**Gövde büyüklüğü de ölçüldü, aynı çıktı.** 8 eski sayıda (2006–2024) gerçek
+boru hattı (`pdftotext` → `extractBody` → `truncateBytes`) koşturuldu:
+217 kayıtta kayıt başına **1.019 bayt** — bugünkü 1.049 baytla aynı. Yani
+projeksiyonun en büyük bilinmeyeni kapandı; gövdenin iki katına çıkması
+hâlinde bile (+75 MB) tavan aşılmıyor.
+
+Kalan gerçek risk **alarm/kullanıcı tablolarının büyümesi** ve indeksler:
+projeksiyonda `records_search_idx` 87 MB'a, `records_title_trgm_idx` 53 MB'a
+çıkıyor.
 
 Boşluk açmanın ölçülmüş yolları, ucuzdan pahalıya:
 
-- **Önce yakın yılları doldur.** 2015–2025 ≈ 10 yıl ≈ 240 MB, rahat sığar.
-  Eski yıllar kapasite netleşince eklenir.
-- `records_title_trgm_idx` yılda 1,9 MB, 20 yılda ~32 MB. Bulanık başlık
-  eşleştirmesi için; vazgeçilebilirse doğrudan kazanç.
-- `BODY_TEXT_LIMIT_BYTES` (20 KB) düşürmek — ortalama zaten 2,2 KB, yalnızca
-  uzun kuyruğu keser.
+- **Kademeli git.** 2015–2024 (2.317 sayı, 34.434 kayıt) ≈ 173 MB, toplam
+  221 MB — yarı yol, bol boşluk. Eski yıllar sonra.
+- `records_title_trgm_idx` projeksiyonda 53 MB. Bulanık başlık eşleştirmesi
+  için; vazgeçilebilirse doğrudan kazanç.
+- `BODY_TEXT_LIMIT_BYTES` (20 KB) düşürmek — ortalama zaten 1 KB, yalnızca
+  uzun kuyruğu keser (tavana değen 10 kayıt).
 - Supabase Pro (8 GB) — sorunu tamamen bitirir.
+
+### 2.2.1 Backfill NEDEN uzun sürüyor — ölçüldü, sebep nezaket sınırı DEĞİL
+
+Sık sorulan ikinci soru. 2020'nin backfill'i (238 sayı) 1.544 saniye sürdü ve
+süre şuraya gitti:
+
+| kalem | süre | pay |
+| --- | --- | --- |
+| **PDF indirme (1.375 MB)** | ~1.199 sn | **%77,7** |
+| `politeFetch` 1 istek/sn tabanı | 238 sn | %15,4 |
+| OCR (17 sayı) | 107 sn | %6,9 |
+
+Yani darboğaz hacim: sayı başına ortalama **5,8 MB**, ölçülen aktarım hızı
+**~1,9 MB/sn**. 2020–2024 için ~7,9 GB iniyor ve geriye ~90 MB metin kalıyor
+(PDF saklanmıyor, §2.2).
+
+**Nezaket sınırını kaldırmak toplamı ancak %15 kısaltır** — yani spec 3.6'daki
+kararı bu gerekçeyle tartışmaya değmez. Ölçülmemiş tek gerçek kaldıraç paralel
+indirme; ama 1,9 MB/sn kaynak sunucunun kendi tavanıysa hiçbir şey kazandırmaz
+ve §2.1'deki duruş gereği denemeden önce ürün sahibine sorulmalı.
+
+### 2.3 İKİNCİ HOST — 2018–2020 PDF'leri başka sunucuda (backfill'i kırardı)
+
+Depolama ölçülürken çıktı ve **backfill'i üç tam yıl boyunca sessizce boşa
+çevirirdi.** 2018, 2019, 2020 arşiv sayfaları PDF'lerini `/Portals/6/` yerine
+`/Portals/105/` altında gösteriyor ve o yolu ana hosta karşı çözmek istisnasız
+404 veriyor:
+
+```
+https://basimevi.gov.ct.tr/Portals/105/2018/194.pdf        404  (1,2 kB HTML)
+https://basimevi.gov.ct.tr/Portals/6/2018/194.pdf          404  (yol takası değil)
+http://arsiv.basimevi.gov.ct.tr/Portals/105/2018/194.pdf   200  22,9 MB PDF
+```
+
+Etkilenen: 2018 (194 sayı), 2019 (189), 2020 (238), 2021'in 14 sayısı, 2010'un
+1 sayısı — **629 sayı, backfill'in %14,5'i.**
+
+**Neden kendiliğinden fark edilmezdi:** `crawlYear`'ın sağlık kontrolü arşiv
+sayfasında sayı bulamazsa patlıyor, ama burada SAYFA sorunsuz ayrışıyor;
+yalnızca PDF'ler gelmiyor. Üç yıl da "0 hata" raporlayıp her sayıyı gövdesiz
+`failed` olarak yazardı.
+
+Düzeltme `absolutize()` içinde (`scripts/shared/http.ts`), yol tabanlı:
+
+- `/Portals/105/` → `http://arsiv.basimevi.gov.ct.tr`
+- geri kalan → ana host
+
+Blanket host takası **değil**, çünkü `/Portals/6/` arşiv hostunda 404. Ve şema
+`http` kalmak zorunda: arşiv hostu TLS servis etmiyor, `https://` bağlantısı
+hiç kurulmuyor. Testi `scripts/shared/http.test.ts`.
+
+2010/14 iki hostta da 404 — o gerçekten ölü bağlantı, tek sayı.
+
+Arşiv hostunun `robots.txt`'i ana sitenin aynısı (aynı DNN şablonu, `/Portals/`
+dahil), yani §2.1'deki duruş olduğu gibi geçerli; yeni bir karar gerekmiyor.
 
 ---
 
@@ -445,6 +539,97 @@ referansı PDF metninde hiç geçmeyen kayıtlar.
 
 ---
 
+## 3.9 Dönemsel Bakanlar Kurulu önekleri — 2020–2022 boşluğu kapatıldı
+
+§3.5'in "eski yıllara geçerken dikkat" notunun 2020–2024'teki karşılığı, ve
+**backfill'den ÖNCE düzeltilmesi gereken tek şey buydu.**
+
+Belirti: EK IV BÖLÜM I'in referans oranı 2024'te %100, 2020–2021'de **%1**.
+Ham İÇERİK hücresine bakınca sebep göründü — referans var, biçimi farklı:
+
+```
+2020/239 EK IV BÖLÜM I:  "E.S(K-I) 27-2020"      <- kalıplarda yok
+2024/269 EK IV BÖLÜM I:  "Ü(K-I) 2439-2024"      <- var
+```
+
+Tüm 2020–2024 referans hücreleri sayıldı:
+
+| biçim | hücre | yıllar | eklenen tip |
+| --- | --- | --- | --- |
+| `E.S(K-I) N-N` | 1.584 | 2020–2021 | `eski` |
+| `E.T(K-I) N-N` | 1.210 | 2020 | `etki` |
+| `F.S.(K-I) N-N` | 316 | 2021–2022 | `fski` |
+| `F.S(K-III) N-N` | 9 | 2022 | `fskiii` |
+
+3.119 kayıt — kapsamın %17,8'i. Üretimde yazılan sonuç: `eski` 1.589,
+`etki` 1.214, `fski` 317, `fskiii` 9.
+
+**Neden backfill'den ÖNCE:** slug referansı gömüyor (`recordSlug`) ve yazıldıktan
+sonra hiç değişmiyor (spec 8.1, `ON CONFLICT` slug'a dokunmuyor). Sonradan
+eklemek bu 3.119 kaydı kalıcı olarak `2020-x-239-12-...` biçiminde bırakırdı.
+
+**⚠️ BU BÖLÜM ÖNCE YANLIŞ BİR SONUÇ YAZIYORDU — "gövde kurtarmıyor, 127 kayıtta
+1 etiket bulundu". Ölçüm yanlıştı, kalıp PDF'in yazımını hiç aramıyordu.**
+
+Gerçek: aynı referans iki yerde FARKLI SAYIDA NOKTAYLA yazılıyor.
+
+```
+içindekiler hücresi   E.S(K-I) 27-2020
+PDF gövdesi           E.S.(K-I)27-2020      <- parantezden önce fazladan nokta
+```
+
+`findLabel` noktayı literal aradığı için etiket bulunamıyordu; `extractBody`
+çapa yoksa null döner, yani kayıt **gövdesiz** kalıyordu. Ölçüm (aynı iki gerçek
+sayı, 127 kayıt):
+
+| | bulunan etiket |
+| --- | --- |
+| eski `findLabel` | 1 (%1) |
+| nokta toleranslı | **111 (%87)** |
+
+**2021'in gövde oranının %9,6'da kalmasının sebebi buydu** — kaynağın biçimi
+değil, bizim eşleştirmemiz. 2020 %40'ta çünkü orada `E.T(K-I)` hâkim ve o
+PDF'te noktasız yazılıyor, yani tesadüfen eşleşiyordu.
+
+`findLabel` düzeltildi: noktalar isteğe bağlı, ve parantez öncesine de isteğe
+bağlı nokta ekleniyor. **Metin normalize EDİLMİYOR** — `extractBody` indeksle
+dilimliyor, haystack'in offsetleri korunmak zorunda; tolerans kalıba konuyor.
+Mevcut biçimler (`A.E. 1071`, `Ü(K-I) 2497-2025`, `Ş.M. 4412`, bitişik yazım)
+regresyon testleriyle korundu: `scripts/parse-records/extract-body.test.ts`.
+
+**Kayıtlardaki gövdeler bu düzeltmeyle KENDİLİĞİNDEN gelmez** — yeniden çıkarma
+gerekiyor (§6.3): ilgili sayılar `text_status='pending'` yapılıp backfill
+yeniden koşturulmalı, yani PDF'ler yeniden iniyor.
+
+**YAPILDI, üretimde.** Kaynak siteye gereksiz yük binmesin diye kümesi daraltıldı
+— tüm 2020–2022 (819 sayı) değil, yalnızca gövdesiz `eski`/`fskiii` kaydı OLAN
+sayılar: **149 sayı, 33 dakika, 0 hata** (`--skip-crawl` ile, arşiv sayfaları
+yeniden çekilmedi). Sonuç:
+
+| | önce | sonra |
+| --- | --- | --- |
+| `eski` gövdeli | 9 (%0,6) | **1.378 (%86,7)** |
+| `eski` kendi sayfası olan | 299 | **1.422** |
+| 2021 gövde oranı | %9,6 | **%50,6** |
+| 2021 kendi sayfası oranı | %35,8 | **%69,3** |
+| DB | 112 MB | 122 MB |
+
+2021 artık diğer yıllarla aynı bantta. `ON CONFLICT` slug'a dokunmadığı için
+URL'ler korundu, özetler korundu (`coalesce(records.summary, ...)`).
+
+**Genel ders:** bir ölçüm "kazanç yok" diyorsa, ölçüm kalıbının kaynağın GERÇEK
+yazımını aradığını doğrula. Buradaki yanlış sonuç, kalıbın noktalı biçimi hiç
+aramamasından geldi ve bir gün boyunca "kaynağın biçimi böyle" diye kayda geçti.
+Yakalanması da analizle değil, arama sonuçlarındaki gövde metnine bakarken
+oldu — **gerçek çıktıya bakmak, ölçümü tekrar okumaktan daha çok şey yakalıyor.**
+
+Kalıp sırası önemli: `fskiii` `fski`'den önce ("F.S(K-III)" içinde "F.S(K-I"
+geçiyor). Testler `scripts/parse-records/parser.test.ts` içinde, satırlar
+kaynağın hücrelerinden birebir alındı. Mevcut 6.924 kayıt yeniden ayrıştırılıp
+kontrol edildi: yeni kalıplar hiçbirini değiştirmiyor.
+
+---
+
 ## 4. Tekrar düşülmemesi gereken tuzaklar
 
 Bunların hepsi **gerçekten yaşandı** ve statik analiz hiçbirini yakalamadı.
@@ -634,14 +819,18 @@ Kalan işler, öncelik sırasıyla:
    Yeni fixture eklerken beklenen çıktıyı ayrıştırıcıdan üretip ham hücreye
    karşı **gözle doğrula** — üretip doğrulamadan koymak testi kendini
    onaylayan bir aynaya çevirir.
-2. **2006–2024 backfill.** Kapasite için önce yakın yıllar (§2.2): 2015–2025
-   ≈ 240 MB, ücretsiz katmana rahat sığar. `npm run ingest:backfill <yıl>`.
-   Eski yıllara geçerken §3.5'te not düşülen dönemsel önekler (`SİBER(K-I)`,
-   `H(K-I)`, `Y(K-I)`, `E-`) `REF_PATTERNS`'e eklenmeli.
-   **Başlamadan önce §2.2'yi yeniden ölç** — o tahmin OCR hiç metin üretmezken
-   yapılmıştı, artık üretiyor (§6.1). **Özet maliyetini de hesaba kat:** yılda
-   ~4.000 kayıt × 19 yıl ≈ 76.000 kayıt, kural katmanı düştükten sonra ~67.000
-   LLM çağrısı — bu oturumdaki doldurmanın ~11 katı.
+2. **Backfill — 2020–2024 YAPILDI, 2006–2019 kaldı.** Ürün sahibi kapsamı
+   2020–2024 seçti ve o beş yıl üretime alındı: **1.359 sayı · 17.476 kayıt ·
+   0 hata · 47,5 → 112 MB.** Yol boyunca çıkan iki engel (§2.3 ikinci host,
+   §3.9 dönemsel referanslar) düzeltildi. Özetlemenin **%51'i bitti**; kalan
+   7.050 grup günlük istek kotası yenilenince tek koşumda biter
+   (`npm run summarize`) — kota için §6.2 sonuna bak.
+   **2006–2019 için ölçüm hazır:** 2.979 sayı · ~49.000 kayıt · ~+270 MB
+   (toplam ~382/500 MB) · ~39.000 LLM çağrısı · ~5,80 USD · **~4 gün**
+   (günlük 10.000 istek kotası yüzünden). Eski yıllara geçerken §3.5'te not
+   düşülen dönemsel önekler (`SİBER(K-I)`, `H(K-I)`, `Y(K-I)`, `E-`)
+   `REF_PATTERNS`'e eklenmeli — 2020–2022'nin üç öneki §3.9'da eklendi, aynı
+   yöntem.
 3. ~~**`next build`'i geçir**~~ — **YAPILDI**, §6.4, ve Vercel'de canlı (§6.9).
 4. ~~**Auth akışını dene**~~ — **YAPILDI, uçtan uca çalışıyor** (§6.6). Magic
    link → callback → alarm → onay ekranı, 2,7 sn. Listeleme/silme/oturumlu
@@ -783,13 +972,39 @@ declinedBy: model-declined 879 · cok-uzun 62 · sonuc-bildiriyor 1 · baslikla-
 Denetim yanlış pozitifleri fiilen bitti (4.015 grupta 2 tane). Kalan redlerin
 %93'ü modelin kendi kararı.
 
-**TOKEN TAHMİNİ ÖLÇÜMLE DÜZELTİLDİ.** `CHARS_PER_TOKEN` 2,2 varsayılmıştı
-("Türkçe kötü tokenize olur"). OpenAI'nin 429 mesajları isteğin gerçek maliyetini
-yazıyor (`Requested 590`); 2.078 karakterlik istem + 90 çıktı jetonuna karşılık
-bu **~4,2 karakter/token** demek — gpt-4o'nun tokenizer'ı Türkçeyi sanıldığından
-çok daha iyi işliyor. Yanlış tahmin her rezervasyonu iki katına çıkarıp koşumu
-limitin izin verdiğinin yarısına kısıyordu: düzeltme sonrası hız
-**157 → 290 grup/dk**. Sabit 3,5'e çekildi (ölçülenin altında, kasıtlı pay).
+**⚠️ TOKEN ORANI İKİ KEZ DEĞİŞTİ; İKİNCİSİ DOĞRU OLAN. Şu an 2,4.**
+
+Bu paragraf önce şöyle diyordu: `CHARS_PER_TOKEN` 2,2 varsayılmıştı, OpenAI'nin
+429 mesajındaki `Requested 590` sayısından **~4,2 karakter/token** "ölçüldü",
+sabit 3,5'e çekildi ve hız 157 → 290 grup/dk'ya çıktı.
+
+**O 4,2 ölçüm değildi, çıkarımdı — ve yanlıştı.** Cevap gövdesi gerçek sayıyı
+zaten yazıyor (`usage.prompt_tokens`); okumak yerine bir hata mesajından geriye
+doğru çözülmüştü. 2006–2024'ün gerçek istemlerinden 12'si gönderilip `usage`
+okundu:
+
+```
+istem 2.057–2.158 karakter  ->  807–863 jeton   =  2,53 karakter/jeton
+çıktı                        ->  ortalama 21 jeton
+cached_tokens                ->  hepsinde 0
+```
+
+Yani ilk değer (2,2) baştan doğruya yakındı; "düzeltme" onu bozdu. Oranı
+`SYSTEM_PROMPT` belirliyor (1.945 karakter ≈ 800 jeton, her çağrıda yeniden
+gönderiliyor), başlık uzunluğu neredeyse hiç oynatmıyor.
+
+**Yön önemli: eksik tahmin rezervasyonu küçültür, yani pacer limitin
+izin verdiğinden FAZLA çağrı geçirir.** 3,5 ile plan 247 çağrı/dk × gerçek 914
+jeton = **226.000 TPM**, tavan 200.000 — tam da bütçenin önlemek için var olduğu
+429 fırtınası. 2,4 ile 177 çağrı/dk = 162.000 TPM, sığıyor. Geçen oturumun
+koşumu 429 görmedi çünkü eşzamanlılık 4'te gecikme zaten frenliyordu; 53.000
+çağrılık bir koşumda o şans kalmaz.
+
+**Önbellek yok, varsayılmadı — bakıldı.** Aynı sistem istemi tekrar tekrar
+gönderilmesine rağmen `cached_tokens` hep 0: istem ~824 jeton, OpenAI'nin
+otomatik önbelleklemesi 1.024'ten başlıyor. Yani sistem istemini kısaltmak
+maliyeti düşürmenin yanı sıra 1.024'ün altında kalmayı da sürdürür — büyütmek
+1.024'ü aşarsa girdinin yarı fiyata düşmesi mümkün (denenmedi).
 
 **AYNI BAŞLIK KOŞUMLAR ARASINDA DA BİR KEZ SORULUYOR.** Koşum içinde grup sorgusu
 zaten tekilleştiriyordu, ama koşumlar arasında değil: 2025'te özetlenmiş bir
@@ -888,6 +1103,92 @@ türetilebilecek şeyi söyleyebilir. Modele gövdeyi verirsek, kararın sonucun
 özetlememesini istemek önüne koyduğumuz bilgiyi görmezden gelmesini istemek
 olur. Vermezsek yazamaz. `buildUserPrompt` yalnızca başlık, belge türü ve
 bölüm gönderiyor; testi bunu doğruluyor.
+
+### 2006–2024 özet maliyeti — ÖLÇÜLDÜ
+
+Eski tahmin "~67.000 LLM çağrısı" diyordu. Gerçek sayı, kaynaktan sayılan
+66.429 kayıt üzerinde gerçek kod (`summarize()` kural katmanı + `loadGroups`
+gruplaması + `reuseExistingSummaries`) çalıştırılarak bulundu:
+
+| adım | kayıt/grup | not |
+| --- | --- | --- |
+| kayıt | 66.429 | 19 arşiv sayfasından sayıldı |
+| kural katmanı tuttu | 2.534 (%3,8) | 2025–26'da %11,5'ti — eski başlıklar kalıplara daha az uyuyor |
+| tekil grup | 54.800 | tekilleşme %17,5 (2025–26'da %12,8) |
+| kural grubu | 1.463 | LLM'e gitmez |
+| mevcut özetten kopyalanır | 357 | `reuseExistingSummaries` |
+| **gerçek LLM çağrısı** | **52.980** | |
+
+Ölçülen jetonlarla (yukarıdaki 2,53 karakter/jeton, çağrı başına 824 girdi +
+21 çıktı) ve gpt-4o-mini'nin listede doğrulanan fiyatıyla (girdi 0,15 USD /
+çıktı 0,60 USD, 1M jeton):
+
+```
+girdi   43,6 M jeton  ->  6,55 USD
+çıktı    1,1 M jeton  ->  0,66 USD
+                          ------------
+                          7,21 USD
+```
+
+**⚠️ SÜREYİ TPM BELİRLEMİYOR — GÜNLÜK İSTEK KOTASI BELİRLİYOR.** Bu satır önce
+"TPM tavanı ile 177 çağrı/dk → ~5 saat" diyordu. Yanlıştı, çünkü hesabın ikinci
+bir sınırı var ve kod onu hiç bilmiyor. 2020–2024 koşumunda cevap başlıklarından
+okundu:
+
+```
+x-ratelimit-limit-requests:      10000        <- GÜNDE
+x-ratelimit-remaining-requests:   4025
+x-ratelimit-reset-requests:      14h20m
+x-ratelimit-limit-tokens:       200000
+x-ratelimit-remaining-tokens:         0        <- 1 dakikada yenileniyor
+```
+
+Yani **hesap Tier 1 ve günde 10.000 istek atabiliyor.** Bir grup = bir istek
+olduğuna göre:
+
+| kapsam | grup | gün |
+| --- | --- | --- |
+| 2020–2024 | 14.083 | 2 |
+| 2006–2019 | ~39.000 | **~4** |
+| 2006–2024 toplam | 52.980 | **~6** |
+
+Maliyet (7,21 USD) değişmiyor, süre değişiyor. Kota bitince her istek 429
+döner ve gruplar 4 denemede kalıcı hataya düşer — ama `summary` null kaldığı ve
+hata yolunda `markAttempted` çağrılmadığı için sonraki koşum onları yeniden
+alır. Yine de boşa istek yakar: **kota tükenmeden durdur.**
+
+Kalan iki kısıt:
+
+- **TPM'in kendisi zararsız çıktı.** 6.850 grupta 787 adet 429 görüldü, hepsini
+  yeniden deneme yuttu, hız 175 grup/dk'da sabit kaldı, 15 kalıcı hata oldu.
+- **`Requested` sayısı faturayla aynı şey DEĞİL.** 429 mesajları çağrı başına
+  ~580 jeton yazıyor, `usage.prompt_tokens` ise ~824. Biri hız sınırının
+  muhasebesi, öbürü faturanın. Bu dosyanın eski hâlindeki 4,2 karakter/jeton
+  bu yüzden ortaya çıkmıştı: 590'lık `Requested` sayısından türetilmişti ve
+  PACING için kabaca doğru, MALİYET için yanlıştı. `CHARS_PER_TOKEN` pacing
+  içindir; 2,4 ölçülen 2,53'ün altında kalarak fazladan rezerve ediyor, bu da
+  güvenli yön.
+
+**⚠️ `records` SAYACI EKSİK SAYIYOR — §6.2'nin teşhisi bu yüzden güvenilmez.**
+§6.2 "`records` sayısı `llm`'den belirgin düşükse başka bir koşum aynı grupları
+dolduruyordur" diyor. 2020–2024 koşumunda tam o tablo görüldü (`llm 5.739`,
+`records 5.695`) ve **ikinci koşum yoktu** — süreç listesi tek ağaç gösterdi.
+Veritabanı tersini söylüyor: `summary_source='llm'` kayıt sayısı 5.090'dan
+12.989'a çıkmış, yani sayacın bildirdiğinden ~1.400 FAZLA satır yazılmış.
+
+Sebebi bulunmadı. §4.9'daki `x += await f()` kalıbı burada doğru kullanılmış
+(`const written = await ...` sonra `stats.records += written`), dolayısıyla
+başka bir şey. **Bir sonraki koşumdan önce bakılmalı**; o zamana kadar paralel
+koşum teşhisi için sayaca değil süreç listesine ve
+`select count(*) from records where summary_source='llm'` farkına bak.
+
+Durdurduktan sonra süreç ağacının gerçekten öldüğünü doğrula: bu oturumda
+`TaskStop` ağacı öldürmedi, `taskkill /T /F` gerekti.
+
+Not: kural katmanının %11,5'ten %3,8'e düşmesi maliyetin ana kalemi.
+Kuralları eski başlık kalıplarına genişletmek doğrudan para kazandırır —
+kural katmanı bedava — ama ölçülmedi, önce kalıpların gerçekten tekrar ettiği
+gösterilmeli.
 
 ---
 
@@ -1685,8 +1986,24 @@ düzenlenebiliyor. Güvenli olduğu ölçüldü: Postgres `max_connections` **60
 sırada **30** kullanımdaydı. Değişiklikten hemen sonra arama 200'e döndü.
 
 Tavan yükseldiği için derleme havuzu da `max: 3` → `max: 4`'e geri alındı
-(3 × 4 = 12). Derlemeyi 4m37s'den ~2m49s'ye indirmesi bekleniyor — bir sonraki
-dağıtımda ölçülecek.
+(3 × 4 = 12). Derlemeyi 4m37s'den ~2m49s'ye indirmesi bekleniyor.
+
+**⚠️ HÂLÂ ÖLÇÜLMEDİ — ve bu oturumda da ölçülemedi.** Vercel'in derleme süresi
+yalnızca panelde ya da CLI'de görünüyor; bu makinede `vercel` CLI'nin token'ı
+geçersiz (`vercel whoami` → "The specified token is not valid") ve panele
+tarayıcıdan girmek için oturum yok. Süreyi okumanın iki yolu:
+
+```bash
+npx vercel login && npx vercel ls mevzuat-kibris
+```
+
+ya da panelden: Deployments → `max: 4` sonrası ilk dağıtım (commit `3c52aea`
+ya da onun ardındaki `35915e4`) → Building adımının süresi.
+
+Beklenen ~2m49s'nin yerel ölçümden geldiğini unutma; Vercel'de üretim
+yereldekinin ~1,6 katı sürüyordu (bu bölümün başındaki 10 sayfa/sn ölçümü),
+yani oradaki karşılığı ~4-5 dakika olabilir. Rakam okununca bu paragrafı
+gerçek değerle değiştir.
 
 **Bir daha `EMAXCONNSESSION` görülürse:** önce Pool Size'a bak, koda dokunma. Ama
 `max_connections`'ı da kontrol et — pooler onu aşamaz.
