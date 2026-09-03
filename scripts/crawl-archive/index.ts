@@ -44,12 +44,17 @@ export function parseTurkishDate(raw: string): string | null {
   const text = raw.replace(/\s+/g, ' ').trim();
 
   /*
-   * The separator is REPEATABLE: the source contains typos such as "22..04.2026"
-   * (2026 issue 78). Requiring a single separator left the date unparsed, and
-   * because `publishedAt` was null the record was dropped entirely — losing a
-   * whole gazette issue over one typo is not acceptable.
+   * The separator is REPEATABLE AND IT IS NOT ALWAYS A DOT: the source contains
+   * typos such as "22..04.2026" (2026 issue 78), "29,05.2020" (2020 issue 93)
+   * and "14,.03.2022" (2022 issue 43). Requiring a single dot left the date
+   * unparsed, and because `publishedAt` was null the row was dropped entirely —
+   * losing a whole gazette issue over one typo is not acceptable.
+   *
+   * The comma cost exactly that twice: a coverage audit of 2020-2026 found two
+   * issue numbers missing from the archive that the source page listed all
+   * along. Nothing reported an error; the rows simply never arrived.
    */
-  const numeric = /(\d{1,2})[./]+(\d{1,2})[./]+(\d{4})/.exec(text);
+  const numeric = /(\d{1,2})[.,/]+(\d{1,2})[.,/]+(\d{4})/.exec(text);
   if (numeric) {
     const [, d, m, y] = numeric;
     return isoOrNull(Number(y), Number(m), Number(d));

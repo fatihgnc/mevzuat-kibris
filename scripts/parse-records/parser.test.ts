@@ -437,6 +437,17 @@ describe('parseTurkishDate — TARİH hücresi', () => {
     expect(parseTurkishDate('1//2/2026')).toBe('2026-02-01');
   });
 
+  /*
+   * Bunlar da kaynakta gerçekten var ve İKİ SAYIYA mal oldu: 2020/93 ve 2022/43
+   * arşiv sayfasında listeleniyordu ama tarih virgüllü yazıldığı için satır
+   * düşüyordu. 2020-2026 kapsam denetiminde, numara boşluğu aranarak bulundu —
+   * hiçbir hata mesajı çıkmamıştı.
+   */
+  it('virgüllü ayracı tolere eder', () => {
+    expect(parseTurkishDate('29,05.2020')).toBe('2020-05-29');
+    expect(parseTurkishDate('14,.03.2022')).toBe('2022-03-14');
+  });
+
   it('geçersiz tarihi reddeder', () => {
     expect(parseTurkishDate('31.02.2026')).toBeNull();
     expect(parseTurkishDate('tarih yok')).toBeNull();
