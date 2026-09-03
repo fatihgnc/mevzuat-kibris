@@ -77,4 +77,34 @@ describe('extractBody', () => {
     const yanyana = 'Ü(K-I) 2477-2025 Ü(K-I) 2489-2025 devam';
     expect(extractBody(yanyana, 'Ü(K-I) 2477-2025', ['Ü(K-I) 2489-2025']).body).toBeNull();
   });
+
+  /*
+   * NOKTA FARKI — 2020-2022'de ölçüldü ve gövdeleri tek başına yok ediyordu.
+   * İçindekiler hücresi "E.S(K-I) 27-2020" yazıyor, PDF gövdesi
+   * "E.S.(K-I)27-2020" — parantezden önce fazladan bir nokta var. Nokta literal
+   * kaldığı sürece etiket bulunamıyor ve kayıt gövdesiz kalıyor.
+   * İki gerçek sayıda 127 kaydın 1'i bulunuyordu, düzeltmeden sonra 111'i.
+   */
+  const NOKTALI = [
+    'RESMÎ GAZETE Sayı 239',
+    'KARAR SAYISI: E.S.(K-I)27-2020',
+    "ALİ ÖZCANLI'NIN SÖZLEŞMESİNİN YENİLENMESİ hakkında karar metni burada.",
+    'KARAR SAYISI: E.S.(K-I)28-2020',
+    'MEHMET GÖKYİĞİT SÖZLEŞMESİ hakkında karar metni burada.',
+  ].join('\n');
+
+  it('PDF fazladan nokta koyduğunda da etiketi bulur', () => {
+    const { body } = extractBody(NOKTALI, 'E.S(K-I) 27-2020', ['E.S(K-I) 28-2020']);
+    expect(body).toContain('ALİ ÖZCANLI');
+  });
+
+  it('nokta toleransı gövdenin BİTİŞİNİ de bulur, taşma olmaz', () => {
+    const { body } = extractBody(NOKTALI, 'E.S(K-I) 27-2020', ['E.S(K-I) 28-2020']);
+    expect(body).not.toContain('MEHMET GÖKYİĞİT');
+  });
+
+  it('nokta toleransı farklı bir referansı eşleştirmez', () => {
+    expect(extractBody(NOKTALI, 'E.T(K-I) 27-2020', []).body).toBeNull();
+    expect(extractBody(NOKTALI, 'E.S(K-I) 99-2020', []).body).toBeNull();
+  });
 });

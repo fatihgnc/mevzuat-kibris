@@ -458,8 +458,34 @@ export function extractBody(
  * Whitespace is flexible (`\s*`): in the PDF "Ü(K-I) 2497-2025" sometimes comes
  * out as "Ü(K-I)2497-2025", and sometimes broken across a line end.
  */
+/**
+ * Finds a reference label inside the PDF text.
+ *
+ * WHITESPACE IS ELASTIC because the contents cell and the PDF disagree about it:
+ * the cell writes "Ü(K-I) 2439-2024", the PDF "Ü(K-I)2439-2024".
+ *
+ * SO ARE DOTS, and that was found the expensive way. The same reference is
+ * spelled with a different number of dots in the two places:
+ *
+ *   contents cell   E.S(K-I) 27-2020
+ *   PDF body        E.S.(K-I)27-2020        <- extra dot before the paren
+ *
+ * With the dot literal, the label was never found and the record got NO BODY —
+ * `extractBody` returns null when the anchor is missing. Measured on two real
+ * issues, 127 records: 1 label found before, 111 after (86-90%). That is the
+ * whole reason 2021's body coverage sat at 9.6% while 2024's was 47.7%.
+ *
+ * The text itself is NOT normalised — `extractBody` slices by index, so the
+ * haystack has to keep its original offsets. The tolerance goes in the pattern.
+ */
 function findLabel(text: string, label: string, from: number): number {
-  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*');
+  const escaped = label
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // Every dot the label has becomes optional...
+    .replace(/\\\./g, '\\.?')
+    // ...and the PDF may add one the label does not have, before the series paren.
+    .replace(/\\\(/g, '\\.?\\(')
+    .replace(/\s+/g, '\\s*');
   const match = new RegExp(escaped, 'i').exec(text.slice(from));
   return match ? from + match.index : -1;
 }
