@@ -1,0 +1,72 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 93, 29.05.2020 — arşiv sayfasında TARİH \"29,05.2020\" yazıldığı için bu sayı uzun süre hiç alınamadı (§2.4). Dönem referansı E.T(K-I). Spec 7.3'ün birinci zor vakası burada: AYNI KONU İKİ KEZ — A.E.326 \"…KEMPO SAVUNMA SPORLARI FEDERASYONU TÜZÜĞÜ\" ve E.T(K-I) 671-2020 aynı tüzük; A.E.324/325 ile E.T(K-I) 663-2020 de öyle. İkisi de ayrı kayıt, biri diğerini gasbetmiyor. Sınıflandırmada anahtar kelime bölümden önce geliyor: \"TÜZÜĞÜ\" geçen E.T(K-I) kayıtları EK_IV_B_I olmalarına rağmen tuzuk, \"SÖZLEŞMELİ PERSONEL\" geçen kayıt atama_kararnamesi, kalanlar bakanlar_kurulu_karari.",
+  "recordCount": 11,
+  "records": [
+    {
+      "section": "EK_III",
+      "refType": "ae",
+      "refNumber": "323",
+      "docType": "tuzuk"
+    },
+    {
+      "section": "EK_III",
+      "refType": "ae",
+      "refNumber": "324",
+      "docType": "tuzuk"
+    },
+    {
+      "section": "EK_III",
+      "refType": "ae",
+      "refNumber": "325",
+      "docType": "tuzuk"
+    },
+    {
+      "section": "EK_III",
+      "refType": "ae",
+      "refNumber": "326",
+      "docType": "tuzuk"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "671-2020",
+      "docType": "tuzuk"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "663-2020",
+      "docType": "tuzuk"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "682-2020",
+      "docType": "bakanlar_kurulu_karari"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "683-2020",
+      "docType": "atama_kararnamesi"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "685-2020",
+      "docType": "bakanlar_kurulu_karari"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "686-2020",
+      "docType": "bakanlar_kurulu_karari"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "687-2020",
+      "docType": "bakanlar_kurulu_karari"
+    }
+  ]
+}

@@ -248,8 +248,13 @@ describe('özet üretimi — kaynak metin tuzakları', () => {
  * record in two (7,170 bogus records out of 3,977 lines for 2025).
  *
  * The .html files here are İÇERİK cells taken verbatim from the archive, and the
- * expected outputs were verified by hand, line by line, against the raw cell. All
- * four periods are represented, because the format varies from year to year.
+ * expected outputs were verified by hand, line by line, against the raw cell.
+ * Every era is represented, because the format varies from year to year: the
+ * section markup, the reference prefixes and even the column count change.
+ *
+ * The 2020+ era carries more than one fixture on purpose. It is the only era the
+ * archive still ingests (the product owner scoped it to 2020-2026), so it is the
+ * only one where a parser regression can still corrupt new data.
  */
 const REAL_DIR = join(FIXTURE_DIR, 'real');
 
@@ -262,8 +267,28 @@ function parseReal(id: string) {
 }
 
 describe('parseIndexTable — gerçek arşiv fixture uyumu', () => {
-  it('dört dönemin dördü de temsil ediliyor', () => {
-    expect(realCases.sort()).toEqual(['2006-193', '2012-190', '2018-130', '2025-175']);
+  /*
+   * Era coverage, not a fixed list of ids.
+   *
+   * This assertion used to spell the four ids out, which meant adding a fifth
+   * fixture failed a test named "all four periods are represented" — a failure
+   * that says nothing about what actually broke. What matters is that no era
+   * loses its only fixture, so that is what is checked.
+   */
+  const ERAS: Array<{ name: string; from: number; to: number; min: number }> = [
+    { name: '2006-2011', from: 2006, to: 2011, min: 1 },
+    { name: '2012-2017', from: 2012, to: 2017, min: 1 },
+    { name: '2018-2019', from: 2018, to: 2019, min: 1 },
+    // The live scope. A regression here corrupts data we are still ingesting.
+    { name: '2020+', from: 2020, to: 9999, min: 4 },
+  ];
+
+  it.each(ERAS)('$name dönemi temsil ediliyor', ({ from, to, min }) => {
+    const inEra = realCases.filter((id) => {
+      const year = Number(id.split('-')[0]);
+      return year >= from && year <= to;
+    });
+    expect(inEra.length).toBeGreaterThanOrEqual(min);
   });
 
   for (const id of realCases) {

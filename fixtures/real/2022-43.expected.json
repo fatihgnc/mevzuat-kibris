@@ -1,0 +1,12 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 43, 14.03.2022 — arşiv sayfasında TARİH \"14,.03.2022\" yazıldığı için bu sayı da hiç alınamamıştı (§2.4). Tek kayıtlık en küçük biçim: bölüm MAIN, referans yok, ve başlık hücresi colspan=\"2\" ile yayılıyor — yani başlık ÜÇÜNCÜ değil İKİNCİ hücrede. Kesme işaretli başlık (CUMHURBAŞKANI'NA).",
+  "recordCount": 1,
+  "records": [
+    {
+      "section": "MAIN",
+      "refType": null,
+      "refNumber": null,
+      "docType": "diger"
+    }
+  ]
+}

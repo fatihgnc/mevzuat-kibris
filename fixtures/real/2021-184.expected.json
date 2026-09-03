@@ -1,0 +1,18 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 184, 30.11.2021. İki zor vaka. (1) BAŞLIK BAŞKA BİR REFERANSLA BAŞLIYOR: hücre \"E.S(K-I) 1106-2021\" derken başlık \"H(K-I)2961-2017\" ile açılıyor. Referans HÜCREDEN okunuyor, başlıktaki atıf kaydı gasbetmiyor (§4.3). Buradaki atıf ayrıca REF_PATTERNS'te gerçekten var olan bir dönem öneki, o yüzden gasp riski en yüksek biçimi. (2) TEK SATIRDA İKİ ŞİRKET, aralarında ayraç yok (spec 7.3). Kaynak ikisini tek hücreye koyduğu için tek kayıt kalıyor; satır kaydın birimidir.",
+  "recordCount": 2,
+  "records": [
+    {
+      "section": "EK_IV_B_I",
+      "refType": "eski",
+      "refNumber": "1106-2021",
+      "docType": "bakanlar_kurulu_karari"
+    },
+    {
+      "section": "EK_V_B_I",
+      "refType": null,
+      "refNumber": null,
+      "docType": "sirket_duyurusu"
+    }
+  ]
+}

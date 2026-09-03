@@ -1,0 +1,48 @@
+{
+  "note": "Gerçek arşiv verisi: sayı 4, 07.01.2020. Dört zor vakayı birden taşıyor. (1) DÜZELTME kaydı: referans HÜCRESİ BOŞ, ayrıştırıcı E.T(K-I)1085-2019 referansını BAŞLIKTAN okuyor — düzeltme, düzelttiği karara bağlanıyor (spec 7.3). Referansta boşluk yok: \"E.T(K-I)1085-2019\". (2) Kaynak yazım hatası: \"DÜZELTİSLMESİ\" (doğrusu DÜZELTİLMESİ) aynen korunuyor. (3) Bölüm hücresi boş olan satırlar bir öncekinin bölümünü sürdürüyor. (4) Altı ayrı doc_type tek sayıda. Kesme işareti: ATAÖV'ÜN, MÜDÜRLÜĞÜ'NE, CAN'IN, LİMİTED'İN.",
+  "recordCount": 7,
+  "records": [
+    {
+      "section": "MAIN",
+      "refType": null,
+      "refNumber": null,
+      "docType": "munhal_ilani"
+    },
+    {
+      "section": "MAIN",
+      "refType": null,
+      "refNumber": null,
+      "docType": "gorevden_alma"
+    },
+    {
+      "section": "MAIN",
+      "refType": null,
+      "refNumber": null,
+      "docType": "atama_kararnamesi"
+    },
+    {
+      "section": "EK_III",
+      "refType": "ae",
+      "refNumber": "15",
+      "docType": "kamulastirma"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "1088-2019",
+      "docType": "kamulastirma"
+    },
+    {
+      "section": "EK_IV_B_I",
+      "refType": "etki",
+      "refNumber": "1085-2019",
+      "docType": "bakanlar_kurulu_karari"
+    },
+    {
+      "section": "EK_V_B_I",
+      "refType": null,
+      "refNumber": null,
+      "docType": "sirket_duyurusu"
+    }
+  ]
+}
