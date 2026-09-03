@@ -299,6 +299,114 @@ Yıl ekleri okunuşa göre hesaplanıyor (`src/lib/text/turkish-number.ts`):
   **Geri getirmek istenirse:** sütunu aynı varsayılanla ekle, cron'u saatliğe
   çevir, `findMatches`'te saate göre süz.
 
+### 3.4 Next.js 15'te kalmak
+
+Spec §4'ün yığın tablosu **"Next.js (App Router, son sürüm)"** diyor. Kurulu
+olan 15.5.x; güncel sürüm 16.3.x. Yani spec'e uyulmuyor.
+
+**Bu başlangıçta bir karar değildi, gözden kaçmaydı.** Tarihler:
+
+| | |
+| --- | --- |
+| Next 16.0 çıkışı | 2025-10-22 |
+| Next 16.3 çıkışı | 2026-08-03 |
+| **bu projenin ilk commit'i** | **2026-08-31** |
+| `package.json`'a yazılan | `^15.1.4` |
+
+`15.1.4`, **Aralık 2024'te** güncel olan sürüm. Yani 16 zaten on aydır
+ortadayken ve 16.3 dört hafta önce çıkmışken, bağımlılık bloğu npm'e
+bakılmadan — eski bir şablondan ya da eskimiş hafızadan — yazılmış.
+
+**3 Eylül 2026'da ölçüldü ve bilinçli hâle getirildi.** Aşağısı o ölçüm.
+
+#### 16 bu projeye ne kazandırırdı
+
+Neredeyse hiçbir şey. Tek tek:
+
+- **Turbopack (16'da varsayılan).** Buradaki derlemenin darboğazı derleme
+  değil: ölçüldü, `Compiled successfully in 2.8s`, toplam derleme ~3 dakika.
+  Aradaki fark 3.127 kayıt sayfası için veritabanına gidip gelmek (sorgu
+  başına ~107 ms, bkz. `next.config.ts`). Turbopack o 2.8 saniyeye saldırıyor.
+  Dev sunucusu hızlanır, ürün hızlanmaz.
+- **Yönlendirme/prefetch revizyonu** (layout tekilleştirme + artımlı
+  prefetch). **Tek gerçek ürün kazancı bu** ve kod değişikliği istemiyor.
+  Her sayfada 9 konu + 20 kurum linki taşıyan bir sitede prefetch trafiği
+  gerçek. Ne kadar olduğu ÖLÇÜLMEDİ.
+- **React 19.2 / React Compiler.** 31 bileşenin 8'i client ve hepsi küçük
+  (tema düğmesi, arama kutusu, link kopyala, durum çubuğu). View Transitions
+  isteyen hiçbir şey yok. Compiler ayrıca Babel'e bağlı olduğu için derlemeyi
+  YAVAŞLATIR — bu projede açılmamalı.
+- **next/image iyileştirmeleri.** `images.unoptimized = true`, raster görsel
+  yok (spec §14.3). Sıfır.
+- **cacheComponents / PPR.** `/ara`'ya statik kabuk verebilirdi. Ama bayrak
+  açmakla olmuyor; Suspense dışındaki önbeleklenmemiş veri derlemeyi kırıyor.
+  Ayrı bir iş, bedava kazanç değil.
+
+Kaybedilen bir şey de var: 16, `next build` çıktısından **size ve First Load
+JS sütunlarını kaldırdı**. Prerender manifest duruyor, ölçüm hâlâ yapılabilir.
+
+#### Maliyeti — üç somut risk
+
+1. **`sitemap`'in `id`'si Promise'e dönüyor.** `src/app/sitemap.ts` şunu
+   yapıyor: `const chunk = Number(id)`. 16'da `Number(Promise)` → `NaN` →
+   `switch` hiçbir case'i tutmaz → `default` → `archiveRecordEntries(NaN)`.
+   Sitemap'in tamamı bozulur. İşin ironisi: o dosya zaten **tam olarak bu
+   sınıftan** bir hatanın yorumunu taşıyor (`id`'nin string gelmesi).
+2. **`revalidateTag` ikinci argüman istiyor** (`cacheLife` profili).
+   `src/app/api/revalidate/route.ts`'te üç çağrı; tek argümanlı hâli TS
+   hatası. `updateTag` de var ama gazete kayıtları gecikmeye toleranslı,
+   `revalidateTag(tag, 'max')` yeterli.
+3. **Turbopack ile `experimental.cpus: 3` ilişkisi bilinmiyor.** O ayar hız
+   için değil, §6.5'teki bağlantı tavanı için (`EMAXCONNSESSION`). Turbopack
+   eşzamanlılığı farklı yönetiyor. Ölçmeden bilinemez, ve o hatayı ilk
+   seferinde teşhis etmek epey uğraştırmıştı.
+
+Ayrıca: `middleware.ts` → `proxy.ts` (edge yerine Node runtime'da çalışır;
+Supabase SSR için sorun beklenmiyor ama doğrulanmalı), `.eslintrc.json` →
+flat config, `next lint` kaldırıldı. Üçü de codemod'la geliyor.
+
+Etkilenmeyenler: AMP, `runtimeConfig`, paralel rotalar, `next/legacy/image`,
+`scroll-behavior`, async `params` (zaten her yerde `await`'li), Node sürümü
+(`>=20.11` ✓), React 19 ✓.
+
+#### 15 terk edilmiş değil
+
+Bu, "güvenlik için geçmek zorundayız" argümanını çürütüyor:
+
+```
+15.5.25   2026-08-31     ← aynı gün
+16.3.4    2026-08-31
+```
+
+15.x `backport` modunda: yeni özellik gelmiyor, düzeltmeler akıyor.
+
+#### Karar ve yeniden değerlendirme
+
+**15'te kalınıyor.** Kazanç bir tane ve ölçülmemiş, risk üç tane ve somut.
+3.844 sayfalık doğrulanmış bir durumu karşılığında bir şey almadan bozmanın
+anlamı yok.
+
+Geçiş, URL'lerin hiçbirini değiştirmiyor — yani **sonraya bırakmanın ekstra
+maliyeti yok.** "Launch'tan önce yapılmalı" diye bir baskı yok.
+
+Tetikleyiciler — bunlardan biri olursa yeniden bak:
+
+- `cacheComponents` / PPR gerçekten istendiğinde,
+- 15.x backport'ları kesildiğinde,
+- ESLint 10 legacy config'i düşürdüğünde (o iş zaten er geç gelecek).
+
+**Göç yapılacaksa sıra:** önce `npx @next/codemod@canary upgrade latest`
+(mekanik kısım), sonra yukarıdaki üç riskli maddeyi elle, sonra bu turdaki
+SEO ölçümlerinin tamamını tekrarla — 3.844 önceden üretilen sayfa, sitemap
+chunk sayıları, kanonikler ve `?sayfa=` yönlendirmeleri. Risk 1 doğrudan
+sitemap'e düşüyor, yani orayı gözle doğrulamadan bitmiş sayma.
+
+**Bir de:** Next 16, kurulu sürüme uygun dokümantasyonu `AGENTS.md` üzerinden
+projeye gömüyor (`node_modules/next/dist/docs/`). Bu, tam da 15'e pinlenme
+hatasının kaynağı olan şeye — ajanların eskimiş bilgiyle kod yazmasına —
+karşı bir önlem. Göç yapılırsa `npx @next/codemod@canary agents-md` ile
+kurulmalı.
+
 ---
 
 ## 3.5 Gerçek arşiv çekilince çıkan beş hata
