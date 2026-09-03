@@ -18,14 +18,24 @@ export const SITE_URL = (
 /**
  * The year the archive starts.
  *
- * CAUTION — the design artboard shows this as 1975 (claiming to include the
- * Turkish Federated State of Cyprus period). Spec 3.1, however, says the source
- * archive has been published on basimevi.gov.ct.tr from 2006 onward, and spec 8.4
- * explicitly requires the coverage year to be truthful. We hold no pre-2006 data,
- * so it says 2006. If backfill reaches further back, only this line changes; every
- * page, the empty-search message and the home page copy all feed from here.
+ * CAUTION — spec 8.4 requires the coverage year to be TRUTHFUL, and this constant
+ * is the single place every claim about coverage is derived from: the home page
+ * sentence, the footer, the OG card, the empty-search message and the
+ * /sayilar/[yil] guard.
+ *
+ * It says 2020 because that is what we hold. It used to say 2006 — the year the
+ * source archive itself begins — on the understanding that backfill would reach
+ * back to meet it. The product owner then scoped the archive to 2020-2026 and
+ * that plan was dropped, at which point the constant stopped describing an
+ * unfinished job and started describing an unkept promise: production was telling
+ * every visitor "arşiv 2006'ya doğru geriye genişletiliyor" about an expansion
+ * that will not happen, and the OG card claimed "2006 — bugün" outright.
+ *
+ * The design artboard shows 1975 (claiming the Turkish Federated State of Cyprus
+ * period) and spec 3.1 names 2006 as the source's own start. Neither is a claim we
+ * can make. If backfill ever reaches further back, only this line changes.
  */
-export const ARCHIVE_START_YEAR = 2006;
+export const ARCHIVE_START_YEAR = 2020;
 
 /** The source site — every record page links back to the original (spec 3.6). */
 export const SOURCE_NAME = 'KKTC Resmî Gazete';
