@@ -22,3 +22,7 @@ build-*.log
 repro-*.ts
 probe-*.ts
 q.ts
+
+# Oturumlar arasi devir dosyasi. Repoda DURMAZ: 141eebf ile bilerek cikarildi,
+# ve bir oturum onu yeniden `git add`leyip geri soktu. Bu satir onu engelliyor.
+HANDOFF.md
