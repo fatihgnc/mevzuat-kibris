@@ -80,10 +80,39 @@ export function archiveUrl(year: number): string {
   return SOURCE_BASE_URL + '/' + encodeURIComponent('ARŞİV') + '/' + year;
 }
 
+/**
+ * The second host — `/Portals/105/` PDFs do NOT live on the main site.
+ *
+ * MEASURED while sizing the 2006-2024 backfill. The archive pages for 2018, 2019
+ * and 2020 (plus 14 issues of 2021 and 1 of 2010) link their PDFs under
+ * `/Portals/105/` instead of `/Portals/6/`, and resolving those against the main
+ * host returns 404 for every single one:
+ *
+ *   https://basimevi.gov.ct.tr/Portals/105/2018/194.pdf        404 (1.2 kB HTML)
+ *   https://basimevi.gov.ct.tr/Portals/6/2018/194.pdf          404 (not a path swap)
+ *   http://arsiv.basimevi.gov.ct.tr/Portals/105/2018/194.pdf   200, 22.9 MB PDF
+ *
+ * That is 629 issues, 14.5% of the backfill — three whole years would have come
+ * back empty, and `crawlYear` would not have caught it: the archive PAGE parses
+ * fine, only the PDFs are missing, so every issue would land as `failed` text.
+ *
+ * The rule is path-based, not a blanket host swap: `/Portals/6/` is 404 on the
+ * archive host, so both hosts are needed. And it is plain HTTP — the archive host
+ * serves no TLS at all (a TLS handshake to it fails outright), so upgrading the
+ * scheme would break every one of these downloads.
+ *
+ * robots.txt on that host is the same stock DotNetNuke template as the main site,
+ * `/Portals/` included — the posture recorded in HANDOFF §2.1 covers it unchanged.
+ */
+const ARCHIVE_HOST_BASE = 'http://arsiv.basimevi.gov.ct.tr';
+const ARCHIVE_HOST_PREFIX = '/Portals/105/';
+
 /** Turns the source site's relative links into absolute ones. */
 export function absolutize(href: string): string {
+  const base = href.startsWith(ARCHIVE_HOST_PREFIX) ? ARCHIVE_HOST_BASE : SOURCE_BASE_URL;
+
   try {
-    return new URL(href, SOURCE_BASE_URL + '/').toString();
+    return new URL(href, base + '/').toString();
   } catch {
     return href;
   }
