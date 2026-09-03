@@ -52,14 +52,14 @@ export const viewport: Viewport = {
  * so a user who chose the dark theme would see a white screen first and then jump
  * to dark. Hence it is synchronous, inline, and the first child of <body>.
  *
- * Order: the user's explicit choice > the OS preference. With no choice we follow
- * the system; once the user has touched the switch, their decision stands and the
- * system preference no longer overrides it.
+ * Order: the user's explicit choice > light. With no choice the site defaults to
+ * light regardless of OS preference; once the user has touched the switch, their
+ * decision stands.
  *
  * try/catch: reading localStorage throws in a private window and with site data
  * blocked. Uncaught, the script would die and the page would be left with no theme.
  */
-const THEME_INIT = `(function(){try{var t=localStorage.getItem('tema');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('tema');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
