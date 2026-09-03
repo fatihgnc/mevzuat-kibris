@@ -31,3 +31,14 @@ export const ENTITY_LABEL: Record<EntityKind, string> = {
   company: 'Şirket',
   place: 'Yer',
 };
+
+/**
+ * The plural label — the heading and breadcrumb of the index pages (/kurum,
+ * /sirket, /yer). Separate from ENTITY_LABEL because a breadcrumb names the page
+ * it leads to, and that page lists many.
+ */
+export const ENTITY_LABEL_PLURAL: Record<EntityKind, string> = {
+  institution: 'Kurumlar',
+  company: 'Şirketler',
+  place: 'Yerler',
+};

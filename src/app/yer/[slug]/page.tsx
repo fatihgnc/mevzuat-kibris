@@ -1,10 +1,16 @@
 import type { Metadata } from 'next';
 
-import { EntityPage } from '@/components/entity-page';
-import { entitySlugs, getEntity } from '@/lib/db/queries/entities';
-import { buildMetadata } from '@/lib/seo/metadata';
+import { EntityPage, entityMetadata } from '@/components/entity-page';
+import { entitySlugs } from '@/lib/db/queries/entities';
 
-/** ISR 7 days (spec 11.1). */
+/**
+ * ISR 7 days (spec 11.1) — and it is real again.
+ *
+ * This route used to read `searchParams` for `?sayfa=N`, which opted it out of
+ * prerendering entirely: the build fetched 2.000 slugs below and wrote no HTML at
+ * all. Pagination now lives at ./sayfa/[n], so nothing here touches the query
+ * string and both this window and `generateStaticParams` do what they say.
+ */
 export const revalidate = 604800;
 export const dynamicParams = true;
 
@@ -13,31 +19,14 @@ export async function generateStaticParams() {
   return slugs.slice(0, 2000).map((slug) => ({ slug }));
 }
 
-type Props = {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type Props = { params: Promise<{ slug: string }> };
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const entity = await getEntity('place', slug);
-  if (!entity) return { title: 'Yer bulunamadı' };
-
-  const page = Number((await searchParams).sayfa ?? 1);
-
-  return buildMetadata({
-    title: entity.name + ' — Resmî Gazete kayıtları',
-    description:
-      entity.name +
-      ' adının geçtiği KKTC Resmî Gazete kayıtları, tarih sırasıyla. Her kayıt orijinal PDF sayfasına bağlı.',
-    path: '/yer/' + slug,
-    page,
-  });
+  return entityMetadata('place', slug, 1);
 }
 
-export default async function Page({ params, searchParams }: Props) {
+export default async function Page({ params }: Props) {
   const { slug } = await params;
-  const page = Math.max(1, Number((await searchParams).sayfa ?? 1) || 1);
-
-  return <EntityPage kind="place" slug={slug} page={page} />;
+  return <EntityPage kind="place" slug={slug} page={1} />;
 }

@@ -47,6 +47,18 @@ export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || '';
 export const PAGE_SIZE = 20;
 
 /**
+ * Entities per page on the index pages (/kurum, /sirket, /yer).
+ *
+ * Deliberately NOT PAGE_SIZE. That value is sized for record cards — a multi-line
+ * block each. An index row is one name and one number, so twenty of them make a
+ * page that is mostly whitespace and a pagination bar. It also matters at the other
+ * end: company registry notices produce entities in the thousands, and at twenty a
+ * page the hub would need hundreds of pages to reach them, which is more pagination
+ * depth than a crawler will spend on a listing.
+ */
+export const ENTITY_INDEX_PAGE_SIZE = 60;
+
+/**
  * The self-identifying User-Agent sent to the source site (spec 3.6).
  *
  * ASCII ONLY — not negotiable. HTTP header values are ByteStrings, i.e. at most
@@ -62,6 +74,35 @@ export const PAGE_SIZE = 20;
  */
 export const CRAWLER_USER_AGENT =
   'MevzuatKibris arsiv botu (+' + SITE_URL + '/hakkinda; ' + CONTACT_EMAIL + ')';
+
+/**
+ * A PRODUCTION DEPLOY WITH A NON-HTTPS ORIGIN IS A BROKEN DEPLOY, SO FAIL LOUDLY.
+ *
+ * `SITE_URL` feeds every canonical, the sitemap, the RSS feeds, the OG images and
+ * robots.txt's host line at once. One wrong `NEXT_PUBLIC_SITE_URL` therefore moves
+ * the whole site's identity somewhere else, and nothing in the app would look
+ * broken — the pages render fine, they just point at the wrong domain. That is the
+ * same shape as the bug in §6.9: only machines ever request those paths, so nobody
+ * notices until search engines have already acted on it.
+ *
+ * IT IS DELIBERATELY NOT GUARDED BY `IS_PRODUCTION_DEPLOY`. That constant is true
+ * for any build with NODE_ENV=production, a local `next build` included — it is
+ * written to fail SAFE for noindex, where treating an unknown environment as
+ * production is the cautious direction. Here the cautious direction is the opposite
+ * one: a developer running `next build` against `.env.local` has localhost in this
+ * variable on purpose, and breaking that build would only teach them to delete the
+ * check. Only a real Vercel production deploy can put a wrong domain in front of a
+ * search engine, so only that case throws.
+ *
+ * It runs at module evaluation, so the deploy's build fails rather than shipping.
+ */
+if (process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' && !SITE_URL.startsWith('https://')) {
+  throw new Error(
+    'NEXT_PUBLIC_SITE_URL üretimde https:// ile başlamalı, şu an: ' +
+      SITE_URL +
+      '. Kanonik, sitemap, RSS ve robots.txt hepsi bu değerden türüyor.',
+  );
+}
 
 export function absoluteUrl(path: string): string {
   return SITE_URL + (path.startsWith('/') ? path : '/' + path);

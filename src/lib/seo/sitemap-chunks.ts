@@ -5,7 +5,8 @@ import type { MetadataRoute } from 'next';
 
 import { db } from '@/lib/db/client';
 import { type Row } from '@/lib/db/queries/shared';
-import { TOPIC_SLUGS } from '@/lib/constants/topics';
+import { topicYearCounts } from '@/lib/db/queries/records';
+import { TOPIC_SLUGS, isTopicSlug } from '@/lib/constants/topics';
 import { GUIDES } from '@/lib/content/guides';
 
 import { ARCHIVE_START_YEAR, absoluteUrl } from './config';
@@ -53,6 +54,14 @@ export function staticEntries(): MetadataRoute.Sitemap {
   return [
     entry('/', { lastModified: now, priority: 1, changeFrequency: 'daily' }),
     entry('/sayilar', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
+    /*
+     * The entity hubs. They rank by record count, so their first page changes
+     * whenever ingest runs — hence `weekly` rather than the `monthly` the entity
+     * detail pages get in entityEntries().
+     */
+    entry('/kurum', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
+    entry('/sirket', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
+    entry('/yer', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
     entry('/rehber', { priority: 0.7, changeFrequency: 'monthly' }),
     entry('/hakkinda', { priority: 0.5, changeFrequency: 'yearly' }),
     entry('/iletisim', { priority: 0.4, changeFrequency: 'yearly' }),
@@ -61,6 +70,16 @@ export function staticEntries(): MetadataRoute.Sitemap {
     ...GUIDES.map((guide) =>
       entry('/rehber/' + guide.slug, { priority: 0.7, changeFrequency: 'monthly' }),
     ),
+    /*
+     * The topic hub, then the topics themselves. `/konu` was missing here while
+     * every one of its children was listed — it is in the header navigation and
+     * carries its own metadata, so nothing but this list made it invisible.
+     *
+     * Same priority as the topic pages rather than the 0.6 the entity hubs get:
+     * this one is a landing page in its own right, and the topics under it are the
+     * site's most-crawled section.
+     */
+    entry('/konu', { lastModified: now, priority: 0.8, changeFrequency: 'daily' }),
     ...TOPIC_SLUGS.map((slug) =>
       entry('/konu/' + slug, { lastModified: now, priority: 0.8, changeFrequency: 'daily' }),
     ),
@@ -163,21 +182,26 @@ export async function entityEntries(): Promise<MetadataRoute.Sitemap> {
   );
 }
 
-/** Topic x year archive pages. */
-export function topicYearEntries(): MetadataRoute.Sitemap {
+/**
+ * Topic x year archive pages — only the combinations that actually hold records.
+ *
+ * The counts come from the database rather than from a nested loop over
+ * TOPIC_SLUGS x years. The loop announced ~190 URLs regardless of content, and the
+ * page behind an empty one answers 200 with an empty list — a soft 404 in the
+ * sitemap. `/sayilar/[yil]` has always called notFound() in that situation; the
+ * topic-year page now does the same, and this query keeps the sitemap agreeing
+ * with it.
+ */
+export async function topicYearEntries(): Promise<MetadataRoute.Sitemap> {
   const currentYear = new Date().getFullYear();
-  const entries: MetadataRoute.Sitemap = [];
+  const rows = await topicYearCounts();
 
-  for (const topic of TOPIC_SLUGS) {
-    for (let year = currentYear; year >= ARCHIVE_START_YEAR; year -= 1) {
-      entries.push(
-        entry('/konu/' + topic + '/' + year, {
-          priority: year >= currentYear - 1 ? 0.6 : 0.3,
-          changeFrequency: year >= currentYear ? 'weekly' : 'yearly',
-        }),
-      );
-    }
-  }
-
-  return entries;
+  return rows
+    .filter((row) => isTopicSlug(row.topic) && row.year >= ARCHIVE_START_YEAR)
+    .map((row) =>
+      entry('/konu/' + row.topic + '/' + row.year, {
+        priority: row.year >= currentYear - 1 ? 0.6 : 0.3,
+        changeFrequency: row.year >= currentYear ? 'weekly' : 'yearly',
+      }),
+    );
 }

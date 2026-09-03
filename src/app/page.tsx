@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdSlot } from "@/components/ad-slot";
@@ -21,6 +22,19 @@ import {
   coverageSentence,
   coverageShort,
 } from "@/lib/db/queries/coverage";
+import { RSS_ALTERNATE } from "@/lib/seo/metadata";
+
+/**
+ * The home page's own canonical. It used to be declared in the root layout, where
+ * every page without an `alternates` block inherited it (see the note there).
+ *
+ * `types` is restated because Next replaces `alternates` wholesale rather than
+ * merging into it — declaring only the canonical here would drop the feed link from
+ * the one page that still has it. Both values come from the shared constant.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: '/', types: RSS_ALTERNATE },
+};
 
 // ISR + tag: when ingest finishes, revalidateTag('latest') refreshes this page (spec 11.1).
 export const revalidate = 3600;

@@ -13,10 +13,25 @@ import { buildMetadata } from '@/lib/seo/metadata';
 // The same ISR window as the topic pages (spec 11.1).
 export const revalidate = 3600;
 
+/**
+ * BOTH THE COUNT AND THE LIST COME FROM TOPIC_LIST — neither is typed out.
+ *
+ * The description used to name eight topics by hand. `yurttaslik` arrived with
+ * migration 0008 and nobody came back here, so the page describing the topics was
+ * the one page on the site that did not know about all of them. Hardcoding a count
+ * next to a list that grows is the same mistake ARCHIVE_START_YEAR is centralised
+ * to avoid.
+ */
+const TOPIC_NAMES = TOPIC_LIST.map((topic) => topic.name.toLocaleLowerCase('tr')).join(', ');
+
 export const metadata: Metadata = buildMetadata({
   title: 'Konular',
   description:
-    'Resmî Gazete kayıtları sekiz konuya ayrılıyor: münhal, ihale, şirket, gayrimenkul, marka, vergi ve mali, mevzuat, atama. Her konunun akışı kronolojik.',
+    'Resmî Gazete kayıtları ' +
+    TOPIC_LIST.length +
+    ' konuya ayrılıyor: ' +
+    TOPIC_NAMES +
+    '. Her akış kronolojik.',
   path: '/konu',
 });
 

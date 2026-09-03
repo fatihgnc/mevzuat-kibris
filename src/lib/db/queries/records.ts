@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db/client';
+import { TAG, cachedQuery } from '@/lib/db/cache';
 import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
 import { isTopicSlug, type TopicSlug } from '@/lib/constants/topics';
 import { HEADLINE_OPTIONS } from '@/lib/search/highlight';
@@ -265,7 +266,41 @@ export interface ListOptions {
   offset?: number;
 }
 
-export async function listRecords(options: ListOptions): Promise<RecordListItem[]> {
+/**
+ * The cache key and the tags for a list query.
+ *
+ * Built field by field in a fixed order rather than from JSON.stringify(options):
+ * object key order is insertion order, so two call sites spelling the same query
+ * with the fields in a different order would produce two keys for one query and
+ * quietly miss each other's entries.
+ */
+function listCacheKey(prefix: string, options: ListOptions): string[] {
+  return [
+    prefix,
+    options.topic ?? '',
+    options.entitySlug ?? '',
+    String(options.year ?? ''),
+    options.openDeadlineOnly ? 'acik' : '',
+    String(options.limit ?? ''),
+    String(options.offset ?? ''),
+  ];
+}
+
+/** Which invalidation tags this query's result depends on. */
+function listCacheTags(options: ListOptions): string[] {
+  const tags = [TAG.latest];
+  if (options.topic) tags.push(TAG.topic(options.topic));
+  if (options.entitySlug) tags.push(TAG.entity(options.entitySlug));
+  return tags;
+}
+
+export function listRecords(options: ListOptions): Promise<RecordListItem[]> {
+  return cachedQuery(listCacheKey('listRecords', options), listCacheTags(options), () =>
+    listRecordsUncached(options),
+  );
+}
+
+async function listRecordsUncached(options: ListOptions): Promise<RecordListItem[]> {
   const conditions = [sql`r.has_own_page`];
 
   if (options.topic) {
@@ -298,7 +333,13 @@ export async function listRecords(options: ListOptions): Promise<RecordListItem[
   return rows.map((row) => mapListItem(row));
 }
 
-export async function countRecords(options: ListOptions): Promise<number> {
+export function countRecords(options: ListOptions): Promise<number> {
+  return cachedQuery(listCacheKey('countRecords', options), listCacheTags(options), () =>
+    countRecordsUncached(options),
+  );
+}
+
+async function countRecordsUncached(options: ListOptions): Promise<number> {
   const conditions = [sql`r.has_own_page`];
 
   if (options.topic) {
@@ -349,6 +390,30 @@ export async function topicCounts(): Promise<Record<string, number>> {
   `);
 
   return Object.fromEntries(rows.map((row) => [row.topic, Number(row.n)]));
+}
+
+/**
+ * Record count per topic AND year — the sitemap's topic x year entries.
+ *
+ * `topicYearEntries` used to emit every topic crossed with every year since 2006
+ * without asking the data, so combinations that hold no record at all were being
+ * advertised to crawlers. `yurttaslik` arrived with migration 0008 and has no
+ * history, which made most of its years empty. A URL announced in the sitemap that
+ * answers with an empty list is a soft 404, and enough of them cost trust in the
+ * whole sitemap.
+ */
+export async function topicYearCounts(): Promise<Array<{ topic: string; year: number }>> {
+  const rows = await db.execute<Row<{ topic: string; year: number }>>(sql`
+    select rt.topic, i.year
+      from record_topics rt
+      join records r on r.id = rt.record_id
+      join issues i on i.id = r.issue_id
+     where r.has_own_page
+     group by rt.topic, i.year
+     having count(*) > 0
+  `);
+
+  return rows.map((row) => ({ topic: row.topic, year: Number(row.year) }));
 }
 
 interface RawDetailRow extends RawListRow {

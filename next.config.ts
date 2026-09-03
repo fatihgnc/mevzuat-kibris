@@ -33,6 +33,74 @@ const nextConfig: NextConfig = {
      */
     cpus: 3,
   },
+  /**
+   * Old `?sayfa=` / `?filtre=` links, sent to their new addresses.
+   *
+   * THESE MUST LIVE HERE AND NOT IN A PAGE. Handling them inside a route would mean
+   * reading `searchParams`, which is the exact thing that cost these routes their
+   * prerendering in the first place — the redirect would preserve the URLs and undo
+   * the fix. `redirects()` runs at the edge, before any route is chosen, so the
+   * pages behind it stay static.
+   *
+   * `permanent: true` (308) because the query-string form is not coming back. That
+   * is a different case from the thin-record redirect in /karar/[slug], which is
+   * deliberately 307: there the condition can change when a later parser pass gives
+   * the record a body. Here the URL shape is a settled decision.
+   *
+   * Order matters — the filtered forms have to be matched before the bare ones, or
+   * `?filtre=acik&sayfa=2` would lose its filter to the plainer rule.
+   */
+  async redirects() {
+    const page = '(?<n>\\d{1,4})';
+
+    return [
+      // /konu/x?filtre=acik&sayfa=N  ->  /konu/x/acik/sayfa/N
+      {
+        source: '/konu/:konu',
+        has: [
+          { type: 'query' as const, key: 'filtre', value: 'acik' },
+          { type: 'query' as const, key: 'sayfa', value: page },
+        ],
+        destination: '/konu/:konu/acik/sayfa/:n',
+        permanent: true,
+      },
+      // /konu/x?filtre=acik  ->  /konu/x/acik
+      {
+        source: '/konu/:konu',
+        has: [{ type: 'query' as const, key: 'filtre', value: 'acik' }],
+        destination: '/konu/:konu/acik',
+        permanent: true,
+      },
+      // /konu/x/2025?sayfa=N  ->  /konu/x/2025/sayfa/N
+      {
+        source: '/konu/:konu/:yil(\\d{4})',
+        has: [{ type: 'query' as const, key: 'sayfa', value: page }],
+        destination: '/konu/:konu/:yil/sayfa/:n',
+        permanent: true,
+      },
+      // /konu/x?sayfa=N  ->  /konu/x/sayfa/N
+      {
+        source: '/konu/:konu',
+        has: [{ type: 'query' as const, key: 'sayfa', value: page }],
+        destination: '/konu/:konu/sayfa/:n',
+        permanent: true,
+      },
+      // /kurum/x?sayfa=N and the other two kinds, plus their hubs
+      {
+        source: '/:kind(kurum|sirket|yer)/:slug',
+        has: [{ type: 'query' as const, key: 'sayfa', value: page }],
+        destination: '/:kind/:slug/sayfa/:n',
+        permanent: true,
+      },
+      {
+        source: '/:kind(kurum|sirket|yer)',
+        has: [{ type: 'query' as const, key: 'sayfa', value: page }],
+        destination: '/:kind/sayfa/:n',
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

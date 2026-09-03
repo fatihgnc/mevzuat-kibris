@@ -3,6 +3,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db/client';
+import { TAG, cachedQuery } from '@/lib/db/cache';
 import { type Row } from './shared';
 import { normalizeForSearch } from '@/lib/text/turkish-lower';
 import type { CoOccurringEntity, EntityRow } from '@/types/entity';
@@ -32,7 +33,13 @@ function mapEntity(row: RawEntity): EntityRow {
   };
 }
 
-export async function getEntity(kind: EntityKind, slug: string): Promise<EntityRow | null> {
+export function getEntity(kind: EntityKind, slug: string): Promise<EntityRow | null> {
+  return cachedQuery(['getEntity', kind, slug], [TAG.latest, TAG.entity(slug)], () =>
+    getEntityUncached(kind, slug),
+  );
+}
+
+async function getEntityUncached(kind: EntityKind, slug: string): Promise<EntityRow | null> {
   const rows = await db.execute<Row<RawEntity>>(sql`
     select id, kind, slug, name, name_normalized, aliases, district, record_count
       from entities
@@ -44,7 +51,15 @@ export async function getEntity(kind: EntityKind, slug: string): Promise<EntityR
 }
 
 /** Spec 8.5: the most frequently co-occurring entities. */
-export async function coOccurring(entityId: number, limit = 8): Promise<CoOccurringEntity[]> {
+export function coOccurring(entityId: number, limit = 8): Promise<CoOccurringEntity[]> {
+  // Keyed by id, not slug, so the entity tag cannot be derived here — `latest`
+  // covers it: co-occurrence only changes when new records arrive.
+  return cachedQuery(['coOccurring', String(entityId), String(limit)], [TAG.latest], () =>
+    coOccurringUncached(entityId, limit),
+  );
+}
+
+async function coOccurringUncached(entityId: number, limit = 8): Promise<CoOccurringEntity[]> {
   const rows = await db.execute<Row<{
     id: string;
     kind: string;
@@ -109,4 +124,54 @@ export async function entitySlugs(kind: EntityKind): Promise<string[]> {
     select slug from entities where kind = ${kind} and record_count >= 2 order by record_count desc
   `);
   return rows.map((row) => row.slug);
+}
+
+/**
+ * The entity index pages — /kurum, /sirket, /yer.
+ *
+ * THE `record_count >= 2` THRESHOLD IS NOT OPTIONAL HERE. The detail page calls
+ * notFound() below it (spec 8.2 rule 3) and the sitemap applies the same filter, so
+ * a hub built without it would fill itself with links to 404s — the exact opposite
+ * of what a hub is for.
+ *
+ * Ordered by record count for the reason searchEntities gives: the user is after
+ * the most active entity, not the alphabetically first one. `name` only breaks ties.
+ */
+export function listEntities(
+  kind: EntityKind,
+  options: { limit: number; offset: number },
+): Promise<EntityRow[]> {
+  return cachedQuery(
+    ['listEntities', kind, String(options.limit), String(options.offset)],
+    [TAG.latest],
+    () => listEntitiesUncached(kind, options),
+  );
+}
+
+async function listEntitiesUncached(
+  kind: EntityKind,
+  options: { limit: number; offset: number },
+): Promise<EntityRow[]> {
+  const rows = await db.execute<Row<RawEntity>>(sql`
+    select id, kind, slug, name, name_normalized, aliases, district, record_count
+      from entities
+     where kind = ${kind} and record_count >= 2
+     order by record_count desc, name
+     limit ${options.limit} offset ${options.offset}
+  `);
+  return rows.map(mapEntity);
+}
+
+/** The total behind the index pagination — the same threshold as listEntities. */
+export function countEntities(kind: EntityKind): Promise<number> {
+  return cachedQuery(['countEntities', kind], [TAG.latest], () => countEntitiesUncached(kind));
+}
+
+async function countEntitiesUncached(kind: EntityKind): Promise<number> {
+  const rows = await db.execute<Row<{ total: string }>>(sql`
+    select count(*)::text as total
+      from entities
+     where kind = ${kind} and record_count >= 2
+  `);
+  return Number(rows[0]?.total ?? 0);
 }

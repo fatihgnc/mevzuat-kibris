@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -11,8 +12,10 @@ import { coOccurring, getEntity } from '@/lib/db/queries/entities';
 import { countRecords, listRecords } from '@/lib/db/queries/records';
 import { formatCount } from '@/lib/db/queries/shared';
 import { PAGE_SIZE } from '@/lib/seo/config';
+import { buildMetadata } from '@/lib/seo/metadata';
+import { pageHref } from '@/lib/seo/pagination';
 import { breadcrumbJsonLd, institutionJsonLd } from '@/lib/seo/json-ld';
-import { ENTITY_LABEL, ENTITY_PATH } from '@/types/entity';
+import { ENTITY_LABEL, ENTITY_LABEL_PLURAL, ENTITY_PATH } from '@/types/entity';
 import type { EntityKind } from '@/types/record';
 
 const INTRO: Record<EntityKind, (name: string) => string> = {
@@ -23,6 +26,33 @@ const INTRO: Record<EntityKind, (name: string) => string> = {
   place: (name) =>
     name + ' adının geçtiği kamulaştırma, imar ve altyapı kararları; en yeniden eskiye.',
 };
+
+/**
+ * The metadata for one entity page, shared by the base route and its /sayfa/[n]
+ * sibling. It lives here so the two routes cannot describe the same entity
+ * differently — `path` is the only thing that differs between them, and it is
+ * passed in rather than rebuilt.
+ */
+export async function entityMetadata(
+  kind: EntityKind,
+  slug: string,
+  page: number,
+): Promise<Metadata> {
+  const entity = await getEntity(kind, slug);
+  if (!entity) return { title: ENTITY_LABEL[kind] + ' bulunamadı' };
+
+  const basePath = ENTITY_PATH[kind] + '/' + slug;
+
+  return buildMetadata({
+    title: entity.name + ' — Resmî Gazete kayıtları',
+    description:
+      entity.name +
+      ' adının geçtiği KKTC Resmî Gazete kayıtları, tarih sırasıyla. Her kayıt orijinal PDF sayfasına bağlı.',
+    path: pageHref(basePath, page),
+    feedPath: basePath + '/rss.xml',
+    page,
+  });
+}
 
 /**
  * Institution / company / place page — spec 9.6; all three share one template.
@@ -52,9 +82,14 @@ export async function EntityPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const basePath = ENTITY_PATH[kind] + '/' + slug;
 
+  /*
+   * The middle step used to be a bare label with no href, because the page it
+   * would have pointed at did not exist. It does now (/kurum, /sirket, /yer), so
+   * the crumb both links and takes the plural name of its destination.
+   */
   const crumbs = [
     { name: 'Ana sayfa', href: '/' },
-    { name: ENTITY_LABEL[kind] },
+    { name: ENTITY_LABEL_PLURAL[kind], href: ENTITY_PATH[kind] },
     { name: entity.name },
   ];
 
@@ -95,7 +130,7 @@ export async function EntityPage({
               className="mt-[22px]"
               page={page}
               totalPages={totalPages}
-              hrefFor={(next) => (next > 1 ? basePath + '?sayfa=' + next : basePath)}
+              hrefFor={(next) => pageHref(basePath, next)}
             />
 
             {neighbours.length ? (
@@ -145,9 +180,7 @@ export async function EntityPage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              institutionJsonLd({ name: entity.name, slug, recordCount: total }),
-            ),
+            __html: JSON.stringify(institutionJsonLd({ name: entity.name, slug })),
           }}
         />
       ) : null}

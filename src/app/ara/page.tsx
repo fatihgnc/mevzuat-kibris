@@ -67,6 +67,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <SiteHeader variant="search" query={built.raw} />
 
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-8 lg:px-8">
+        {/*
+          The page had no h1 at all. It is `sr-only` rather than visible because the
+          design deliberately gives this page no title block — the filled search box
+          in the header is what says where you are, and a heading repeating it would
+          push the results down. A screen reader still needs the page named, and a
+          document whose outline starts at h2 is broken regardless of who is reading.
+        */}
+        <h1 className="sr-only">
+          {built.raw ? '“' + built.raw + '” için arama sonuçları' : 'Arama'}
+        </h1>
+
         <div className="grid gap-8 lg:grid-cols-search">
           {/*
             DO NOT USE `self-start`. Intuition says otherwise, but for sticky to work

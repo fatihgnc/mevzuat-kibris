@@ -70,6 +70,22 @@ export function SiteFooter({
               <li>
                 <Link href="/sayilar">Sayılar</Link>
               </li>
+              {/*
+                The entity hubs belong in THIS column, not next to the twenty
+                institutions above: that block is only rendered when the page passes
+                institutions in, which is the home page alone. Everywhere else
+                <SiteFooter /> is called bare, and these three links are the only
+                navigable path to the company and place pages.
+              */}
+              <li>
+                <Link href="/kurum">Kurumlar</Link>
+              </li>
+              <li>
+                <Link href="/sirket">Şirketler</Link>
+              </li>
+              <li>
+                <Link href="/yer">Yerler</Link>
+              </li>
               <li>
                 <Link href="/rehber">Rehber</Link>
               </li>

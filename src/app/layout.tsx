@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Source_Sans_3 } from 'next/font/google';
 import Script from 'next/script';
 
-import { DEFAULT_METADATA } from '@/lib/seo/metadata';
+import { DEFAULT_METADATA, RSS_ALTERNATE } from '@/lib/seo/metadata';
 import { ADSENSE_CLIENT, SITE_URL } from '@/lib/seo/config';
-import { websiteJsonLd } from '@/lib/seo/json-ld';
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/json-ld';
 
 import '@/styles/globals.css';
 
@@ -22,17 +22,26 @@ const sans = Source_Sans_3({
 });
 
 /**
- * metadataBase is set here once and no page builds its own canonical by hand (spec
- * 8.4). This line is the single thing preventing the canonical from escaping to a
- * preview domain.
+ * `metadataBase` is set here once and no page builds an absolute canonical by hand
+ * (spec 8.4). It is the single thing keeping canonicals off a preview domain.
+ *
+ * NO `canonical` HERE, though — that one belongs to the home page, in app/page.tsx.
+ *
+ * Next merges metadata by field, so anything declared in this object is INHERITED
+ * by every page that does not declare the same field. A canonical is the one value
+ * that must never be inherited: it names one specific URL. While `canonical: '/'`
+ * sat here, `/ara`, `/takip` and `/hesap` — the three pages that build their own
+ * metadata without an `alternates` block — each emitted a canonical pointing at the
+ * home page, telling Google they were the home page. They are noindex, so nothing
+ * broke; the mechanism was the problem, because every future page that forgot
+ * `alternates` would have done the same silently.
+ *
+ * `types` stays: a feed declaration genuinely is site-wide.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   ...DEFAULT_METADATA,
-  alternates: {
-    canonical: '/',
-    types: { 'application/rss+xml': [{ url: '/rss.xml', title: 'Tüm kayıtlar' }] },
-  },
+  alternates: { types: RSS_ALTERNATE },
 };
 
 export const viewport: Viewport = {
@@ -83,6 +92,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+        />
+        {/* The publisher entity behind every page — see organizationJsonLd. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
         />
         {/*
          * The AdSense loader is lazyOnload: it comes down after the page is
