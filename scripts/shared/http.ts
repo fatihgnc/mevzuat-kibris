@@ -24,6 +24,31 @@ interface FetchOptions {
   timeoutMs?: number;
 }
 
+/**
+ * The errnos that mean "the network was unavailable for a moment", as opposed to
+ * "this request can never be sent". Node hangs the real error off `cause`, so a
+ * DNS failure and a malformed header both surface as `TypeError: fetch failed`
+ * and only `cause.code` tells them apart.
+ */
+const TRANSIENT_CODES = new Set([
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+export function isTransientNetworkError(error: unknown): boolean {
+  const cause = (error as { cause?: unknown })?.cause;
+  const code = (cause as { code?: unknown })?.code;
+  return typeof code === 'string' && TRANSIENT_CODES.has(code);
+}
+
 /** Throttled fetch with exponential backoff. */
 export async function politeFetch(
   url: string,
@@ -53,13 +78,21 @@ export async function politeFetch(
       lastError = error;
 
       /*
-       * A TypeError means the request itself could not be constructed (invalid
-       * URL, a header that will not fit in a ByteString). Retrying does not fix
-       * that; it only sends needless requests to the source site and disguises
-       * the real cause as an ordinary network error. A Turkish character in
-       * CRAWLER_USER_AGENT once hid in exactly this way.
+       * A TypeError USUALLY means the request itself could not be constructed
+       * (invalid URL, a header that will not fit in a ByteString). Retrying does
+       * not fix that; it only sends needless requests to the source site and
+       * disguises the real cause as an ordinary network error. A Turkish
+       * character in CRAWLER_USER_AGENT once hid in exactly this way.
+       *
+       * BUT NOT ALWAYS, and the difference cost a run. Node's `fetch` reports
+       * network failures as `TypeError: fetch failed` too, with the real errno
+       * on `cause`. DNS for the source host and for Supabase went away four
+       * times in one session, and each time this line turned a blip that a
+       * single retry would have covered into a dead job.
+       *
+       * So: construction errors still fail fast, network errors retry.
        */
-      if (error instanceof TypeError) throw error;
+      if (error instanceof TypeError && !isTransientNetworkError(error)) throw error;
 
       const backoff = Math.min(30_000, 2000 * 2 ** attempt);
       log.warn('istek başarısız, yeniden denenecek', { url, attempt, backoff });
