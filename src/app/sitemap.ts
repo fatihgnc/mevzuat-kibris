@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import type { MetadataRoute } from 'next';
 
 import {
@@ -41,6 +42,22 @@ export default async function sitemap({
    * breaking the build with "OFFSET must not be negative".
    */
   const chunk = Number(id);
+
+  /*
+   * An id outside the generated range is a 404, not an empty sitemap.
+   *
+   * generateSitemaps lists ids 0..SITEMAP_CHUNK_COUNT-1, but nothing stopped a
+   * request for a higher one: it fell to the default branch, asked for an archive
+   * page past the end, and answered 200 with zero URLs. That is the shape Google
+   * reports as an error, and it outlived the constant that created it -- when
+   * SITEMAP_ARCHIVE_CHUNKS dropped from 6 to 1, /sitemap/6.xml through /10.xml
+   * left the index but kept answering 200 (measured against production), so a
+   * crawler holding the old index keeps re-fetching empty files.
+   *
+   * Number('x') is NaN and NaN fails every comparison, so the check is written as
+   * "must be a valid id" rather than "must not be an invalid one".
+   */
+  if (!Number.isInteger(chunk) || chunk < 0 || chunk >= SITEMAP_CHUNK_COUNT) notFound();
 
   switch (chunk) {
     case 0:
