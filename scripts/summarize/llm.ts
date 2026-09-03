@@ -149,20 +149,34 @@ const TPM_LIMIT = Number(process.env.OPENAI_TPM) || 200_000;
 const TPM_SAFETY = 0.85;
 
 /**
- * Characters per token for Turkish, MEASURED against the API rather than guessed.
+ * Characters per token for Turkish, read from `usage.prompt_tokens` on REAL calls.
  *
- * The first value here was 2.2, on the assumption that Turkish tokenises poorly.
- * OpenAI's own 429 messages report the cost of each rejected request
- * ("Requested 590"), and against a 2,078-character prompt plus 90 reserved output
- * tokens that works out to ~4.2 characters per token — gpt-4o's tokeniser handles
- * Turkish far better than assumed. Estimating 2.2 nearly doubled every reservation
- * and throttled the run to roughly half the throughput the limit allowed.
+ * THE PREVIOUS VALUE HERE WAS WRONG, AND IT WAS WRONG IN THE DANGEROUS DIRECTION.
+ * It was 3.5, justified by "~4.2 measured" — but that 4.2 was not measured, it was
+ * inferred from a 429 message ("Requested 590") by solving for the ratio. The
+ * response body reports the real number, and 12 calls across the actual 2006-2024
+ * prompts say:
  *
- * 3.5 keeps a deliberate margin below the measured 4.2: over-estimating the cost
- * only slows us down, while under-estimating produces the 429 storm this exists to
- * prevent.
+ *   prompt 2,057-2,158 chars  ->  807-863 tokens   =  2.53 chars/token
+ *   output                    ->  21 tokens average
+ *
+ * The ratio is dominated by this file's own SYSTEM_PROMPT (1,945 chars ~ 800
+ * tokens), which is resent on every call, so it barely moves with the title.
+ *
+ * Why the direction matters: under-estimating shrinks every reservation, so the
+ * pacer lets more calls through than the limit allows. At 3.5 it planned 247 calls
+ * a minute costing 914 tokens each — 226,000 TPM against a 200,000 ceiling, i.e.
+ * the exact 429 storm the budget exists to prevent. At 2.4 it plans 177 a minute,
+ * 162,000 TPM, which fits.
+ *
+ * 2.4 keeps a small margin below the measured 2.53. Over-estimating only costs
+ * throughput; under-estimating costs the run.
+ *
+ * NOT eligible for prompt caching, checked rather than assumed: `cached_tokens`
+ * came back 0 on every call, including repeats of the identical system prompt.
+ * The prompt is ~824 tokens and OpenAI's automatic caching starts at 1,024.
  */
-const CHARS_PER_TOKEN = 3.5;
+const CHARS_PER_TOKEN = 2.4;
 
 const spend: Array<{ at: number; tokens: number }> = [];
 
