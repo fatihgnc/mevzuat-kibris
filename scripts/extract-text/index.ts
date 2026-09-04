@@ -7,6 +7,8 @@ import { promisify } from 'node:util';
 import { politeFetch } from '../shared/http';
 import { log } from '../shared/logger';
 
+import { countCid, decodeCidText } from './cid';
+
 const run = promisify(execFile);
 
 /**
@@ -270,8 +272,47 @@ async function runOcr(
 }
 
 /**
+ * The text layer, read through pdfminer and decoded.
+ *
+ * WHY NOT pdftotext HERE. Some source PDFs embed a subset font whose ToUnicode
+ * mapping cannot be used. pdftotext prints those characters by their raw code and
+ * the output comes back shifted by 29 — "<$6$" for "YASA" — with no way to tell a
+ * shifted character from ordinary punctuation. Measured on 2024 issue 2: 4,265
+ * corrupted characters, and a decoder working on that output damaged 3,218 sound
+ * words elsewhere in the archive. pdfminer marks the same characters as
+ * "(cid:60)", which removes the ambiguity; cid.ts turns them back.
+ *
+ * Measured, same document: pdftotext 5,959 words with 4,265 corrupted, pdfminer
+ * 7,035 words with none. On five healthy issues the two agree to within 0.6%, so
+ * this is not a trade — it is the same text plus the part pdftotext could not
+ * read.
+ *
+ * THE COST IS SPEED: 10-26x slower (0.1-1.0s vs 1.2-26s per issue, measured).
+ * Daily ingest handles a handful of issues, so it disappears there; a full
+ * re-extraction of the archive is hours rather than minutes.
+ */
+async function pdfminerText(path: string, pdfUrl: string): Promise<string | null> {
+  const script = join(import.meta.dirname, 'pdf_text.py');
+  for (const python of ['python3', 'python']) {
+    try {
+      const { stdout } = await run(python, [script, path], {
+        maxBuffer: 128 * 1024 * 1024,
+        encoding: 'utf8',
+      });
+      const markers = countCid(stdout);
+      const text = decodeCidText(stdout);
+      if (markers) log.info('bozuk font katmanı çözüldü', { pdfUrl, markers });
+      return text;
+    } catch {
+      // Sonraki yorumlayıcı adını dene; ikisi de yoksa aşağıda pdftotext'e düşülür.
+    }
+  }
+  return null;
+}
+
+/**
  * Text extraction pipeline (spec 7.2):
- *   pdftotext -layout
+ *   pdfminer + cid decode   (pdftotext if unavailable)
  *     -> treat as scanned if characters/page < 150
  *     -> ocrmypdf --language tur --redo-ocr
  *     -> pdftotext again
@@ -291,13 +332,24 @@ export async function extractPdfText(pdfUrl: string): Promise<ExtractionResult> 
     const pageCount = await pdfPageCount(input);
 
     let text = '';
-    try {
-      const { stdout } = await run('pdftotext', ['-layout', '-enc', 'UTF-8', input, '-'], {
-        maxBuffer: 64 * 1024 * 1024,
-      });
-      text = stdout;
-    } catch (error) {
-      log.warn('pdftotext başarısız', { pdfUrl, message: String(error) });
+    const viaPdfminer = await pdfminerText(input, pdfUrl);
+    if (viaPdfminer !== null) {
+      text = viaPdfminer;
+    } else {
+      /*
+       * pdftotext stays as the fallback rather than being removed: it needs no
+       * Python, so a local checkout without pdfminer still extracts. It cannot
+       * read the broken font layer, and that is a known and logged loss.
+       */
+      log.warn('pdfminer kullanılamadı, pdftotext ile devam ediliyor', { pdfUrl });
+      try {
+        const { stdout } = await run('pdftotext', ['-layout', '-enc', 'UTF-8', input, '-'], {
+          maxBuffer: 64 * 1024 * 1024,
+        });
+        text = stdout;
+      } catch (error) {
+        log.warn('pdftotext başarısız', { pdfUrl, message: String(error) });
+      }
     }
 
     /*

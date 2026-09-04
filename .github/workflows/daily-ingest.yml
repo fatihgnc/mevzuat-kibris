@@ -26,11 +26,20 @@ jobs:
           cache: npm
 
       # Metin çıkarma araçları (spec 7.2). tesseract-ocr-tur Türkçe dil paketi.
+      #
+      # python3-pdfminer BİRİNCİL çıkarıcıdır (scripts/extract-text/pdf_text.py).
+      # Gömülü fontun ToUnicode tablosu kullanılamadığında pdftotext metni 29
+      # kaydırılmış basıyor ve kaydırılmış karakter sıradan noktalamadan ayırt
+      # EDİLEMİYOR; pdfminer aynı karakteri "(cid:N)" diye işaretliyor, cid.ts
+      # geri çeviriyor. Python zaten ocrmypdf için kurulu.
+      #
+      # poppler-utils KALIYOR: pdfminer yoksa yedek yol, ve OCR çıktısı ondan okunuyor.
       - name: PDF ve OCR araçları
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            poppler-utils tesseract-ocr tesseract-ocr-tur ocrmypdf ghostscript
+            poppler-utils tesseract-ocr tesseract-ocr-tur ocrmypdf ghostscript \
+            python3-pdfminer
 
       - run: npm ci
       - run: npm run ingest:daily

@@ -41,11 +41,13 @@ jobs:
           node-version: 22
           cache: npm
 
+      # python3-pdfminer birincil çıkarıcı; gerekçesi daily-ingest.yml'de.
       - name: PDF ve OCR araçları
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            poppler-utils tesseract-ocr tesseract-ocr-tur ocrmypdf ghostscript
+            poppler-utils tesseract-ocr tesseract-ocr-tur ocrmypdf ghostscript \
+            python3-pdfminer
 
       - run: npm ci
       - run: npm run ingest:daily ${{ matrix.year }}
