@@ -62,12 +62,14 @@ function parseArgs() {
   };
   const limit = Number(valueOf('--limit'));
   const year = Number(valueOf('--year'));
+  const budget = Number(valueOf('--max-minutes') ?? process.env.SUMMARIZE_MAX_MINUTES);
 
   return {
     dry: argv.includes('--dry'),
     retry: argv.includes('--retry'),
     limit: Number.isInteger(limit) && limit > 0 ? limit : null,
     year: Number.isInteger(year) ? year : null,
+    maxMinutes: Number.isFinite(budget) && budget > 0 ? budget : null,
   };
 }
 
@@ -249,12 +251,37 @@ async function processGroup(group: Group, client: ChatClient, stats: Stats): Pro
   }
 }
 
-async function runPool(groups: Group[], client: ChatClient, stats: Stats): Promise<void> {
+/**
+ * A TIME BUDGET, so the run can stop while it is still winning.
+ *
+ * There is nothing to finish here in one go: a group whose summary is written
+ * stays written, and one that is never reached is simply picked up by the next
+ * run. Without a budget the script ran until the JOB's 60-minute timeout killed
+ * it, and GitHub then marked the whole ingest run `cancelled` — two of them on 2
+ * and 3 September, with ingest itself having succeeded minutes earlier. Nothing
+ * was lost, but a red run that is actually fine is worse than useless: it is the
+ * one that hides a red run that is not.
+ *
+ * Stopping is checked between groups, never mid-request — an answer already paid
+ * for is always written.
+ */
+async function runPool(
+  groups: Group[],
+  client: ChatClient,
+  stats: Stats,
+  maxMinutes: number | null,
+): Promise<{ stoppedEarly: boolean }> {
   let cursor = 0;
   let done = 0;
+  let stoppedEarly = false;
+  const deadline = maxMinutes === null ? null : Date.now() + maxMinutes * 60_000;
 
   const worker = async () => {
     while (cursor < groups.length) {
+      if (deadline !== null && Date.now() >= deadline) {
+        stoppedEarly = true;
+        return;
+      }
       const group = groups[cursor]!;
       cursor += 1;
       await processGroup(group, client, stats);
@@ -268,10 +295,11 @@ async function runPool(groups: Group[], client: ChatClient, stats: Stats): Promi
   };
 
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, groups.length) }, worker));
+  return { stoppedEarly };
 }
 
 async function main() {
-  const { dry, limit, year, retry } = parseArgs();
+  const { dry, limit, year, retry, maxMinutes } = parseArgs();
 
   /*
    * Before spending anything: fill in whatever an earlier run already answered.
@@ -283,7 +311,15 @@ async function main() {
   const groups = await loadGroups(year, limit, retry);
   const records = groups.reduce((sum, group) => sum + group.n, 0);
 
-  log.info('özetleme başlıyor', { groups: groups.length, records, dry, limit, year, retry });
+  log.info('özetleme başlıyor', {
+    groups: groups.length,
+    records,
+    dry,
+    limit,
+    year,
+    retry,
+    maxMinutes,
+  });
 
   if (dry) {
     /*
@@ -311,8 +347,13 @@ async function main() {
   };
 
   try {
-    await runPool(groups, client, stats);
-    log.info('özetleme bitti', { ...stats, declinedBy: JSON.stringify(stats.declinedBy) });
+    const { stoppedEarly } = await runPool(groups, client, stats, maxMinutes);
+    log.info('özetleme bitti', {
+      ...stats,
+      declinedBy: JSON.stringify(stats.declinedBy),
+      stoppedEarly,
+      remaining: stoppedEarly ? groups.length - stats.rule - stats.llm - stats.declined - stats.failed : 0,
+    });
   } finally {
     await closeDb();
   }

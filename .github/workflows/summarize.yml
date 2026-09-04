@@ -1,0 +1,61 @@
+name: summarize
+
+# Kademeli üretimin ikinci basamağı (spec 3.8).
+#
+# NEDEN AYRI BİR WORKFLOW. Bu adım daily-ingest'in içindeydi ve orada iki şeyi
+# birden bozuyordu:
+#
+#   1. 60 dakikalık iş zaman aşımını dolduruyor, GitHub da TÜM koşumu
+#      `cancelled` işaretliyordu — 2 ve 3 Eylül'de ingest dakikalar önce
+#      başarıyla bitmişken. Veri kaybı yoktu (betik yazdıkça yazıyor, son adım
+#      olduğu için sonrasında atlanan bir şey yok) ama sağlam olan kırmızı bir
+#      koşum, sağlam OLMAYAN kırmızı koşumu gizler.
+#   2. Ingest 3 saatte bire çıkınca özetleme de günde 8 kez koşacaktı ve
+#      §6.2'deki günlük istek kotasını yakacaktı.
+#
+# Ayrılınca ikisi de düzeliyor: ingest sık ve yeşil, özetleme kendi ritminde.
+
+on:
+  schedule:
+    # Günde iki kez yeter: yeni kayıt sayısı sınırlı ve kota günlük.
+    # Saatler GitHub'ın gecikmesi yüzünden yaklaşıktır (bkz. daily-ingest.yml).
+    - cron: '30 5 * * *'
+    - cron: '30 17 * * *'
+  workflow_dispatch:
+
+concurrency:
+  # Ingest'ten AYRI grup: özetleme uzun sürerken yeni sayı yakalama beklemesin.
+  group: summarize
+  cancel-in-progress: false
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Anahtar yoksa adım atlanıyor, iş yeşil kalıyor. Ürün özetsiz de çalışıyor
+      # — maskelenmiş başlık gösteriliyor (3. basamak).
+      #
+      # Yalnızca hiç denenmemiş kayıtları soruyor; reddedilenler
+      # `summary_attempted_at` ile damgalı ve tekrar sorulmuyor (migration 0009).
+      #
+      # SUMMARIZE_MAX_MINUTES işin zaman aşımının ALTINDA: betik gruplar arasında
+      # süreyi kontrol edip nazikçe duruyor, kalanı sonraki koşum alıyor. Bitmesi
+      # gereken bir iş değil — yazılan özet yazılı kalıyor.
+      - name: LLM özet katmanı
+        if: ${{ env.OPENAI_API_KEY != '' }}
+        run: npm run summarize
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          SUMMARIZE_MAX_MINUTES: '45'

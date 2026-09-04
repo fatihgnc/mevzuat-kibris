@@ -1,9 +1,21 @@
 name: dispatch-alerts
 
 on:
-  workflow_run:
-    workflows: [daily-ingest]
-    types: [completed]
+  # workflow_run TETİKLEYİCİSİ KALDIRILDI — daily-ingest'in her bitişinde
+  # koşuyordu ve tasarımla çelişiyordu.
+  #
+  # Gönderim penceresi `records.created_at > alerts.last_sent_at` (index.ts
+  # findMatches). Yani her tetikleme, o andan beri gelen kayıtları yolluyor ve
+  # `last_sent_at`'i ileri alıyor. Ingest günde 2 kez koşarken bu, aşağıdaki
+  # günlük cron'a EK olarak 2 gönderim daha demekti: `daily` abone günde 3'e
+  # kadar e-posta alıyordu. Ingest 3 saatte bire çıkınca 9 olacaktı.
+  #
+  # Oysa tasarım bunu istemiyor: aşağıdaki yorum gönderim saatini burasının
+  # BELİRLEDİĞİNİ söylüyor, ve index.ts başlığı "There is no instant frequency"
+  # diyor. Günlük alarm günde bir kez gönderilir.
+  #
+  # Yeni kayıtlar yine gecikmeden SİTEYE düşüyor — ingest onları 3 saatte bir
+  # yakalıyor ve kendi revalidation'ını yapıyor. Değişen tek şey e-posta ritmi.
   schedule:
     # 08:00 TRT. Gönderim saatini BELİRLEYEN yer burasıdır ve herkes için aynıdır;
     # kullanıcı başına saat tercihi yok (profiles.digest_hour migration 0010'da

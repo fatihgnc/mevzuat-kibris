@@ -2,8 +2,22 @@ name: daily-ingest
 
 on:
   schedule:
-    - cron: '0 4 * * *' # 07:00 TRT
-    - cron: '0 15 * * *' # 18:00 TRT
+    # HER 3 SAATTE BIR, gunde iki kez degil.
+    #
+    # GitHub zamanli workflow'lari dusuk oncelikle kuyruga aliyor ve GECIKTIRIYOR:
+    # '0 4' ile '0 15' yazan bu iki cron gercekte 08:27 ve 18:20 UTC'de kosuyordu,
+    # yani 3,5-4,5 saat sonra. Yorumlar "07:00 / 18:00 TRT" diyordu ama pratikte
+    # 11:30 ve 21:20 TRT oluyordu.
+    #
+    # Sonucu 4 Eylul'de goruldu: 165 ve 166 numarali sayilar sabahki kosumdan
+    # SONRA yayimlandi (kosum issuesSeen:164 gormustu) ve aksam kosumu daha
+    # sirasi gelmeden elle tetiklenene kadar sitede gorunmediler.
+    #
+    # Gecikmeyi ortadan kaldiramayiz -- GitHub'in isi. Yapabilecegimiz sey
+    # ARALIGI kisaltmak: en kotu bekleme 3 saat + gecikme oluyor, onceki ~16
+    # saat yerine. Depo public, yani Actions dakikasi ucretsiz; yeni sayi yoksa
+    # kosum kaynak siteye tek bir sayfa istegi atiyor.
+    - cron: '0 */3 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -50,20 +64,11 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
 
-      # Kademeli üretimin ikinci basamağı (spec 3.8). Ingest'ten SONRA ve ayrı
-      # adımda: OpenAI kesintisi PDF çekmeyi durdurmasın, ingest hatası da
-      # özetlemeyi tetiklemesin.
+      # LLM ÖZET KATMANI ARTIK BURADA DEĞİL -> summarize.yml
       #
-      # Anahtar yoksa adım atlanıyor, iş yeşil kalıyor. Ürün özetsiz de
-      # çalışıyor — maskelenmiş başlık gösteriliyor (3. basamak) — ve günlük
-      # ingest'i kurulmamış bir anahtar yüzünden kırmızıya boyamak, asıl işin
-      # (yeni sayıların yakalanması) sessizce durmasına yol açar.
-      #
-      # Yalnızca hiç denenmemiş kayıtları soruyor; reddedilenler
-      # `summary_attempted_at` ile damgalı ve tekrar sorulmuyor (migration 0009).
-      - name: LLM özet katmanı
-        if: ${{ env.OPENAI_API_KEY != '' }}
-        run: npm run summarize
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+      # İki sebep. (1) Özetleme 60 dakikalık iş zaman aşımını dolduruyordu ve
+      # GitHub tüm koşumu `cancelled` işaretliyordu — 2 ve 3 Eylül'de ingest
+      # dakikalar önce BAŞARIYLA bitmişken. Aslında sağlam olan kırmızı bir
+      # koşum, sağlam olmayan kırmızı koşumu gizler. (2) Ingest artık 3 saatte
+      # bir koşuyor; özetleme de onunla koşsaydı günde 8 kez çalışıp §6.2'deki
+      # günlük istek kotasını yakardı.
