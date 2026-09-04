@@ -1,4 +1,3 @@
-import { formatRef } from '../../src/lib/constants/doc-types';
 import { recordSlug } from '../../src/lib/text/slugify';
 import { normalizeForSearch } from '../../src/lib/text/turkish-lower';
 import { truncateBytes } from '../../src/lib/text/truncate';
@@ -10,7 +9,7 @@ import { sql } from '../shared/db';
 import { log } from '../shared/logger';
 import { summarize } from '../summarize/rules';
 
-import { extractBody, parseIndexCell, parseIndexTable } from './parser';
+import { bodyAnchor, extractBody, parseIndexCell, parseIndexTable } from './parser';
 
 /**
  * Stages 4-7 — processes one issue end to end.
@@ -95,22 +94,27 @@ export async function processIssue(issue: {
   let written = 0;
 
   /*
-   * Every reference label in this issue. `extractBody` uses them to decide where
-   * a body ends: the NEAREST other reference after its own start. Looking only
-   * at the next record's label was not enough — the gazette's physical order need
-   * not match the contents order, and when the label was not found the body ran
-   * to the end of the PDF.
+   * Every body anchor in this issue. `extractBody` uses them to decide where a
+   * body ends: the NEAREST other anchor after its own start. Looking only at the
+   * next record's label was not enough — the gazette's physical order need not
+   * match the contents order, and when the label was not found the body ran to
+   * the end of the PDF.
+   *
+   * These are `bodyAnchor`s, not `formatRef`s: EK III items are printed under
+   * "Sayı :  380" and never under the A.E. number the contents cell lists them
+   * by. That holds for the END of a body as much as for its start — an anchor
+   * the PDF does not use stops nothing.
    */
-  const allRefLabels = parsed
-    .map((item) => formatRef(item.refType, item.refNumber))
+  const allAnchors = parsed
+    .map((item) => bodyAnchor(item.refType, item.refNumber))
     .filter((label): label is string => Boolean(label));
 
   for (let i = 0; i < parsed.length; i += 1) {
     const record = parsed[i]!;
-    const refLabel = formatRef(record.refType, record.refNumber);
-    const otherLabels = allRefLabels.filter((label) => label !== refLabel);
+    const anchor = bodyAnchor(record.refType, record.refNumber);
+    const otherAnchors = allAnchors.filter((label) => label !== anchor);
 
-    const { body, pageFrom } = extractBody(pdfText, refLabel, otherLabels);
+    const { body, pageFrom } = extractBody(pdfText, anchor, otherAnchors);
     const bodyText = body ? truncateBytes(body) : null;
 
     const docType = classifyDocType({

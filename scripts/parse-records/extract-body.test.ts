@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractBody } from './parser';
+import { bodyAnchor, extractBody } from './parser';
 
 /**
  * Body boundaries — a regression guard for a bug measured on real data.
@@ -106,5 +106,72 @@ describe('extractBody', () => {
   it('nokta toleransı farklı bir referansı eşleştirmez', () => {
     expect(extractBody(NOKTALI, 'E.T(K-I) 27-2020', []).body).toBeNull();
     expect(extractBody(NOKTALI, 'E.S(K-I) 99-2020', []).body).toBeNull();
+  });
+});
+
+/*
+ * EK III — the anchor the CONTENTS uses is not the anchor the PAGE uses.
+ *
+ * The contents cell lists "A.E. 380"; the printed item is headed "Sayı :  380"
+ * and the A.E. series never appears in the body at all. What DOES appear is the
+ * margin citation block — "A.E.275", "A.E.488" — pointing at the older decisions
+ * the item amends. Anchoring on A.E. therefore landed on a citation and ran on
+ * from there: measured over 42 issues, the old anchor produced 9 bodies against
+ * 218, and their median length was 66.959 characters against 2.869.
+ *
+ * The fixture is shaped like the real thing: item 380's body carries citations
+ * of A.E. 275 and A.E. 488, and A.E. 380 appears nowhere.
+ */
+const EK_III = [
+  'KUZEY KIBRIS TÜRK CUMHURİYETİ RESMÎ GAZETE EK III',
+  'Sayı : 81',
+  'Sayı :  380',
+  '(1381)',
+  'A.E.275 18.08.2006 R.G.138 EK III A.E.488',
+  'TURİZM GELİŞTİRME VE TANITMA FONU emirnamesinin 2. maddesi değiştirilir.',
+  'Sayı :  381',
+  '1383',
+  'PETROL ÜRÜNLERİ FİYATLANDIRMA ESASLARI tüzüğü hakkında metin burada.',
+].join('\n');
+
+describe('bodyAnchor — EK III kendi numarasını "Sayı :" diye basıyor', () => {
+  it('A.E. kaydı için gazetedeki etiketi veriyor', () => {
+    expect(bodyAnchor('ae', '380')).toBe('Sayı : 380');
+  });
+
+  it('diğer türlerde referansın kendisi kalıyor', () => {
+    expect(bodyAnchor('uki', '830-2026')).toBe('Ü(K-I) 830-2026');
+    expect(bodyAnchor('eski', '27-2020')).toBe('E.S(K-I) 27-2020');
+    expect(bodyAnchor(null, '380')).toBeNull();
+    expect(bodyAnchor('ae', null)).toBeNull();
+  });
+
+  it('A.E. çapasıyla gövde BULUNAMIYOR — numara gövdede hiç geçmiyor', () => {
+    expect(extractBody(EK_III, 'A.E. 380', ['A.E. 381']).body).toBeNull();
+  });
+
+  it('"Sayı :" çapasıyla kaydın KENDİ metni geliyor', () => {
+    const { body } = extractBody(EK_III, bodyAnchor('ae', '380'), [bodyAnchor('ae', '381')!]);
+    expect(body).toContain('TURİZM GELİŞTİRME');
+    expect(body).not.toContain('PETROL ÜRÜNLERİ');
+  });
+
+  /*
+   * The failure this replaces. "A.E. 275" is a citation inside item 380, not a
+   * record of this issue — but with the old anchor a record numbered 275 would
+   * have taken it as the start of its own body and stored item 380's text.
+   */
+  it('kenar boşluğundaki atıf, o numaralı kayda gövde diye verilmiyor', () => {
+    expect(extractBody(EK_III, bodyAnchor('ae', '275'), []).body).toBeNull();
+  });
+
+  /*
+   * A bare number has no year to end it, so the label must not run into a longer
+   * one. Measured in the archive: 41 pairs of A.E. records share an issue where
+   * one number is a digit-prefix of the other.
+   */
+  it('kısa numara, uzun numaranın başına yapışmıyor', () => {
+    expect(extractBody(EK_III, bodyAnchor('ae', '38'), []).body).toBeNull();
+    expect(extractBody(EK_III, bodyAnchor('ae', '8'), []).body).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 
 import { SECTION_HEADINGS, type Section } from '../../src/lib/constants/sections';
-import type { RefType } from '../../src/lib/constants/doc-types';
+import { formatRef, type RefType } from '../../src/lib/constants/doc-types';
 
 /**
  * Parser for the archive's İÇERİK (contents) cell — spec 3.3.
@@ -398,11 +398,56 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
 }
 
 /**
+ * The label a record's body is printed under IN THE PDF — which is not always
+ * the label the contents cell lists it by.
+ *
+ * EK III is the case that matters. The contents cell lists an item as
+ * "A.E. 380", but the printed page never writes that number: it heads the item
+ * "Sayı :  380" and the A.E. series appears only in the contents. Every `A.E.`
+ * in an EK III body is a CITATION of some other decision, printed in the margin
+ * next to the item it amends.
+ *
+ * So the old anchor did not merely fail to find bodies — the few it did find
+ * were mostly runaway slices. Measured over 42 issues sampled across 2020-2026,
+ * 224 EK III records, on cached PDF text through this very function:
+ *
+ *                                        A.E. anchor    Sayı anchor
+ *   body found                                 9            218
+ *   median length                         66.959          2.869
+ *   swallows another record's anchor         4/9            0/218
+ *   body matches its own title               7/9          206/218
+ *   earns its own page (spec 8.2)              9            217
+ *
+ * The last-but-one row is the check that settles it: the title comes from the
+ * archive's HTML contents cell and the body from the PDF, so agreement between
+ * the two cannot be an artefact of either. Read it together with the median,
+ * though — a body that runs to the end of the PDF contains its own title too,
+ * which is most of why the A.E. column scores 7/9 on 67 KB slices.
+ *
+ * 2020 issue 2, record A.E. 9 is the whole story in one record. Its title is
+ * "ZORLA MAL İKTİSABI YASASI ... MADDE 6 GEREĞİNCE KAMULAŞTIRMA EMRİ". The A.E.
+ * anchor lands on page 27, inside a margin block citing a 1979 decision numbered
+ * A.E.9; the Sayı anchor lands on page 20, on the expropriation order itself.
+ *
+ * NOT ONE record with a body today loses it under the new anchor (measured: 0).
+ *
+ * ⚠️ 9 records in the archive carry an A.E. number equal to their own issue
+ * number, and the section header prints THAT as "Sayı : 81" too. Those bodies
+ * start a few lines early, at the header. Left alone deliberately: the cure
+ * (telling the two apart by position) is guesswork, and the damage is bounded.
+ */
+export function bodyAnchor(refType: RefType | null, refNumber: string | null): string | null {
+  if (!refType || !refNumber) return null;
+  if (refType === 'ae') return `Sayı : ${refNumber}`;
+  return formatRef(refType, refNumber);
+}
+
+/**
  * Extracts a record's body from the PDF text.
  *
- * We find where the reference number occurs in the PDF text and take everything
- * up to the next reference. If it is not found, null — an invented body is worse
- * than no body.
+ * We find where the record's anchor (see `bodyAnchor`) occurs in the PDF text
+ * and take everything up to the next one. If it is not found, null — an invented
+ * body is worse than no body.
  */
 export function extractBody(
   pdfText: string,
@@ -477,6 +522,13 @@ export function extractBody(
  *
  * The text itself is NOT normalised — `extractBody` slices by index, so the
  * haystack has to keep its original offsets. The tolerance goes in the pattern.
+ *
+ * WHAT IS NOT ELASTIC IS THE END OF THE NUMBER. A label may not match a longer
+ * number that merely starts with it: "Sayı : 38" must not land on "Sayı : 380".
+ * The old patterns got away without this guard because the reference types carry
+ * a year ("Ü(K-I) 828-2026"), which ends them; the EK III anchor is a bare
+ * number and does not. Measured in the archive: 41 pairs of A.E. records share
+ * an issue where one number is a digit-prefix of the other.
  */
 function findLabel(text: string, label: string, from: number): number {
   const escaped = label
@@ -486,6 +538,6 @@ function findLabel(text: string, label: string, from: number): number {
     // ...and the PDF may add one the label does not have, before the series paren.
     .replace(/\\\(/g, '\\.?\\(')
     .replace(/\s+/g, '\\s*');
-  const match = new RegExp(escaped, 'i').exec(text.slice(from));
+  const match = new RegExp(escaped + '(?!\\d)', 'i').exec(text.slice(from));
   return match ? from + match.index : -1;
 }
