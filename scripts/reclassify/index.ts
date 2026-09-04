@@ -36,7 +36,30 @@ async function main() {
     select id, title, section, doc_type, ref_type from records order by id
   `;
 
-  log.info('yeniden sınıflandırma başlıyor', { records: rows.length, dry });
+  /*
+   * Every record's current topics, in ONE query.
+   *
+   * This loop used to ask `select topic from record_topics where record_id = ?`
+   * per record. The classification itself is pure and takes seconds; the run took
+   * 44 minutes, and all of it was 24,438 round trips to a remote database at a
+   * measured 108ms each. The whole table is 22,734 rows.
+   */
+  const topicRows = await sql<Array<{ record_id: number; topic: string }>>`
+    select record_id, topic from record_topics
+  `;
+
+  const topicsByRecord = new Map<number, string[]>();
+  for (const item of topicRows) {
+    const list = topicsByRecord.get(item.record_id);
+    if (list) list.push(item.topic);
+    else topicsByRecord.set(item.record_id, [item.topic]);
+  }
+
+  log.info('yeniden sınıflandırma başlıyor', {
+    records: rows.length,
+    topicRows: topicRows.length,
+    dry,
+  });
 
   let docTypeChanged = 0;
   let topicsChanged = 0;
@@ -49,10 +72,7 @@ async function main() {
     });
     const topics = classifyTopics({ title: row.title, docType });
 
-    const current = await sql<Array<{ topic: string }>>`
-      select topic from record_topics where record_id = ${Number(row.id)} order by topic
-    `;
-    const before = current.map((item) => item.topic).sort();
+    const before = [...(topicsByRecord.get(Number(row.id)) ?? [])].sort();
     const after = [...topics].sort();
     const sameTopics = before.length === after.length && before.every((t, i) => t === after[i]);
 
