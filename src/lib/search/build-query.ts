@@ -55,7 +55,7 @@ export const searchParamsSchema = z.object({
     .union([z.string(), z.array(z.string())])
     .optional()
     .transform(toArray)
-    .pipe(z.array(z.enum(DOC_TYPES)).max(23))
+    .pipe(z.array(z.enum(DOC_TYPES)).max(DOC_TYPES.length))
     .catch([]),
   kurum: z.string().trim().max(120).optional().catch(undefined),
   yer: z.string().trim().max(120).optional().catch(undefined),

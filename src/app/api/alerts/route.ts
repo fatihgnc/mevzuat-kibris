@@ -25,7 +25,7 @@ const createSchema = z.object({
   query: z.string().trim().max(200).optional(),
   topic: z.enum(TOPIC_SLUGS).optional(),
   entityId: z.number().int().positive().optional(),
-  docTypes: z.array(z.enum(DOC_TYPES)).max(23).optional(),
+  docTypes: z.array(z.enum(DOC_TYPES)).max(DOC_TYPES.length).optional(),
 });
 
 /**
