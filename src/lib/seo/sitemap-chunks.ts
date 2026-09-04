@@ -9,7 +9,7 @@ import { topicYearCounts } from '@/lib/db/queries/records';
 import { TOPIC_SLUGS, isTopicSlug } from '@/lib/constants/topics';
 import { GUIDES } from '@/lib/content/guides';
 
-import { ARCHIVE_START_YEAR, absoluteUrl } from './config';
+import { ARCHIVE_START_YEAR, RECENT_MONTHS, absoluteUrl } from './config';
 
 /**
  * Sitemap prioritisation — spec 8.2 rule 1.
@@ -20,7 +20,6 @@ import { ARCHIVE_START_YEAR, absoluteUrl } from './config';
  * fetches that one most often.
  */
 
-const RECENT_MONTHS = 24;
 
 /**
  * How many sitemap chunks exist: 5 fixed ones plus the archive pages.

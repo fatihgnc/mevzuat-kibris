@@ -114,6 +114,21 @@ if (process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' && !SITE_URL.startsWith(
   );
 }
 
+/**
+ * The "recent" window, in months — the archive's high-priority slice.
+ *
+ * TWO PLACES MUST AGREE ON IT and they used to hold separate numbers. The sitemap
+ * gives this window priority 0.8 and monthly changefreq while the rest of the
+ * archive gets 0.3 and yearly (spec 8.2 rule 1); generateStaticParams on
+ * /karar/[slug] prerenders it and lets the rest render on first request (spec
+ * 11.1). Those are the same claim — "this is the part that gets traffic" — made
+ * once for crawlers and once for the build, so a crawler told to come back monthly
+ * should not be the first visitor to pay for the page.
+ *
+ * The sitemap said 24 and the build said 12. Now both read this.
+ */
+export const RECENT_MONTHS = 24;
+
 export function absoluteUrl(path: string): string {
   return SITE_URL + (path.startsWith('/') ? path : '/' + path);
 }
