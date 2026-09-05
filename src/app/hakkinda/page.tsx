@@ -19,7 +19,7 @@ export default async function AboutPage() {
   return (
     <ProsePage
       title="Hakkında"
-      lede="KKTC Resmî Gazete’de yayımlanan her şeyi aranabilir hâle getiriyoruz. Ücretsiz, reklam destekli, resmî değil."
+      lede="KKTC Resmî Gazete’de yayımlanan her şeyi aranabilir hâle getiriyoruz. Tamamen ücretsiz, resmî değil."
       crumbs={[{ name: 'Ana sayfa', href: '/' }, { name: 'Hakkında' }]}
     >
       <Section heading="Sorun ne">

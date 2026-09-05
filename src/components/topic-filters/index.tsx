@@ -1,14 +1,12 @@
 import Link from 'next/link';
 
-import { DEFAULT_SORT, SORT_LABELS, SORT_OPTIONS, type SortOption } from '@/lib/search/build-query';
-import { cn } from '@/lib/utils';
+
 
 interface TopicFiltersProps {
   /** Where the form submits — the topic's own path, so the filter stays in place. */
   action: string;
   baslangic?: string;
   bitis?: string;
-  sirala: SortOption;
   /** Bounds for the pickers, taken from the archive rather than the calendar (spec 8.4). */
   coverage?: { earliestYear: number | null; latestYear: number | null } | null;
 }
@@ -18,28 +16,27 @@ interface TopicFiltersProps {
  *
  * DELIBERATELY NARROWER THAN THE SEARCH RAIL. Search offers topic and document
  * type as well; here the topic is already decided by the URL, so the only
- * dimension left worth a control is time. By the product owner's decision that is
- * all this rail carries: a date range and the sort order.
+ * dimension left worth a control is time. By the product owner's decision the
+ * date range is all this rail carries.
  *
- * It is the same kind of thing as the search rail and works the same way — a real
- * `method="get"` form that accumulates a choice and applies it with a button, so
- * every state is a shareable URL and none of it needs JS. It submits to the
- * topic's own path rather than to /ara, so filtering a topic keeps you in the
- * topic.
+ * SORTING IS NOT HERE. It sits above the list, as `SortLinks`, exactly where the
+ * search results carry it — one click that acts at once rather than a choice you
+ * assemble and then apply. It spent one revision as a radio group in this rail,
+ * which put the same control in two different shapes on two screens.
+ *
+ * Otherwise it is the same kind of thing as the search rail and works the same
+ * way — a real `method="get"` form that accumulates a choice and applies it with
+ * a button, so every state is a shareable URL and none of it needs JS. It submits
+ * to the topic's own path rather than to /ara, so filtering a topic keeps you in
+ * the topic.
  *
  * `sayfa` is deliberately not a field: changing a filter has to return you to the
  * first page, and never sending it does that by itself.
  */
-export function TopicFilters({
-  action,
-  baslangic,
-  bitis,
-  sirala,
-  coverage,
-}: TopicFiltersProps) {
+export function TopicFilters({ action, baslangic, bitis, coverage }: TopicFiltersProps) {
   const min = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
   const max = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
-  const active = Boolean(baslangic || bitis || sirala !== DEFAULT_SORT);
+  const active = Boolean(baslangic || bitis);
 
   /*
    * Remounts the form when the APPLIED values change — the same reason the search
@@ -47,7 +44,7 @@ export function TopicFilters({
    * so after a soft navigation to the cleared address React would keep the old
    * dates visible while the list below showed everything.
    */
-  const appliedKey = [baslangic ?? '', bitis ?? '', sirala].join('|');
+  const appliedKey = [baslangic ?? '', bitis ?? ''].join('|');
 
   return (
     <form
@@ -64,38 +61,6 @@ export function TopicFilters({
           <DateField name="baslangic" label="Başlangıç" defaultValue={baslangic} min={min} max={max} />
           <DateField name="bitis" label="Bitiş" defaultValue={bitis} min={min} max={max} />
         </div>
-      </section>
-
-      <section>
-        <h2 className="mb-2.5 text-xs text-ink-faint">Sıralama</h2>
-        <ul className="flex flex-col gap-[7px]">
-          {SORT_OPTIONS.map((option) => (
-            <li key={option}>
-              <label
-                className={cn(
-                  'flex cursor-pointer items-center gap-2 text-base leading-none',
-                  option === sirala ? 'text-ink' : 'text-ink-body',
-                )}
-              >
-                <input
-                  type="radio"
-                  name="sirala"
-                  value={option}
-                  defaultChecked={option === sirala}
-                  className="sr-only"
-                />
-                <span
-                  aria-hidden
-                  className={cn(
-                    'box-border block h-3 w-3 shrink-0 rounded-full bg-surface',
-                    option === sirala ? 'border-4 border-accent' : 'border border-line-strong',
-                  )}
-                />
-                {SORT_LABELS[option]}
-              </label>
-            </li>
-          ))}
-        </ul>
       </section>
 
       <div className="flex flex-col gap-2">

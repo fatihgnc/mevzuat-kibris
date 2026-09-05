@@ -169,7 +169,7 @@ export default async function HomePage() {
                   Mevzuat Kıbrıs resmî bir kurum değildir. Bağlayıcı olan,
                   gazetede yayımlanan resmî metindir.
                 </span>
-                <span>Ücretsiz, gelir reklamdan.</span>
+                <span>Tamamen ücretsiz.</span>
               </div>
             </div>
           </aside>

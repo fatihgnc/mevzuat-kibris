@@ -129,7 +129,7 @@ export function SiteFooter({
             otomatik çıkarılır; bağlayıcı olan, gazetede yayımlanan resmî metindir.
           </p>
           <p>
-            {coverage ? coverage + '. ' : null}Ücretsiz, gelir reklamdan. © {year}
+            {coverage ? coverage + '. ' : null}Tamamen ücretsiz. © {year}
           </p>
         </div>
       </div>

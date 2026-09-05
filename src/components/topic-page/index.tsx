@@ -7,6 +7,7 @@ import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
+import { SortLinks } from '@/components/sort-links';
 import { TopicFilters } from '@/components/topic-filters';
 import { TOPICS, type TopicSlug } from '@/lib/constants/topics';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
@@ -22,17 +23,19 @@ import { cn } from '@/lib/utils';
 /**
  * The topic feed — one template behind four routes.
  *
- * BOTH THE PAGE NUMBER AND THE FILTER LIVE IN THE PATH, and they have to. A route
- * that reads `searchParams` cannot be prerendered, so while this page took
- * `?sayfa=` and `?filtre=` from the query string it was rendered from scratch on
- * every request — despite the `revalidate` above it and `generateStaticParams`
- * listing all nine topics. Moving only the page number would not have been enough:
- * one remaining query read keeps the whole route dynamic.
+ * THE PAGE NUMBER AND THE "acik" FILTER LIVE IN THE PATH; the date range and the
+ * sort are a query string. The split is not arbitrary — `acik` and a page number
+ * enumerate, so they can be route segments, and a date range cannot.
  *
- *   /konu/munhal                  page 1, unfiltered   <- prerendered
- *   /konu/munhal/sayfa/2          page 2, unfiltered
- *   /konu/munhal/acik             page 1, open only
- *   /konu/munhal/acik/sayfa/2     page 2, open only
+ *   /konu/munhal                          page 1, unfiltered
+ *   /konu/munhal/sayfa/2                  page 2, unfiltered
+ *   /konu/munhal/acik                     page 1, open only
+ *   /konu/munhal?baslangic=…&sirala=eski  filtered and reordered
+ *
+ * ⚠️ Reading a query string costs the route its static caching, and that is why
+ * the first three were moved into the path in the first place. The rail brought
+ * the cost back knowingly; the measurement and the way out are recorded in
+ * app/konu/[konu]/page.tsx.
  *
  * `/konu/[konu]/acik` wins over `/konu/[konu]/[yil]` because Next matches a static
  * segment before a dynamic one, and `[yil]` would have rejected "acik" anyway —
@@ -42,10 +45,33 @@ import { cn } from '@/lib/utils';
 /** The one place the topic URL shape is written. */
 export function topicHref(
   konu: string,
-  options: { openOnly?: boolean; page?: number } = {},
+  options: {
+    openOnly?: boolean;
+    page?: number;
+    baslangic?: string;
+    bitis?: string;
+    sirala?: SortOption;
+  } = {},
 ): string {
   const base = '/konu/' + konu + (options.openOnly ? '/acik' : '');
-  return pageHref(base, options.page ?? 1);
+  const path = pageHref(base, options.page ?? 1);
+
+  /*
+   * The page number and the "acik" filter stay in the PATH; the range and the
+   * sort are a query string. They have to be — a date range does not enumerate,
+   * so it could never have been a route segment the way `acik` is.
+   *
+   * The default sort is left OUT rather than written as `?sirala=yeni`. One list
+   * must have one address: emitting the default would give the unfiltered feed
+   * two spellings, and Google would have to be told which of them is canonical.
+   */
+  const search = new URLSearchParams();
+  if (options.baslangic) search.set('baslangic', options.baslangic);
+  if (options.bitis) search.set('bitis', options.bitis);
+  if (options.sirala && options.sirala !== DEFAULT_SORT) search.set('sirala', options.sirala);
+
+  const qs = search.toString();
+  return qs ? path + '?' + qs : path;
 }
 
 export async function TopicPage({
@@ -103,7 +129,15 @@ export async function TopicPage({
     { name: topic.name },
   ];
 
-  const hrefFor = (nextPage: number) => topicHref(konu, { openOnly, page: nextPage });
+  const hrefFor = (nextPage: number) => topicHref(konu, { openOnly, page: nextPage, baslangic, bitis, sirala });
+
+  /*
+   * Changing the sort returns to page 1 — page 4 of "newest first" has nothing to
+   * do with page 4 of "oldest first", and landing there would look like the list
+   * jumped. The date range is carried across, because it is a different question.
+   */
+  const sortHref = (option: SortOption) =>
+    topicHref(konu, { openOnly, baslangic, bitis, sirala: option });
 
   return (
     <>
@@ -121,7 +155,6 @@ export async function TopicPage({
             action={topicHref(konu, { openOnly })}
             baslangic={baslangic}
             bitis={bitis}
-            sirala={sirala}
             coverage={coverage}
           />
 
@@ -137,17 +170,26 @@ export async function TopicPage({
               {topic.description}
             </p>
 
-            <div className="mt-4 flex flex-wrap items-center gap-x-[18px] gap-y-2 text-base text-ink-muted">
-              <span>
-                <span className="font-semibold text-ink">{formatCount(total)} kayıt</span>
-                {coverageRange(coverage) ? ', ' + coverageRange(coverage) : null}
-              </span>
-              {latest ? (
-                <>
-                  <span aria-hidden className="h-3 w-px bg-line" />
-                  <span>Son kayıt {formatDateLong(latest.publishedAt)}</span>
-                </>
-              ) : null}
+            {/*
+              * Count on the left, sort on the right — the shape the search results
+              * use. The sort joins THIS line rather than getting a strip of its
+              * own: this line already states the count, and a second one below it
+              * printed the same number twice in consecutive rows.
+              */}
+            <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-[18px] gap-y-2 border-b border-line pb-3.5 text-base text-ink-muted">
+              <div className="flex flex-wrap items-center gap-x-[18px] gap-y-2">
+                <span>
+                  <span className="font-semibold text-ink">{formatCount(total)} kayıt</span>
+                  {coverageRange(coverage) ? ', ' + coverageRange(coverage) : null}
+                </span>
+                {latest ? (
+                  <>
+                    <span aria-hidden className="h-3 w-px bg-line" />
+                    <span>Son kayıt {formatDateLong(latest.publishedAt)}</span>
+                  </>
+                ) : null}
+              </div>
+              <SortLinks active={sirala} hrefFor={sortHref} />
             </div>
 
             {/*

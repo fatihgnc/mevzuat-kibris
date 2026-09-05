@@ -6,6 +6,7 @@ import { Pagination } from '@/components/pagination';
 import { ActiveFilterChips, SearchFilters } from '@/components/search-filters';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
+import { SortLinks } from '@/components/sort-links';
 import { FollowCard } from '@/components/follow-card';
 import { RssCard } from '@/components/rss-card';
 import { TOPIC_LIST } from '@/lib/constants/topics';
@@ -18,8 +19,6 @@ import {
 import { archiveCoverage } from '@/lib/db/queries/coverage';
 import { formatCount } from '@/lib/db/queries/shared';
 import {
-  SORT_LABELS,
-  SORT_OPTIONS,
   buildQuery,
   buildSearchHref,
   hasActiveFilters,
@@ -27,7 +26,6 @@ import {
   searchParamsSchema,
 } from '@/lib/search/build-query';
 import { PAGE_SIZE } from '@/lib/seo/config';
-import { cn } from '@/lib/utils';
 
 /** Arama dinamik; ISR yok (spec 11.1). */
 export const dynamic = 'force-dynamic';
@@ -116,22 +114,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     </span>{' '}
                     bulundu
                   </p>
-                  <div className="flex items-center gap-4 text-base">
-                    {SORT_OPTIONS.map((option) => (
-                      <Link
-                        key={option}
-                        href={buildSearchHref(params, { sirala: option, sayfa: 1 })}
-                        className={cn(
-                          'no-underline hover:no-underline',
-                          option === params.sirala
-                            ? 'border-b-2 border-accent pb-0.5 font-semibold text-ink'
-                            : 'text-ink-muted hover:text-ink',
-                        )}
-                      >
-                        {SORT_LABELS[option]}
-                      </Link>
-                    ))}
-                  </div>
+                  <SortLinks
+                    active={params.sirala}
+                    hrefFor={(option) => buildSearchHref(params, { sirala: option, sayfa: 1 })}
+                  />
                 </div>
 
                 <RecordList
