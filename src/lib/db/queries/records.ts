@@ -72,7 +72,16 @@ function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur
   if (params.tur?.length && exclude !== 'tur') {
     parts.push(sql`r.doc_type in (${inList(params.tur)})`);
   }
-  if (params.yil) {
+  /*
+   * A custom range WINS over the year radio; the two are not combined.
+   *
+   * Both controls sit in the same rail and both narrow by date, so a leftover
+   * "2020" plus a range in 2024 is an easy accident — and ANDing them answers it
+   * with an empty page that looks like missing data rather than a contradiction.
+   * The range is the more specific of the two and is the one the user just
+   * typed, so it takes the field.
+   */
+  if (params.yil && !params.baslangic && !params.bitis) {
     parts.push(sql`i.year = ${params.yil}`);
   }
   if (params.baslangic) {
@@ -262,6 +271,11 @@ export interface ListOptions {
   year?: number;
   /** Only records whose applications are still open (spec 3.9, artboard 1e). */
   openDeadlineOnly?: boolean;
+  /** Inclusive ISO bounds — the topic rail's custom range. */
+  baslangic?: string;
+  bitis?: string;
+  /** Publication order; 'yeni' (newest first) is the default everywhere. */
+  sirala?: SortOption;
   limit?: number;
   offset?: number;
 }
@@ -281,6 +295,9 @@ function listCacheKey(prefix: string, options: ListOptions): string[] {
     options.entitySlug ?? '',
     String(options.year ?? ''),
     options.openDeadlineOnly ? 'acik' : '',
+    options.baslangic ?? '',
+    options.bitis ?? '',
+    options.sirala ?? '',
     String(options.limit ?? ''),
     String(options.offset ?? ''),
   ];
@@ -300,7 +317,15 @@ export function listRecords(options: ListOptions): Promise<RecordListItem[]> {
   );
 }
 
-async function listRecordsUncached(options: ListOptions): Promise<RecordListItem[]> {
+/**
+ * The WHERE for a list — built once and used by both the rows query and the
+ * count.
+ *
+ * They used to build the same conditions separately, which is a standing
+ * invitation for the two to drift: a filter added to one and forgotten in the
+ * other gives a list of 12 records under a heading that says 40.
+ */
+function listConditions(options: ListOptions) {
   const conditions = [sql`r.has_own_page`];
 
   if (options.topic) {
@@ -320,13 +345,19 @@ async function listRecordsUncached(options: ListOptions): Promise<RecordListItem
   if (options.openDeadlineOnly) {
     conditions.push(sql`r.deadline_at is not null and r.deadline_at >= current_date`);
   }
+  if (options.baslangic) conditions.push(sql`r.published_at >= ${options.baslangic}::date`);
+  if (options.bitis) conditions.push(sql`r.published_at <= ${options.bitis}::date`);
 
+  return sql.join(conditions, sql` and `);
+}
+
+async function listRecordsUncached(options: ListOptions): Promise<RecordListItem[]> {
   const rows = await db.execute<Row<RawListRow>>(sql`
     select ${sql.raw(LIST_COLUMNS)}, null::text as snippet
       from records r
       ${sql.raw(LIST_JOINS)}
-     where ${sql.join(conditions, sql` and `)}
-     order by r.published_at desc, r.id desc
+     where ${listConditions(options)}
+     order by ${orderBy(options.sirala ?? 'yeni')}
      limit ${options.limit ?? 20} offset ${options.offset ?? 0}
   `);
 
@@ -340,31 +371,11 @@ export function countRecords(options: ListOptions): Promise<number> {
 }
 
 async function countRecordsUncached(options: ListOptions): Promise<number> {
-  const conditions = [sql`r.has_own_page`];
-
-  if (options.topic) {
-    conditions.push(
-      sql`exists (select 1 from record_topics rt where rt.record_id = r.id and rt.topic = ${options.topic})`,
-    );
-  }
-  if (options.entitySlug) {
-    conditions.push(
-      sql`exists (
-        select 1 from record_entities re join entities e on e.id = re.entity_id
-         where re.record_id = r.id and e.slug = ${options.entitySlug}
-      )`,
-    );
-  }
-  if (options.year) conditions.push(sql`i.year = ${options.year}`);
-  if (options.openDeadlineOnly) {
-    conditions.push(sql`r.deadline_at is not null and r.deadline_at >= current_date`);
-  }
-
   const rows = await db.execute<Row<{ n: string }>>(sql`
     select count(*)::int as n
       from records r
       join issues i on i.id = r.issue_id
-     where ${sql.join(conditions, sql` and `)}
+     where ${listConditions(options)}
   `);
 
   return Number(rows[0]?.n ?? 0);

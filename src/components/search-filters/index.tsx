@@ -43,6 +43,10 @@ interface SearchFiltersProps {
 export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) {
   const years = yearOptions(coverage);
   const activeYear = params.yil;
+
+  // The picker's bounds come from the archive, not the calendar (spec 8.4).
+  const coverageMin = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
+  const coverageMax = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
   const filtersOpen = hasActiveFilters(params);
 
   /*
@@ -82,6 +86,8 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
     params.konu.join(','),
     params.tur.join(','),
     params.yil ?? '',
+    params.baslangic ?? '',
+    params.bitis ?? '',
     params.q,
   ].join('|');
 
@@ -164,6 +170,42 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
             </li>
           ))}
         </ul>
+      </section>
+
+      {/*
+        * The custom range — `baslangic`/`bitis` were already in the schema and in
+        * the query layer, kept alive so old shared links would not break; only
+        * the UI had stopped producing them. This surfaces them again.
+        *
+        * `type="date"` rather than a text field: the browser gives a picker and a
+        * locale-correct display, and the value it submits is always ISO, which is
+        * exactly the `\d{4}-\d{2}-\d{2}` the schema accepts. Anything it cannot
+        * parse never leaves the field.
+        *
+        * `min`/`max` come from the archive's own coverage, so the picker cannot
+        * offer a month the archive has nothing for (spec 8.4).
+        */}
+      <section>
+        <h2 className="mb-2.5 text-xs text-ink-faint">Tarih aralığı</h2>
+        <div className="flex flex-col gap-2">
+          <DateField
+            name="baslangic"
+            label="Başlangıç"
+            defaultValue={params.baslangic}
+            min={coverageMin}
+            max={coverageMax}
+          />
+          <DateField
+            name="bitis"
+            label="Bitiş"
+            defaultValue={params.bitis}
+            min={coverageMin}
+            max={coverageMax}
+          />
+        </div>
+        <p className="mt-2 text-2xs leading-[1.45] text-ink-placeholder">
+          Tarih verirseniz yukarıdaki yıl seçimi uygulanmaz.
+        </p>
       </section>
 
       {/*
@@ -314,6 +356,38 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
           Hepsini kaldır
         </Link>
       ) : null}
+    </div>
+  );
+}
+
+function DateField({
+  name,
+  label,
+  defaultValue,
+  min,
+  max,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  min?: string;
+  max?: string;
+}) {
+  const id = 'filter-' + name;
+  return (
+    <div className="flex items-center gap-2">
+      <label htmlFor={id} className="w-[52px] shrink-0 text-sm text-ink-muted">
+        {label}
+      </label>
+      <input
+        id={id}
+        type="date"
+        name={name}
+        defaultValue={defaultValue}
+        min={min}
+        max={max}
+        className="min-w-0 flex-1 rounded border border-line-strong bg-surface px-2 py-1.5 text-sm text-ink outline-none"
+      />
     </div>
   );
 }

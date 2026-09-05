@@ -5,13 +5,26 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
 import { cn } from '@/lib/utils';
 
-const NAV = [
+/**
+ * `wide` marks a link that only appears once there is room for it.
+ *
+ * The three entity indexes had no way in from the header at all — only the
+ * footer listed them — so an entity page could be reached by following a record
+ * but never by going looking. Adding them makes seven links, which is more than
+ * this row holds on a tablet, so the indexes are the ones that wait for `lg`:
+ * they are browsing destinations, while Konular/Sayılar/Takip are the paths
+ * people arrive with an errand.
+ */
+const NAV: Array<{ href: string; label: string; wide?: boolean }> = [
   /*
    * The '/konu' index page — it used to go straight to '/konu/munhal', so a plural
    * label opened a single topic and the other seven were unreachable from here.
    */
   { href: '/konu', label: 'Konular' },
   { href: '/sayilar', label: 'Sayılar' },
+  { href: '/kurum', label: 'Kurumlar', wide: true },
+  { href: '/sirket', label: 'Şirketler', wide: true },
+  { href: '/yer', label: 'Yerler', wide: true },
   { href: '/takip', label: 'Takip' },
   { href: '/hakkinda', label: 'Hakkında' },
 ];
@@ -84,7 +97,10 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-ink-muted no-underline hover:text-ink hover:no-underline"
+                className={cn(
+                  'text-ink-muted no-underline hover:text-ink hover:no-underline',
+                  item.wide && 'hidden lg:inline',
+                )}
               >
                 {item.label}
               </Link>

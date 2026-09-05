@@ -2,16 +2,18 @@ import Link from 'next/link';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { FollowCard } from '@/components/follow-card';
+import { RssCard } from '@/components/rss-card';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { YearNav } from '@/components/year-nav';
+import { TopicFilters } from '@/components/topic-filters';
 import { TOPICS, type TopicSlug } from '@/lib/constants/topics';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
 import { countRecords, listRecords } from '@/lib/db/queries/records';
 import { formatCount } from '@/lib/db/queries/shared';
-import { ARCHIVE_START_YEAR, PAGE_SIZE, SITE_URL } from '@/lib/seo/config';
+import { DEFAULT_SORT, type SortOption } from '@/lib/search/build-query';
+import { PAGE_SIZE } from '@/lib/seo/config';
 import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageHref } from '@/lib/seo/pagination';
 import { formatDateLong } from '@/lib/text/dates';
@@ -50,10 +52,17 @@ export async function TopicPage({
   konu,
   page,
   openOnly,
+  baslangic,
+  bitis,
+  sirala = DEFAULT_SORT,
 }: {
   konu: TopicSlug;
   page: number;
   openOnly: boolean;
+  /** The rail's custom range; absent on the prerendered address. */
+  baslangic?: string;
+  bitis?: string;
+  sirala?: SortOption;
 }) {
   const topic = TOPICS[konu];
 
@@ -68,21 +77,24 @@ export async function TopicPage({
     listRecords({
       topic: konu,
       openDeadlineOnly: supportsDeadline && openOnly,
+      baslangic,
+      bitis,
+      sirala,
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
     }),
-    countRecords({ topic: konu, openDeadlineOnly: supportsDeadline && openOnly }),
+    countRecords({
+      topic: konu,
+      openDeadlineOnly: supportsDeadline && openOnly,
+      baslangic,
+      bitis,
+    }),
     supportsDeadline ? countRecords({ topic: konu, openDeadlineOnly: true }) : Promise.resolve(0),
     archiveCoverage(konu),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const latest = records[0];
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 6 }, (_, index) => currentYear - index).filter(
-    (year) => year >= ARCHIVE_START_YEAR,
-  );
-
   const crumbs = [
     { name: 'Ana sayfa', href: '/' },
     // '/konu', not '/' — pointing both crumbs at the home page put two ListItems
@@ -100,7 +112,19 @@ export async function TopicPage({
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-8 lg:px-10">
         <Breadcrumbs items={crumbs} />
 
-        <div className="grid items-start gap-10 lg:grid-cols-page">
+        <div className="grid items-start gap-10 lg:grid-cols-topic">
+          {/*
+            * The rail comes FIRST in the source as well as on screen, so tab order
+            * and reading order agree with the layout.
+            */}
+          <TopicFilters
+            action={topicHref(konu, { openOnly })}
+            baslangic={baslangic}
+            bitis={bitis}
+            sirala={sirala}
+            coverage={coverage}
+          />
+
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
               <h1 className="m-0 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">
@@ -178,14 +202,6 @@ export async function TopicPage({
 
             <Pagination className="mt-[22px]" page={page} totalPages={totalPages} hrefFor={hrefFor} />
 
-            <div className="mt-8 border-t border-line pt-5">
-              <h2 className="mb-3 text-md font-semibold text-ink">Yıla göre</h2>
-              <YearNav
-                years={years}
-                hrefFor={(year) => '/konu/' + konu + '/' + year}
-                allHref={'/konu/' + konu}
-              />
-            </div>
           </div>
 
           <aside className="flex flex-col gap-[18px]">
@@ -195,18 +211,7 @@ export async function TopicPage({
               subject={{ label: topic.name, topic: konu }}
             />
 
-            <div className="rounded-md border border-line bg-surface-muted p-[18px]">
-              <div className="mb-1.5 text-md font-semibold text-ink">RSS</div>
-              <p className="mb-3 text-sm leading-[1.5] text-ink-muted">
-                E-posta vermek istemiyorsanız akışı okuyucunuza ekleyin. Aynı kayıtlar, aynı sırada.
-              </p>
-              <div className="overflow-hidden text-ellipsis whitespace-nowrap rounded border border-line-strong bg-surface px-[11px] py-2.5 text-sm text-ink-body">
-                {SITE_URL.replace(/^https?:\/\//, '')}/konu/{konu}/rss.xml
-              </div>
-              <div className="mt-2 text-sm">
-                <Link href={'/konu/' + konu + '/rss.xml'}>Akışı aç</Link>
-              </div>
-            </div>
+            <RssCard href={'/konu/' + konu + '/rss.xml'} />
 
             {supportsDeadline && openCount > 0 ? (
               <p className="border-t border-line pt-4 text-sm leading-[1.55] text-ink-muted">

@@ -7,6 +7,7 @@ import { ActiveFilterChips, SearchFilters } from '@/components/search-filters';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { FollowCard } from '@/components/follow-card';
+import { RssCard } from '@/components/rss-card';
 import { TOPIC_LIST } from '@/lib/constants/topics';
 import {
   countForQuery,
@@ -241,8 +242,9 @@ async function EmptyResults({
         title="Bu aramayı takibe alın"
         description="Bugün kayıt yok, yarın olabilir. Bu arama için yeni kayıt yayımlandığında haber veririz."
         subject={{ label: query, query }}
-        rssHref="/rss.xml"
       />
+
+      <RssCard className="mt-[18px]" href="/rss.xml" />
     </div>
   );
 }

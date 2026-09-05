@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AlertList } from '@/components/alert-list';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { FollowCard } from '@/components/follow-card';
+import { RssCard } from '@/components/rss-card';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { TOPIC_LIST } from '@/lib/constants/topics';
@@ -150,8 +151,9 @@ export default async function FollowPage({ searchParams }: Props) {
             title="Yeni takip kur"
             description="Bir konu seçin ya da arama sayfasından kendi kelimenizle takip kurun."
             subject={{ label: 'Tüm kayıtlar' }}
-            rssHref="/rss.xml"
           />
+
+          <RssCard href="/rss.xml" />
 
           <div className="rounded-md border border-line bg-surface-muted p-[18px]">
             <h2 className="m-0 mb-1.5 text-md font-semibold text-ink">Konu akışları</h2>

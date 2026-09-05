@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { MaskedText } from '@/components/masked-text';
 import type { Token } from '@/types/record';
 
 interface RawTitleProps {
-  tokens: Token[];
+  /** Kept for the callers' sake; the box itself renders one uniform tone (see below). */
+  tokens?: Token[];
   /** The plain text to copy — the tokens joined, unmasked. */
   plainTitle: string;
   label?: string;
@@ -19,10 +19,10 @@ interface RawTitleProps {
  * behind a disclosure. The user will use this text in official correspondence, so
  * it is both selectable in one click (select-all) and has a copy button.
  *
- * Masking applies here too: boilerplate faint, distinctive dark. The copied text is
+ * Masking does NOT apply here — see the note by the paragraph. The copied text is
  * the full, unmasked form.
  */
-export function RawTitle({ tokens, plainTitle, label = 'Gazetedeki başlık, olduğu gibi' }: RawTitleProps) {
+export function RawTitle({ plainTitle, label = 'Gazetedeki başlık, olduğu gibi' }: RawTitleProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -51,8 +51,16 @@ export function RawTitle({ tokens, plainTitle, label = 'Gazetedeki başlık, old
           {copied ? 'Kopyalandı' : 'Kopyala'}
         </button>
       </div>
-      <p className="m-0 text-md leading-[1.55]">
-        <MaskedText tokens={tokens} selectAll />
+      {/*
+        * ONE colour here, deliberately — and this is the one place masking comes
+        * off. Spec 3.8's weighting (boilerplate faint, distinctive dark) earns
+        * its keep in lists, where the eye is scanning many titles for the one it
+        * wants. This box is not a list: it says "the gazette's title, as it is",
+        * and a title printed in two tones is not how the gazette printed it. The
+        * masked rendering stays on cards and search results.
+        */}
+      <p className="m-0 cursor-text select-all text-md leading-[1.55] text-ink-body">
+        {plainTitle}
       </p>
     </div>
   );

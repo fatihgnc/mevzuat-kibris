@@ -4,6 +4,7 @@ import { AdSlot } from '@/components/ad-slot';
 import { CopyLink } from '@/components/copy-link';
 import { EntityChip } from '@/components/entity-chip';
 import { FollowCard } from '@/components/follow-card';
+import { RssCard } from '@/components/rss-card';
 import { MaskedText } from '@/components/masked-text';
 import { RawTitle } from '@/components/raw-title';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
@@ -186,8 +187,10 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
               topic: primaryTopic?.slug,
               entityId: institution?.id,
             }}
-            rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
             showFrequency={false}
+          />
+          <RssCard
+            href={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
           />
           <SourceNotice />
         </aside>

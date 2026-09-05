@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { TopicPage } from '@/components/topic-page';
+import { parseTopicParams } from '@/lib/search/topic-params';
 import { topicMetadata } from '@/components/topic-page/metadata';
 import { isTopicSlug } from '@/lib/constants/topics';
 
@@ -16,15 +17,20 @@ import { isTopicSlug } from '@/lib/constants/topics';
 export const revalidate = 3600;
 export const dynamicParams = true;
 
-type Props = { params: Promise<{ konu: string }> };
+type Props = {
+  params: Promise<{ konu: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return topicMetadata((await params).konu, 1, true);
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const { konu } = await params;
   if (!isTopicSlug(konu)) notFound();
 
-  return <TopicPage konu={konu} page={1} openOnly />;
+  const filters = parseTopicParams(await searchParams);
+
+  return <TopicPage konu={konu} page={1} openOnly {...filters} />;
 }

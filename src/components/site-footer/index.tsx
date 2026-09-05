@@ -23,6 +23,18 @@ export function SiteFooter({
   return (
     <footer className="mt-16 border-t border-line bg-surface-muted">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8 lg:px-10">
+        {/*
+          * The footer opened straight onto four columns of links with nothing
+          * saying whose site they belong to. The name is a heading, not a second
+          * logo: it closes the page the way the header opens it.
+          */}
+        <Link
+          href="/"
+          className="mb-8 inline-block text-xl font-bold tracking-tighter text-ink no-underline hover:no-underline"
+        >
+          {SITE_NAME}
+        </Link>
+
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <nav aria-labelledby="footer-konular">
             <h2 id="footer-konular" className="mb-3 text-xs text-ink-faint">

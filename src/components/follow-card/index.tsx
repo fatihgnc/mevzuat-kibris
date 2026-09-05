@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 
 import { TR_WEEKDAYS, formatDateWithWeekday, nextWeekday } from '@/lib/text/dates';
@@ -18,8 +17,6 @@ interface FollowCardProps {
     entityId?: number;
     docTypes?: string[];
   };
-  /** If an RSS equivalent exists it is offered with equal weight to email (spec 10.4). */
-  rssHref?: string;
   /** Whether to show the frequency choice (present in topic feeds, absent on record pages). */
   showFrequency?: boolean;
   className?: string;
@@ -40,7 +37,6 @@ export function FollowCard({
   title,
   description,
   subject,
-  rssHref,
   showFrequency = true,
   className,
 }: FollowCardProps) {
@@ -222,11 +218,6 @@ export function FollowCard({
         </p>
       ) : null}
 
-      {rssHref ? (
-        <div className="mt-2.5 text-sm">
-          <Link href={rssHref}>E-posta yerine RSS</Link>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -245,7 +236,20 @@ function FrequencyOption({
   label: string;
 }) {
   return (
-    <label className={cn('flex cursor-pointer items-center gap-1.5', !checked && 'text-ink-muted')}>
+    /*
+     * `leading-none` is what does the centring, not `items-center` alone.
+     * `text-sm` gives a 13px glyph a 19.5px line box, and centring the 12px dot
+     * in THAT box puts it off the letters' optical middle — the box carries
+     * descender room the word mostly does not use. Shrinking the box to the
+     * glyph brings the two together. Descenders (the ğ in "Her gün") still draw;
+     * a short line box does not clip them.
+     */
+    <label
+      className={cn(
+        'flex cursor-pointer items-center gap-1.5 leading-none',
+        !checked && 'text-ink-muted',
+      )}
+    >
       <input
         type="radio"
         name={name}
@@ -254,10 +258,15 @@ function FrequencyOption({
         onChange={onChange}
         className="sr-only"
       />
+      {/*
+        * `shrink-0` and the leading reset keep the dot on the text's centre line.
+        * Without them the flex row sizes itself to the label's line box, which is
+        * taller than the dot, and the dot drifts up against the cap height.
+        */}
       <span
         aria-hidden
         className={cn(
-          'box-border h-3 w-3 rounded-full bg-surface',
+          'box-border block h-3 w-3 shrink-0 rounded-full bg-surface leading-none',
           checked ? 'border-4 border-accent' : 'border border-line-strong',
         )}
       />

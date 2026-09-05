@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { FollowCard } from '@/components/follow-card';
+import { RssCard } from '@/components/rss-card';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -164,8 +165,9 @@ export async function EntityPage({
                     ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
               }
               subject={{ label: entity.name, entityId: entity.id }}
-              rssHref={basePath + '/rss.xml'}
             />
+
+            <RssCard href={basePath + '/rss.xml'} />
           </aside>
         </div>
       </main>

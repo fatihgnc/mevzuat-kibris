@@ -8,6 +8,7 @@ import { archiveCoverage, coverageShort } from '@/lib/db/queries/coverage';
 import { listYears } from '@/lib/db/queries/issues';
 import { formatCount } from '@/lib/db/queries/shared';
 import { buildMetadata } from '@/lib/seo/metadata';
+import { cn } from '@/lib/utils';
 
 export const revalidate = 86400;
 
@@ -36,10 +37,23 @@ export default async function IssuesIndexPage() {
           tamamı orijinal PDF&apos;in ilgili sayfasına bağlı. {coverageShort(coverage)}.
         </p>
 
+        {/*
+          * The hairlines are BORDERS, not a background showing through a 1px gap.
+          * With the gap trick an odd number of years leaves the last grid cell
+          * empty, and that empty cell painted the container's colour — a filled
+          * box sitting after 2020 with nothing in it. Borders draw only where an
+          * item actually is.
+          */}
         {years.length ? (
-          <ul className="mt-8 grid gap-[1px] bg-line-soft sm:grid-cols-2">
-            {years.map((entry) => (
-              <li key={entry.year}>
+          <ul className="mt-8 grid border-t border-line-soft sm:grid-cols-2">
+            {years.map((entry, index) => (
+              <li
+                key={entry.year}
+                className={cn(
+                  'border-b border-line-soft',
+                  index % 2 === 0 && 'sm:border-r sm:border-line-soft',
+                )}
+              >
                 <Link
                   href={'/sayilar/' + entry.year}
                   className="flex items-baseline justify-between gap-3 bg-surface px-4 py-3.5 no-underline hover:bg-surface-hover hover:no-underline"
