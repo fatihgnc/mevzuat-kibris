@@ -51,7 +51,32 @@ export const IS_PRODUCTION_DEPLOY =
   process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ||
   (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === 'production');
 
-export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || '';
+/**
+ * The AdSense publisher id, in the form the SCRIPT wants: `ca-pub-…`.
+ *
+ * The `ca-` prefix is normalised on rather than demanded, because Google spells
+ * the same id two ways and hands you both:
+ *
+ *   ads.txt           pub-2751699214029244        <- no prefix
+ *   script tag     ca-pub-2751699214029244        <- prefix
+ *
+ * The dashboard shows the bare `pub-…` form on the account page, so that is what
+ * gets copied into the environment variable — and the site then serves
+ * `client=pub-…`, which AdSense does not recognise. It fails as "we could not
+ * find the code on your site", with the code plainly sitting in the page: the
+ * one failure mode that sends you looking everywhere except at the value. It
+ * cost this project one verification attempt.
+ *
+ * Either spelling works in the variable now. `ads.txt` keeps the bare form
+ * because that is what ads.txt asks for.
+ */
+const rawAdsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || '';
+
+export const ADSENSE_CLIENT = rawAdsenseClient
+  ? rawAdsenseClient.startsWith('ca-')
+    ? rawAdsenseClient
+    : 'ca-' + rawAdsenseClient
+  : '';
 
 /** Records per page on list pages. The design's pagination is built around this value. */
 export const PAGE_SIZE = 20;
