@@ -9,6 +9,27 @@
  * Buradaki değerler tek kaynak; hiçbir bileşen ham hex yazmaz.
  */
 @layer base {
+  /*
+   * Tarayıcıya temanın hangisi olduğunu söylüyoruz. Bu bir renk değişkeni değil:
+   * `color-scheme`, tarayıcının KENDİ çizdiği parçaları etkiliyor — <input
+   * type="date"> takvim ikonu, açılan takvim, kaydırma çubuğu, autofill zemini.
+   *
+   * Belirtilmezse tarayıcı hepsini açık temaya göre çiziyor. Koyu temada bunun
+   * görünen sonucu, filtre rayındaki takvim ikonunun koyu zeminde koyu kalıp
+   * neredeyse kaybolmasıydı.
+   *
+   * İkonu `filter: invert(1)` ile çevirmek de mümkündü ama yalnızca ikonu
+   * düzeltirdi; açılan takvim beyaz kalırdı. Doğru olan tarayıcıya niyeti
+   * söylemek, tek tek parçalarını boyamak değil.
+   */
+  :root {
+    color-scheme: light;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
   :root {
     /* Yüzeyler */
     --canvas: 240 3% 90%;          /* #E6E6E8 — kanvas zemini */

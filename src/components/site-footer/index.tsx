@@ -40,7 +40,13 @@ export function SiteFooter({
             <h2 id="footer-konular" className="mb-3 text-xs text-ink-faint">
               Konular
             </h2>
-            <ul className="flex flex-col gap-2 text-base">
+            {/*
+              * Two columns, not one. Nine topics and ten site links stacked
+              * single-file made the footer twice as tall as the content above it
+              * on short pages. The labels are one or two words, so a column split
+              * costs nothing in readability and halves the height.
+              */}
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
               {TOPIC_LIST.map((topic) => (
                 <li key={topic.slug}>
                   <Link
@@ -78,7 +84,7 @@ export function SiteFooter({
             <h2 id="footer-site" className="mb-3 text-xs text-ink-faint">
               Site
             </h2>
-            <ul className="flex flex-col gap-2 text-base">
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
               <li>
                 <Link href="/sayilar">Sayılar</Link>
               </li>
@@ -130,6 +136,23 @@ export function SiteFooter({
           </p>
           <p>
             {coverage ? coverage + '. ' : null}Tamamen ücretsiz. © {year}
+          </p>
+          <p>
+            {/*
+              * Opens in a new tab: it leaves the site, and a reader who followed
+              * it from the footer was in the middle of something here.
+              * `rel="noopener"` is not optional with `target="_blank"` — without it
+              * the opened page gets a handle on this one through `window.opener`.
+              */}
+            <a
+              href="https://fatihgenc.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ink-body"
+            >
+              Fatih Genç
+            </a>{' '}
+            tarafından geliştirildi
           </p>
         </div>
       </div>
