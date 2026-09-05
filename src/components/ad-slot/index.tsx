@@ -28,13 +28,24 @@ interface AdSlotProps {
  *   2. Reserved container      — fixed height, the box is there before the script arrives
  *   3. Lazy load               — an IntersectionObserver loads it as it nears the viewport
  *
- * When ADSENSE_CLIENT is empty (development, before AdSense approval) only the
- * reserved box is visible. That also shows how the site will look before approval.
+ * WITH NO AD TO SHOW, NOTHING IS DRAWN — outside development.
+ *
+ * The dashed "Reklam · 728 × 250, yer ayrıldı" box used to render whenever
+ * ADSENSE_CLIENT or the slot id was missing, which is every environment before
+ * approval — including the live site. So visitors, and the AdSense reviewer who
+ * comes to look at it, met empty labelled boxes down the page and a site that
+ * reads as unfinished. Reserving height is for keeping a REAL ad from shifting
+ * the layout (CLS, spec 13); reserving it for an ad that cannot arrive just
+ * leaves holes.
+ *
+ * The box survives in development, where it is doing its actual job: showing
+ * where the ads will sit while the layout is being worked on.
  */
 export function AdSlot({ kind, slotId, className }: AdSlotProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const size = SIZES[kind];
+  const configured = Boolean(ADSENSE_CLIENT && slotId);
 
   useEffect(() => {
     const node = ref.current;
@@ -65,6 +76,13 @@ export function AdSlot({ kind, slotId, className }: AdSlotProps) {
     }
   }, [visible]);
 
+  /*
+   * The hooks above run first and unconditionally — an early return placed before
+   * them would change the hook order between renders, which React forbids. Both
+   * bail out on their own when there is no slot, so this costs nothing.
+   */
+  if (!configured && process.env.NODE_ENV !== 'development') return null;
+
   return (
     <div
       ref={ref}
@@ -72,7 +90,7 @@ export function AdSlot({ kind, slotId, className }: AdSlotProps) {
       aria-hidden={!visible}
       className={cn('my-1.5 w-full overflow-hidden', className)}
     >
-      {visible && ADSENSE_CLIENT && slotId ? (
+      {visible && configured ? (
         <ins
           className="adsbygoogle block"
           style={{ display: 'block', height: size.height }}

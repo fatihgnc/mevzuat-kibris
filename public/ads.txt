@@ -1,2 +1,9 @@
-# AdSense onayı geldiğinde publisher satırı buraya eklenir (spec 14.4).
-# Biçim: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+# Bu dosya, reklam envanterimizi kimin satmaya yetkili olduğunu ilan eder (IAB
+# ads.txt). Satırın anlamı: google.com üzerinden, AŞAĞIDAKİ publisher hesabı,
+# doğrudan (DIRECT) satış yetkisine sahip. f08c47fec0942fa0 Google'ın sabit
+# sertifika kimliği, hesaba göre değişmiyor.
+#
+# Publisher ID onay beklemeden, AdSense hesabı açılır açılmaz veriliyor; bu
+# yüzden dosya onaydan ÖNCE dolduruldu. Reklamın görünmesi ayrıca
+# NEXT_PUBLIC_ADSENSE_CLIENT ve slot kimliklerine bağlı (spec 14.4).
+google.com, pub-2751699214029244, DIRECT, f08c47fec0942fa0
