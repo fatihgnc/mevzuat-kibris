@@ -86,6 +86,17 @@ const config: Config = {
         title: '24em', // kayıt h1 ölçüsü
         lede: '40em',
       },
+      keyframes: {
+        // Yol göstergesi: hızlı başlar, sonra sürünür; sağ kenara hiç varmaz.
+        'route-progress': {
+          '0%': { width: '0%' },
+          '30%': { width: '55%' },
+          '100%': { width: '92%' },
+        },
+      },
+      animation: {
+        'route-progress': 'route-progress 12s cubic-bezier(0.1, 0.8, 0.2, 1) forwards',
+      },
       gridTemplateColumns: {
         // Liste satırı: 92px künye sütunu + esnek içerik (artboard 1b/1d/1e)
         row: '92px 1fr',

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Source_Sans_3 } from 'next/font/google';
+import { Suspense } from 'react';
 import Script from 'next/script';
 
+import { RouteProgress } from '@/components/route-progress';
 import { DEFAULT_METADATA, RSS_ALTERNATE } from '@/lib/seo/metadata';
 import { ADSENSE_CLIENT, IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/json-ld';
@@ -88,6 +90,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           İçeriğe geç
         </a>
+        {/*
+         * THE SUSPENSE BOUNDARY IS LOAD-BEARING. RouteProgress reads
+         * useSearchParams, and an unwrapped useSearchParams in a client
+         * component forces every page above it out of static rendering — one
+         * component would have de-optimised the whole prerendered archive.
+         * Wrapped, the rest of the tree still prerenders. `fallback={null}`
+         * because there is nothing to show before the first navigation.
+         */}
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
+
         {children}
         <script
           type="application/ld+json"
