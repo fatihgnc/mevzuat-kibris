@@ -10,13 +10,14 @@ import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
 import { TopicFilters } from '@/components/topic-filters';
 import { TOPICS, type TopicSlug } from '@/lib/constants/topics';
+import { TOPIC_FAQ } from '@/lib/content/topic-faq';
 import type { DocType } from '@/lib/constants/doc-types';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
 import { countRecords, listRecords, searchFacets } from '@/lib/db/queries/records';
 import { formatCount } from '@/lib/db/queries/shared';
 import { DEFAULT_SORT, parseSearchParams, type SortOption } from '@/lib/search/build-query';
 import { PAGE_SIZE } from '@/lib/seo/config';
-import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
+import { breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/json-ld';
 import { pageHref } from '@/lib/seo/pagination';
 import { formatDateLong } from '@/lib/text/dates';
 import { cn } from '@/lib/utils';
@@ -101,6 +102,7 @@ export async function TopicPage({
   sirala?: SortOption;
 }) {
   const topic = TOPICS[konu];
+  const faq = TOPIC_FAQ[konu] ?? [];
 
   /*
    * The "applications open" filter is only meaningful for topics that carry a
@@ -266,6 +268,34 @@ export async function TopicPage({
 
             <Pagination className="mt-[22px]" page={page} totalPages={totalPages} hrefFor={hrefFor} />
 
+            {/*
+              * The questions people actually arrive with, ON PAGE ONE ONLY.
+              *
+              * Repeating them under every page of a paginated feed would put the
+              * same FAQPage block at a dozen addresses, which is duplicate content
+              * and, worse, a dozen machine-readable copies of one answer. Page one
+              * is the address the sitemap carries and the one crawlers land on.
+              *
+              * They sit BELOW the records: the feed is what the page is for, and a
+              * visitor who came for the newest kayıt should not have to scroll past
+              * explanations to reach it.
+              */}
+            {page === 1 && faq.length ? (
+              <section className="mt-10 border-t border-line pt-6">
+                <h2 className="m-0 text-3xl font-semibold text-ink">Sık sorulanlar</h2>
+                <dl className="mt-4 flex max-w-prose flex-col gap-5">
+                  {faq.map((item) => (
+                    <div key={item.question}>
+                      <dt className="text-md font-semibold text-ink">{item.question}</dt>
+                      <dd className="m-0 mt-1.5 text-base leading-[1.6] text-ink-body">
+                        {item.answer}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
+
           </div>
 
           <aside className="flex flex-col gap-[18px]">
@@ -293,6 +323,13 @@ export async function TopicPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(crumbs)) }}
       />
+      {/* Emitted only where the questions are actually rendered — see above. */}
+      {page === 1 && faq.length ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faq)) }}
+        />
+      ) : null}
     </>
   );
 }
