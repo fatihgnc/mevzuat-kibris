@@ -44,8 +44,9 @@ interface FollowDialogProps {
  * have quietly demoted it to nothing.
  *
  * The dialog is `components/modal`, shared with the header's search and the
- * filter sheet. No `title` is passed to it: FollowCard carries its own heading
- * and two would repeat.
+ * filter sheet. The heading lives in the modal's header, so FollowCard is asked
+ * not to draw its own — it did for a while, and the same sentence appeared twice
+ * four lines apart.
  *
  * IT STAYS A CLIENT COMPONENT even though the state moved into Modal. `trigger`
  * is a function, and a server component cannot hand a function across the
@@ -65,6 +66,7 @@ export function FollowDialog({
   return (
     <Modal
       label={title}
+      title={title}
       trigger={(open) => (
         <button
           type="button"
@@ -76,8 +78,8 @@ export function FollowDialog({
       )}
     >
       <div className="flex flex-col gap-[18px] pt-1">
+        {/* No `title` here: the modal's header carries it — see FollowCard. */}
         <FollowCard
-          title={title}
           description={description}
           subject={subject}
           showFrequency={showFrequency}

@@ -7,7 +7,14 @@ import { cn } from '@/lib/utils';
 import type { AlertFrequency } from '@/types/alert';
 
 interface FollowCardProps {
-  title: string;
+  /**
+   * OPTIONAL, because the card is not always the outermost thing.
+   *
+   * On a page it is a card and needs its own heading. Inside the follow modal
+   * the panel's header carries the heading, and rendering it here too put the
+   * same sentence twice, four lines apart.
+   */
+  title?: string;
   description: string;
   /** What the alert follows — passed to the API verbatim. */
   subject: {
@@ -138,7 +145,7 @@ export function FollowCard({
 
   return (
     <div className={cn('rounded-md border border-line bg-surface-muted p-[18px]', className)}>
-      <div className="mb-1.5 text-md font-semibold text-ink">{title}</div>
+      {title ? <div className="mb-1.5 text-md font-semibold text-ink">{title}</div> : null}
       <p className="mb-3.5 text-sm leading-[1.5] text-ink-muted">{description}</p>
 
       <form onSubmit={submit}>
