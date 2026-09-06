@@ -224,6 +224,22 @@
     text-rendering: optimizeLegibility;
   }
 
+  /*
+   * A scroller with no visible bar.
+   *
+   * Used by the filter rail, which scrolls inside its own sticky column. The
+   * bar is the browser's, so it takes both spellings; there is no Tailwind
+   * utility for it. Only ever put this on a box whose overflow the user can
+   * also reach another way — here the rail scrolls with the page's own wheel.
+   */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   ::selection {
     background: hsl(var(--mark));
   }

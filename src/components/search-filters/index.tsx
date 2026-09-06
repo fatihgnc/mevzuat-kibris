@@ -74,21 +74,58 @@ export function SearchFilters({
   /*
    * Topics are ALWAYS the full list. Emitting only the facet rows narrowed the
    * list to its own result when a filter was applied: picking "Atama" left a
-   * single option and the user could not add another topic. The option stays even
-   * at count 0; the order is fixed too, so the box does not move.
+   * single option and the user could not add another topic. The order is fixed
+   * too, so the box does not move.
+   *
+   * WHAT IS DROPPED IS THE ZEROES. A row reading "İhale 0" is an option that
+   * cannot do anything: ticking it and pressing Filtrele returns an empty page.
+   * Each dimension's counts already exclude its own filter, so a zero here really
+   * means "no result has this" and not "you have filtered it away".
+   *
+   * A TICKED option survives at zero regardless — hidden, there would be no way
+   * to untick it and no way back to a non-empty page.
    */
   const topicCounts = new Map(facets.topics.map((facet) => [facet.key, facet.n]));
+
+  const topics = TOPIC_LIST.filter(
+    (topic) => (topicCounts.get(topic.slug) ?? 0) > 0 || params.konu.includes(topic.slug),
+  );
 
   /*
    * Emitting all 23 document types would drown the rail; the eight with the most
    * results are shown. But if a SELECTED type drops off the list the user cannot
    * undo it — so selected ones are always added back.
    */
-  const docTypeShortlist = facets.docTypes.slice(0, 8);
-  const missingChecked = facets.docTypes
+  const withResults = facets.docTypes.filter(
+    (facet) => facet.n > 0 || params.tur.includes(facet.key as never),
+  );
+  const docTypeShortlist = withResults.slice(0, 8);
+  const missingChecked = withResults
     .slice(8)
     .filter((facet) => params.tur.includes(facet.key as never));
-  const docTypes = [...docTypeShortlist, ...missingChecked];
+
+  /*
+   * A SELECTED type with no facet row at all, put back by hand.
+   *
+   * The facet query returns rows for types that MATCH; when a combination has no
+   * results the selected type simply is not in the list, so re-adding "selected
+   * ones that fell off the shortlist" cannot find it either. Measured on
+   * ?q=fatih&konu=ihale&tur=tuzuk: the Belge türü section disappeared entirely
+   * with Tüzük still applied — a filter narrowing the page to nothing, with no
+   * control left to take it off.
+   */
+  const absentChecked = params.tur
+    .filter((key) => !facets.docTypes.some((facet) => facet.key === key))
+    .map((key) => ({ key, label: docTypeLabel(key), n: 0 }));
+
+  /*
+   * "Diğer" goes LAST whatever its count. It is not a document type, it is the
+   * bin for everything the classifier could not name, and sorted by count it
+   * landed in the middle of the real types — where it reads as one of them.
+   */
+  const docTypes = [...docTypeShortlist, ...missingChecked, ...absentChecked].sort(
+    (a, b) => Number(a.key === 'diger') - Number(b.key === 'diger'),
+  );
 
   /*
    * A signature of the APPLIED filters — used to remount the form.
@@ -134,21 +171,29 @@ export function SearchFilters({
        * becomes unreachable. Only at lg — below that the grid collapses to one
        * column, where a sticky rail would push the content around.
        */
-      className="flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto lg:pb-1"
+      /*
+       * `no-scrollbar` hides the BAR, not the scrolling. The rail still needs its
+       * own scroller — the year list grows with the archive and the "Filtrele"
+       * button at the bottom has to stay reachable on a short screen — but the
+       * bar itself only appeared once the query field pushed the rail past the
+       * viewport, and a second scrollbar beside the page's own reads as a defect.
+       * See globals.css.
+       */
+      className="no-scrollbar flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto lg:pb-1"
     >
       {/*
-        * THE QUERY IS A FIELD IN THE RAIL, not a hidden input any more.
-        *
-        * It used to live in the header, which forced the header into a second
-        * shape for this one page — and put the two halves of the same question
-        * ("these words, narrowed this way") at opposite ends of the screen. Here
-        * it is the first control above the filters it combines with, and the
-        * whole thing is applied by one "Filtrele".
-        *
-        * The header's magnifier still opens a search from anywhere, this page
-        * included; that one starts a NEW search and drops the filters, which is
-        * what starting from the header means.
-        */}
+       * THE QUERY IS A FIELD IN THE RAIL, not a hidden input any more.
+       *
+       * It used to live in the header, which forced the header into a second
+       * shape for this one page — and put the two halves of the same question
+       * ("these words, narrowed this way") at opposite ends of the screen. Here
+       * it is the first control above the filters it combines with, and the
+       * whole thing is applied by one "Filtrele".
+       *
+       * The header's magnifier still opens a search from anywhere, this page
+       * included; that one starts a NEW search and drops the filters, which is
+       * what starting from the header means.
+       */}
       <section>
         <h2 className="mb-2.5 text-xs text-ink-faint">Arama</h2>
         <label className="sr-only" htmlFor={'filter-' + scope + '-q'}>
@@ -178,44 +223,49 @@ export function SearchFilters({
       {params.sirket ? <input type="hidden" name="sirket" value={params.sirket} /> : null}
       {params.yer ? <input type="hidden" name="yer" value={params.yer} /> : null}
 
-      <section>
-        <div className="mb-2.5 flex items-baseline justify-between">
-          <h2 className="text-xs text-ink-faint">Konu</h2>
-          <span className="text-2xs text-ink-placeholder">bu sonuçlarda</span>
-        </div>
-        <ul className="flex flex-col gap-[7px]">
-          {TOPIC_LIST.map((topic) => (
-            <li key={topic.slug}>
-              <FilterCheckbox
-                name="konu"
-                value={topic.slug}
-                defaultChecked={params.konu.includes(topic.slug)}
-                count={topicCounts.get(topic.slug) ?? 0}
-              >
-                {TOPICS[topic.slug].name}
-              </FilterCheckbox>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* With every option filtered out, the heading would stand over nothing. */}
+      {topics.length ? (
+        <section>
+          <div className="mb-2.5 flex items-baseline justify-between">
+            <h2 className="text-xs text-ink-faint">Konu</h2>
+            <span className="text-2xs text-ink-placeholder">bu sonuçlarda</span>
+          </div>
+          <ul className="flex flex-col gap-[7px]">
+            {topics.map((topic) => (
+              <li key={topic.slug}>
+                <FilterCheckbox
+                  name="konu"
+                  value={topic.slug}
+                  defaultChecked={params.konu.includes(topic.slug)}
+                  count={topicCounts.get(topic.slug) ?? 0}
+                >
+                  {TOPICS[topic.slug].name}
+                </FilterCheckbox>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-      <section>
-        <h2 className="mb-2.5 text-xs text-ink-faint">Belge türü</h2>
-        <ul className="flex flex-col gap-[7px]">
-          {docTypes.map((facet) => (
-            <li key={facet.key}>
-              <FilterCheckbox
-                name="tur"
-                value={facet.key}
-                defaultChecked={params.tur.includes(facet.key as never)}
-                count={facet.n}
-              >
-                {facet.label}
-              </FilterCheckbox>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {docTypes.length ? (
+        <section>
+          <h2 className="mb-2.5 text-xs text-ink-faint">Belge türü</h2>
+          <ul className="flex flex-col gap-[7px]">
+            {docTypes.map((facet) => (
+              <li key={facet.key}>
+                <FilterCheckbox
+                  name="tur"
+                  value={facet.key}
+                  defaultChecked={params.tur.includes(facet.key as never)}
+                  count={facet.n}
+                >
+                  {facet.label}
+                </FilterCheckbox>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="mb-2.5 text-xs text-ink-faint">Yıl</h2>
@@ -464,14 +514,19 @@ export function ActiveFilterChips({
       {chips.length > 1 ? (
         <Link
           /*
-            * Clears the QUERY as well, now that the query is one of these chips.
-            * It used to preserve it deliberately — "clearing filters must not lose
-            * your search" — but that was written when the words were not shown
-            * here. A control sitting under a list that includes “ihale” has to
-            * remove everything in the list or it is lying about what it does.
-            */
+           * Clears the QUERY as well, now that the query is one of these chips.
+           * It used to preserve it deliberately — "clearing filters must not lose
+           * your search" — but that was written when the words were not shown
+           * here. A control sitting under a list that includes “ihale” has to
+           * remove everything in the list or it is lying about what it does.
+           */
           href={buildSearchHref(
-            { q: '', kurum: params.kurum, sirket: params.sirket, yer: params.yer },
+            {
+              q: '',
+              kurum: params.kurum,
+              sirket: params.sirket,
+              yer: params.yer,
+            },
             { konu: [], tur: [], baslangic: undefined, bitis: undefined, yil: undefined },
           )}
           className="text-base"
