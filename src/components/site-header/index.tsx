@@ -32,7 +32,14 @@ const NAV: Array<{ href: string; label: string }> = [
    */
   { href: '/rehber', label: 'Rehber' },
   { href: '/takip', label: 'Takip' },
-  { href: '/hakkinda', label: 'Hakkında' },
+  /*
+   * NO 'Hakkında'. It is a page you read once and never return to, and the
+   * header is for the places you go repeatedly; it sits in the footer beside
+   * İletişim, Gizlilik and Kullanım koşulları, which is where a reader looks for
+   * that kind of page. Taking it out also buys the row a slot back — with Rehber
+   * added, eight links plus the search icon and the theme switch were what
+   * pushed the inline list to collapse into the menu earlier than it needed to.
+   */
 ];
 
 interface SiteHeaderProps {
