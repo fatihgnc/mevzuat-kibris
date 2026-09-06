@@ -49,7 +49,12 @@ export function RecordCard({
     <Link
       href={recordHref(record)}
       className={cn(
-        'grid grid-cols-row items-start gap-[18px] border-b border-line-soft py-4 pl-3 pr-[10px]',
+        /*
+         * Künye sütunuyla metnin arası telefonda 14px, ondan yukarısı 18px.
+         * 92px'lik sabit künye sütunu dar ekranda satırın üçte birini alıyor;
+         * dört piksel, başlığın bir satır daha erken sarmasını engelliyor.
+         */
+        'grid grid-cols-row items-start gap-[14px] border-b border-line-soft py-4 pl-3 pr-[10px] sm:gap-[18px]',
         'no-underline transition-colors hover:bg-surface-hover hover:no-underline',
         className,
       )}

@@ -198,6 +198,26 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /*
+   * MOBİLDE ÖLÇEĞİN TAMAMI BİR KADEME KÜÇÜK.
+   *
+   * Tek yer, tek satır: yazı ölçeği de (tailwind.config.ts) aralıklar da rem
+   * cinsinden, dolayısıyla kök boyutu 16px'ten 15px'e çekince liste başlığı
+   * 17→16px, gövde 14→13px, p-4 dolgusu 16→15px oluyor. Telefonda satır
+   * yüksekliği kadar yatay alan da açıyor.
+   *
+   * Bileşen bileşen `text-lg sm:text-xl` yazmanın alternatifiydi; o yol her
+   * yeni bileşende tekrar hatırlanmak zorunda, bu değişmiyor.
+   *
+   * px CİNSİNDEN yazılmış olan hiçbir şey etkilenmiyor — başlığın
+   * `--header-h: 71px` yüksekliği de dahil. Orası zaten ayrı ölçülmüştü.
+   */
+  @media (max-width: 639px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
   body {
     @apply bg-surface text-ink-body antialiased;
     font-feature-settings: 'kern' 1;
