@@ -25,6 +25,13 @@ const NAV: Array<{ href: string; label: string; wide?: boolean }> = [
   { href: '/kurum', label: 'Kurumlar', wide: true },
   { href: '/sirket', label: 'Şirketler', wide: true },
   { href: '/yer', label: 'Yerler', wide: true },
+  /*
+   * The guides were reachable only from the footer, which is the wrong end of
+   * the page for them: they answer the questions a first-time visitor arrives
+   * with ("what is an A.E. number"), and a first-time visitor has not scrolled
+   * to the bottom yet.
+   */
+  { href: '/rehber', label: 'Rehber' },
   { href: '/takip', label: 'Takip' },
   { href: '/hakkinda', label: 'Hakkında' },
 ];

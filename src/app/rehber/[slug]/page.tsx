@@ -73,6 +73,26 @@ export default async function GuidePage({ params }: Props) {
                     ))}
                   </ul>
                 ) : null}
+                {/*
+                  * The way out of the guide and into the records it describes.
+                  * Set apart from the prose rather than woven into it: these are
+                  * an invitation to go and look, and a reader skimming for one
+                  * should not have to re-read a paragraph to find it.
+                  */}
+                {section.links?.length ? (
+                  <ul className="mt-3.5 flex flex-wrap gap-2">
+                    {section.links.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="inline-block rounded-pill border border-line px-3.5 py-1.5 text-base text-ink-body no-underline hover:border-accent hover:text-accent hover:no-underline"
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </section>
             ))}
           </div>
