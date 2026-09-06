@@ -141,14 +141,15 @@ export function Modal({
               * The vertical padding is HERE, not in each caller. Three of them had
               * their own `pt-*` on the children and the gap under the header
               * differed by modal; one value in one place is what keeps them the
-              * same.
+              * same. 26px rather than a scale step — it was set by eye against
+              * the header rule and 24px sat a shade tight.
               *
               * `min-h-0` with the scroller is what makes a tall panel usable: a
               * flex child will not shrink below its content without it, and the
               * filter rail's "Filtrele" button at the bottom became unreachable
               * on a short screen.
               */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-[26px]">{children}</div>
           </div>
         </div>
       </dialog>
