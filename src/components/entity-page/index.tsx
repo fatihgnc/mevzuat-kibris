@@ -15,7 +15,7 @@ import { coOccurring, getEntity } from '@/lib/db/queries/entities';
 import { countRecords, listRecords, searchFacets } from '@/lib/db/queries/records';
 import { archiveCoverage } from '@/lib/db/queries/coverage';
 import { parseSearchParams } from '@/lib/search/build-query';
-import { formatCount } from '@/lib/db/queries/shared';
+import { entityLede } from '@/lib/seo/lede';
 import { PAGE_SIZE } from '@/lib/seo/config';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { pageHref } from '@/lib/seo/pagination';
@@ -171,9 +171,15 @@ export async function EntityPage({
               {INTRO[kind](entity.name)}
             </p>
 
-            <p className="mt-4 text-base text-ink-muted">
-              <span className="font-semibold text-ink">{formatCount(total)} kayıt</span>
-            </p>
+            {/*
+              * The count as a SENTENCE, not a bare number. "12.803 kayıt" on its
+              * own says nothing quotable: no subject, no period covered, no sense
+              * of whether the archive is current. See lib/seo/lede.ts.
+              *
+              * `records[0]` is the newest because the list is ordered that way,
+              * and it is absent only on a page past the last one.
+              */}
+            <p className="mt-4 text-base text-ink-muted">{entityLede(entity.name, total, records[0]?.publishedAt)}</p>
 
             {/*
               * The sheet's button belongs HERE on a narrow screen, not up in the

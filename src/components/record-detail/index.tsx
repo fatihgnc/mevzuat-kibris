@@ -12,6 +12,7 @@ import { SourceNotice, OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
 import { recordHref } from '@/lib/db/queries/shared';
+import { recordLede } from '@/lib/seo/lede';
 import { maskTitle } from '@/lib/search/mask-title';
 import { absoluteUrl } from '@/lib/seo/config';
 import { formatDateLong, formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
@@ -66,6 +67,13 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           Bu özeti kayıttaki alanlardan biz oluşturduk
         </p>
       ) : null}
+
+      {/*
+       * The facts of the record as one sentence — see lib/seo/lede.ts. It is
+       * built from stored fields only, so it goes ABOVE the generated-summary
+       * note without needing a disclaimer of its own.
+       */}
+      <p className="mt-4 max-w-prose text-md leading-[1.6] text-ink-body">{recordLede(record)}</p>
 
       <RawTitle tokens={titleTokens} plainTitle={record.title} />
 
