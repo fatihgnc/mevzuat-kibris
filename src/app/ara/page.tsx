@@ -65,7 +65,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <>
-      <SiteHeader variant="search" query={built.raw} />
+      <SiteHeader query={built.raw} />
 
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-8 lg:px-8">
         {/*
@@ -105,7 +105,23 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             * the date inputs carry ids and two elements cannot share one.
             */}
           <div className="min-w-0">
-            <div className="hidden lg:block">
+            {/*
+              * `lg:h-full` — the sticky rail's CONTAINING BLOCK, and it has to be
+              * the tall one.
+              *
+              * The grid cell is stretched to the results' height, but this
+              * wrapper is a plain block that shrinks to the form inside it. A
+              * sticky element can only move within its own container's box, so
+              * with the two the same height there was nowhere to move and the
+              * rail scrolled away with the page. It is the same failure the note
+              * above describes about `self-start`, arriving through a different
+              * door: the wrapper was added to hold the wide/narrow split and
+              * quietly became the container.
+              *
+              * Measured before the fix: cell 781px, form 781px, and the rail's
+              * top went 95px → -1105px over a 1200px scroll instead of pinning.
+              */}
+            <div className="hidden lg:block lg:h-full">
               {empty ? (
                 <ActiveFilterChips params={params} />
               ) : (
@@ -142,7 +158,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             ) : (
               <>
                 <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-line pb-3.5">
+                  {/*
+                    * The words are NAMED here, not only chipped.
+                    *
+                    * With the query moved into the rail — and the rail behind a
+                    * button on a phone — the count line was the only sentence at
+                    * the top of the results, and "785 kayıt bulundu" does not say
+                    * what for. The chip above can be removed; this cannot, so it
+                    * is the one place the page always states what it answered.
+                    */}
                   <p className="m-0 text-base text-ink-muted">
+                    {built.raw ? <span className="text-ink">“{built.raw}” için </span> : null}
                     <span className="font-semibold text-ink">
                       {formatCount(result.total)}
                       {result.capped ? '+' : ''} kayıt

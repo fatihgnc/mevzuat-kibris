@@ -122,8 +122,35 @@ export function SearchFilters({ params, facets, coverage, scope = 'rail' }: Sear
        */
       className="flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto lg:pb-1"
     >
+      {/*
+        * THE QUERY IS A FIELD IN THE RAIL, not a hidden input any more.
+        *
+        * It used to live in the header, which forced the header into a second
+        * shape for this one page — and put the two halves of the same question
+        * ("these words, narrowed this way") at opposite ends of the screen. Here
+        * it is the first control above the filters it combines with, and the
+        * whole thing is applied by one "Filtrele".
+        *
+        * The header's magnifier still opens a search from anywhere, this page
+        * included; that one starts a NEW search and drops the filters, which is
+        * what starting from the header means.
+        */}
+      <section>
+        <h2 className="mb-2.5 text-xs text-ink-faint">Arama</h2>
+        <label className="sr-only" htmlFor={'filter-' + scope + '-q'}>
+          Resmî Gazete kayıtlarında ara
+        </label>
+        <input
+          id={'filter-' + scope + '-q'}
+          type="search"
+          name="q"
+          defaultValue={params.q}
+          placeholder="kelime ya da referans no"
+          className="w-full min-w-0 rounded border border-line-strong bg-surface px-2.5 py-2 text-base text-ink outline-none placeholder:text-ink-placeholder focus:border-ink"
+        />
+      </section>
+
       {/* Fields we do not show in the rail but that must survive form submission. */}
-      <input type="hidden" name="q" value={params.q} />
       {params.sirala !== DEFAULT_SORT ? (
         <input type="hidden" name="sirala" value={params.sirala} />
       ) : null}
@@ -306,6 +333,22 @@ function toggle<T extends string>(list: readonly T[], value: T): T[] {
 export function ActiveFilterChips({ params }: { params: SearchParams }) {
   const chips: Array<{ key: string; label: string; href: string }> = [];
 
+  /*
+   * The query is a chip too, and it comes first.
+   *
+   * On a narrow screen the rail is inside the filter sheet, so with the query
+   * living in the rail there would otherwise be NOTHING on the page saying what
+   * was searched — you would have to open the sheet to find out. As a chip it is
+   * removed the same way a filter is: the × keeps the filters and drops the words.
+   */
+  if (params.q) {
+    chips.push({
+      key: 'q',
+      label: '“' + params.q + '”',
+      href: buildSearchHref(params, { q: '', sayfa: 1 }),
+    });
+  }
+
   for (const topic of params.konu) {
     chips.push({
       key: 'konu-' + topic,
@@ -362,8 +405,15 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
       </ul>
       {chips.length > 1 ? (
         <Link
+          /*
+            * Clears the QUERY as well, now that the query is one of these chips.
+            * It used to preserve it deliberately — "clearing filters must not lose
+            * your search" — but that was written when the words were not shown
+            * here. A control sitting under a list that includes “ihale” has to
+            * remove everything in the list or it is lying about what it does.
+            */
           href={buildSearchHref(
-            { q: params.q },
+            { q: '' },
             { konu: [], tur: [], baslangic: undefined, bitis: undefined, yil: undefined },
           )}
           className="text-base"

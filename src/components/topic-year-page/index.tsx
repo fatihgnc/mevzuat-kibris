@@ -71,7 +71,7 @@ export async function TopicYearPage({
 
   return (
     <>
-      <SiteHeader variant="search" searchActive={false} />
+      <SiteHeader />
 
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-8 lg:px-10">
         <Breadcrumbs items={crumbs} />

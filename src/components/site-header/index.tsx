@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { NavMenu } from '@/components/nav-menu';
-import { SearchBox } from '@/components/search-box';
+import { SearchDialog } from '@/components/search-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
 import { cn } from '@/lib/utils';
@@ -35,30 +35,31 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: '/hakkinda', label: 'Hakkında' },
 ];
 
-/** Search is a nav destination too; it just gets its own shape at full width. */
-const SEARCH_LINK = { href: '/ara', label: 'Ara' };
-
 interface SiteHeaderProps {
   /**
-   * `nav`    — home page and record page: brand on the left, navigation on the right.
-   * `search` — search and topic pages: the search box next to the brand, wide.
-   *
-   * The design has two headers and the difference is deliberate: inside search, the
-   * search box is always visible and filled; elsewhere, navigation takes priority.
+   * Prefills the search dialog. The search page passes what was searched, so
+   * reopening the box shows the query rather than an empty field.
    */
-  variant?: 'nav' | 'search';
   query?: string;
-  /** Whether the search box should look focused (filled on the results page, passive on a topic page). */
-  searchActive?: boolean;
   className?: string;
 }
 
-export function SiteHeader({
-  variant = 'nav',
-  query = '',
-  searchActive = true,
-  className,
-}: SiteHeaderProps) {
+/**
+ * ONE HEADER. No variants, on any page.
+ *
+ * It used to have two: `nav` (brand and links) and `search` (brand and a filled
+ * search box, no links at all). Which meant the search results page — the page a
+ * visitor is most likely to land on from Google — was the one page with no way to
+ * reach the topics, the guides or the entity indexes. And because the box needed
+ * room, the header changed shape as the window narrowed as well.
+ *
+ * Search is an ICON here now. It is the same 30px on every screen, so the row no
+ * longer has to be rearranged to fit it, and the typing surface moved into a
+ * full-screen dialog where it is not competing with the navigation for width. On
+ * the search page the query lives in the filter rail, next to the filters it is
+ * combined with.
+ */
+export function SiteHeader({ query = '', className }: SiteHeaderProps) {
   return (
     <header
       /*
@@ -75,22 +76,16 @@ export function SiteHeader({
         className,
       )}
     >
-      <div
-        className={cn(
-          'mx-auto flex h-full max-w-6xl items-center px-4 sm:px-8 lg:px-10',
-          variant === 'search' ? 'gap-5' : 'justify-between gap-4',
-        )}
-      >
+      <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-8 lg:px-10">
         {/*
-          * The kicker sits UNDER the name, tilted, and it never hides.
-          *
-          * Beside the name it was the first thing dropped when the row got tight,
-          * and it was absent from the search header altogether — so the one line
-          * that says what this site is disappeared on exactly the screens where a
-          * visitor is least likely to know. Stacking it frees the horizontal room
-          * that made it droppable in the first place.
-          *
-          */}
+         * The kicker sits UNDER the name and it never hides.
+         *
+         * Beside the name it was the first thing dropped when the row got tight,
+         * and it was absent from the search header altogether — so the one line
+         * that says what this site is disappeared on exactly the screens where a
+         * visitor is least likely to know. Stacking it frees the horizontal room
+         * that made it droppable in the first place.
+         */}
         <Link
           href="/"
           className="flex shrink-0 flex-col items-start leading-none no-underline hover:no-underline"
@@ -99,80 +94,37 @@ export function SiteHeader({
           <span className="mt-1 text-xs text-ink-muted">{SITE_KICKER}</span>
         </Link>
 
-        {variant === 'search' ? (
-          <>
-            <div className="min-w-0 flex-1">
-              <SearchBox
-                size="compact"
-                defaultValue={query}
-                active={searchActive}
-                placeholder="Ara"
-              />
+        <div className="flex items-center gap-4 sm:gap-[22px]">
+          <nav className="flex items-center gap-4 text-base text-ink-muted sm:gap-[22px]">
+            {/*
+             * Every link, on every screen — the narrow layout MOVES them into a
+             * menu rather than dropping them. Three of them used to vanish below
+             * `lg`, which quietly made the entity indexes unreachable on a phone;
+             * a link you cannot reach is worse than a menu you have to open.
+             */}
+            <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-ink-muted no-underline hover:text-ink hover:no-underline"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
-            <ThemeToggle />
-          </>
-        ) : (
-          /*
-           * Navigation and the theme switch share one right-hand group.
-           *
-           * They used to be siblings of the brand under `justify-between`, which
-           * spread all three across the row and left the menu stranded in the
-           * middle with a gap before the switch. Grouping them puts the two
-           * controls next to each other and pins the pair to the right edge.
-           */
-          <div className="flex flex-1 items-center justify-end gap-4 sm:gap-[22px]">
-            <nav className="flex flex-1 items-center justify-end gap-4 text-base text-ink-muted sm:gap-[22px]">
-              {/*
-                * Every link, on every screen — the narrow layout MOVES them into a
-                * menu rather than dropping them. Three of them used to vanish below
-                * `lg`, which quietly made the entity indexes unreachable on a phone;
-                * a link you cannot reach is worse than a menu you have to open.
-                */}
-              <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
-                {NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-ink-muted no-underline hover:text-ink hover:no-underline"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
 
-              {/*
-                * The menu carries Ara as its last item, so the narrow header holds
-                * exactly two controls: the menu and the theme switch. Ara had been
-                * left outside as loose text next to the menu button, which made two
-                * things that look alike sit side by side and do different things.
-                */}
-              <NavMenu items={[...NAV, SEARCH_LINK]} />
+            {/*
+             * Below 1060px the same list, in a menu. Ara is NOT in it — it is the
+             * icon beside it, on every screen, so the one control that is always
+             * in the same place is the one people reach for most.
+             */}
+            <NavMenu items={NAV} />
+          </nav>
 
-              {/*
-                * At full width Ara is a box that looks like where it takes you.
-                * Below 1060px it is inside the menu instead: a bordered 200px field
-                * you cannot type into is a small lie, and it was only taking space
-                * once the row tightened.
-                */}
-              {/*
-                * At full width Ara STRETCHES to fill what is left between the
-                * links and the theme switch, the way the search header's real box
-                * does. At a fixed 200px it sat as an island with dead space either
-                * side; filling the gap makes the row read as one bar and gives the
-                * link the shape of the page it opens.
-                */}
-              <Link
-                href={SEARCH_LINK.href}
-                aria-label={SEARCH_LINK.label}
-                className="hidden min-w-0 flex-1 items-center gap-2 rounded border border-line px-2.5 py-1.5 text-sm text-ink-placeholder no-underline hover:border-line-strong hover:no-underline min-[1060px]:flex"
-              >
-                {SEARCH_LINK.label}
-              </Link>
-            </nav>
-
-            <ThemeToggle />
-          </div>
-        )}
+          <SearchDialog defaultValue={query} />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
