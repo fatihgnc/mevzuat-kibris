@@ -10,10 +10,11 @@ import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
 import { TopicFilters } from '@/components/topic-filters';
 import { TOPICS, type TopicSlug } from '@/lib/constants/topics';
+import type { DocType } from '@/lib/constants/doc-types';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
-import { countRecords, listRecords } from '@/lib/db/queries/records';
+import { countRecords, listRecords, searchFacets } from '@/lib/db/queries/records';
 import { formatCount } from '@/lib/db/queries/shared';
-import { DEFAULT_SORT, type SortOption } from '@/lib/search/build-query';
+import { DEFAULT_SORT, parseSearchParams, type SortOption } from '@/lib/search/build-query';
 import { PAGE_SIZE } from '@/lib/seo/config';
 import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageHref } from '@/lib/seo/pagination';
@@ -50,6 +51,7 @@ export function topicHref(
     page?: number;
     baslangic?: string;
     bitis?: string;
+    tur?: readonly DocType[];
     sirala?: SortOption;
   } = {},
 ): string {
@@ -68,6 +70,12 @@ export function topicHref(
   const search = new URLSearchParams();
   if (options.baslangic) search.set('baslangic', options.baslangic);
   if (options.bitis) search.set('bitis', options.bitis);
+  /*
+   * Repeated, not comma-joined. The schema accepts either, but a repeated key is
+   * what the rail's own checkboxes submit, so the address a link builds and the
+   * address the form builds are the same string for the same selection.
+   */
+  for (const type of options.tur ?? []) search.append('tur', type);
   if (options.sirala && options.sirala !== DEFAULT_SORT) search.set('sirala', options.sirala);
 
   const qs = search.toString();
@@ -80,6 +88,7 @@ export async function TopicPage({
   openOnly,
   baslangic,
   bitis,
+  tur = [],
   sirala = DEFAULT_SORT,
 }: {
   konu: TopicSlug;
@@ -88,6 +97,7 @@ export async function TopicPage({
   /** The rail's custom range; absent on the prerendered address. */
   baslangic?: string;
   bitis?: string;
+  tur?: DocType[];
   sirala?: SortOption;
 }) {
   const topic = TOPICS[konu];
@@ -99,12 +109,19 @@ export async function TopicPage({
    */
   const supportsDeadline = konu === 'munhal' || konu === 'ihale';
 
-  const [records, total, openCount, coverage] = await Promise.all([
+  /*
+   * The rail's document-type counts, scoped to this topic and its date range but
+   * NOT to the type selection — the same "exclude its own filter" rule the search
+   * rail follows, without which ticking one type would leave that type as the
+   * only option and there would be no way to add a second.
+   */
+  const [records, total, openCount, coverage, facets] = await Promise.all([
     listRecords({
       topic: konu,
       openDeadlineOnly: supportsDeadline && openOnly,
       baslangic,
       bitis,
+      tur,
       sirala,
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
@@ -114,9 +131,11 @@ export async function TopicPage({
       openDeadlineOnly: supportsDeadline && openOnly,
       baslangic,
       bitis,
+      tur,
     }),
     supportsDeadline ? countRecords({ topic: konu, openDeadlineOnly: true }) : Promise.resolve(0),
     archiveCoverage(konu),
+    searchFacets(parseSearchParams({ konu, baslangic, bitis })),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -129,7 +148,8 @@ export async function TopicPage({
     { name: topic.name },
   ];
 
-  const hrefFor = (nextPage: number) => topicHref(konu, { openOnly, page: nextPage, baslangic, bitis, sirala });
+  const hrefFor = (nextPage: number) =>
+    topicHref(konu, { openOnly, page: nextPage, baslangic, bitis, tur, sirala });
 
   /*
    * Changing the sort returns to page 1 — page 4 of "newest first" has nothing to
@@ -137,7 +157,7 @@ export async function TopicPage({
    * jumped. The date range is carried across, because it is a different question.
    */
   const sortHref = (option: SortOption) =>
-    topicHref(konu, { openOnly, baslangic, bitis, sirala: option });
+    topicHref(konu, { openOnly, baslangic, bitis, tur, sirala: option });
 
   return (
     <>
@@ -155,6 +175,8 @@ export async function TopicPage({
             action={topicHref(konu, { openOnly })}
             baslangic={baslangic}
             bitis={bitis}
+            tur={tur}
+            docTypes={facets.docTypes}
             coverage={coverage}
           />
 

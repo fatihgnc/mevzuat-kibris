@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db/client';
 import { TAG, cachedQuery } from '@/lib/db/cache';
-import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
+import { docTypeLabel, formatRef, type DocType } from '@/lib/constants/doc-types';
 import { isTopicSlug, type TopicSlug } from '@/lib/constants/topics';
 import { HEADLINE_OPTIONS } from '@/lib/search/highlight';
 import { maskTitle } from '@/lib/search/mask-title';
@@ -320,6 +320,12 @@ export interface ListOptions {
   /** Inclusive ISO bounds — the topic rail's custom range. */
   baslangic?: string;
   bitis?: string;
+  /**
+   * Document types, from the topic rail. A topic is not one kind of document —
+   * "Münhal" holds vacancy notices, exam results and circulars at once — so
+   * without this the rail could only narrow a topic feed by date.
+   */
+  tur?: readonly DocType[];
   /** Publication order; 'yeni' (newest first) is the default everywhere. */
   sirala?: SortOption;
   limit?: number;
@@ -343,6 +349,8 @@ function listCacheKey(prefix: string, options: ListOptions): string[] {
     options.openDeadlineOnly ? 'acik' : '',
     options.baslangic ?? '',
     options.bitis ?? '',
+    /* Sorted, so two spellings of the same set are one cache entry. */
+    [...(options.tur ?? [])].sort().join(','),
     options.sirala ?? '',
     String(options.limit ?? ''),
     String(options.offset ?? ''),
@@ -393,6 +401,8 @@ function listConditions(options: ListOptions) {
   }
   if (options.baslangic) conditions.push(sql`r.published_at >= ${options.baslangic}::date`);
   if (options.bitis) conditions.push(sql`r.published_at <= ${options.bitis}::date`);
+  /* `in (...)` and not `= any(array)` — see the note in filterConditions. */
+  if (options.tur?.length) conditions.push(sql`r.doc_type in (${inList(options.tur)})`);
 
   return sql.join(conditions, sql` and `);
 }
