@@ -3,33 +3,27 @@
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
-import { cn } from '@/lib/utils';
-
-interface SearchBoxProps {
-  /** `hero` is the large box on the home page, `compact` the narrow one in the header. */
-  size?: 'hero' | 'compact';
-  defaultValue?: string;
-  placeholder?: string;
-  /** Passive appearance: the grey box on a topic page (no focus, faint border). */
-  active?: boolean;
-  className?: string;
-}
-
 /**
  * The search box — one of the site's four client components (spec 13).
  *
  * The form GETs to /ara: it works with JS disabled and the result URL stays
  * shareable (spec 5.5). router.push is only there for the soft transition.
+ *
+ * ONE SHAPE, NO PROPS. It used to take five — `size`, `defaultValue`,
+ * `placeholder`, `active` and `className` — because the header rendered a
+ * second, `compact` copy of it: narrow, sometimes prefilled with the query,
+ * and greyed out on a topic page where it was decoration rather than a field.
+ * The header carries a magnifier and a dialog now, so the compact branch had
+ * no caller left and every prop with it: both remaining call sites, the home
+ * page and the 404, write `<SearchBox />`.
+ *
+ * Deleted rather than kept "in case": the branch could not be exercised, so
+ * nothing would have told us when it broke. If a second shape is ever wanted,
+ * it should be written for the screen that wants it.
  */
-export function SearchBox({
-  size = 'hero',
-  defaultValue = '',
-  placeholder = 'kelime, kurum, şirket, köy ya da referans numarası',
-  active = true,
-  className,
-}: SearchBoxProps) {
+export function SearchBox() {
   const router = useRouter();
-  const [value, setValue] = useState(defaultValue);
+  const [value, setValue] = useState('');
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,40 +31,30 @@ export function SearchBox({
     router.push(query ? '/ara?q=' + encodeURIComponent(query) : '/ara');
   }
 
-  const hero = size === 'hero';
-
   return (
     <form
       action="/ara"
       method="get"
       onSubmit={onSubmit}
       role="search"
-      className={cn('flex gap-2.5', hero && 'max-w-[44em]', className)}
+      className="flex max-w-[44em] gap-2.5"
     >
-      <label className="sr-only" htmlFor={'q-' + size}>
+      <label className="sr-only" htmlFor="q-hero">
         Resmî Gazete kayıtlarında ara
       </label>
       <input
-        id={'q-' + size}
+        id="q-hero"
         name="q"
         type="search"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder={placeholder}
+        placeholder="kelime, kurum, şirket, köy ya da referans numarası"
         autoComplete="off"
-        className={cn(
-          'min-w-0 flex-1 rounded bg-surface text-ink outline-none',
-          'placeholder:text-ink-placeholder',
-          hero ? 'border px-3.5 py-3 text-lg' : 'border px-3 py-2 text-md',
-          active ? 'border-ink' : 'border-line bg-surface-muted',
-        )}
+        className="min-w-0 flex-1 rounded border border-ink bg-surface px-3.5 py-3 text-lg text-ink outline-none placeholder:text-ink-placeholder"
       />
       <button
         type="submit"
-        className={cn(
-          'shrink-0 rounded bg-accent font-semibold text-accent-ink transition-colors hover:bg-accent-hover',
-          hero ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-base',
-        )}
+        className="shrink-0 rounded bg-accent px-6 py-3 text-lg font-semibold text-accent-ink transition-colors hover:bg-accent-hover"
       >
         Ara
       </button>
