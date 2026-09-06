@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { docTypeLabel } from '@/lib/constants/doc-types';
 import { TOPICS, TOPIC_LIST } from '@/lib/constants/topics';
 import { formatCount } from '@/lib/db/queries/shared';
 import {
@@ -18,6 +19,13 @@ interface SearchFiltersProps {
   facets: SearchResult['facets'];
   /** Year options are derived from the data, not from the calendar (spec 8.4). */
   coverage?: { earliestYear: number | null; latestYear: number | null } | null;
+  /**
+   * Distinguishes the two copies of this form that exist at once — the column on
+   * a wide screen and the sheet on a narrow one. Only the date inputs carry ids,
+   * but two elements sharing one id break `htmlFor`, so the label stops focusing
+   * its field and a screen reader reads the wrong one.
+   */
+  scope?: string;
 }
 
 /**
@@ -40,7 +48,7 @@ interface SearchFiltersProps {
  * filter must return you to page 1, and simply never sending the field does that
  * on its own.
  */
-export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) {
+export function SearchFilters({ params, facets, coverage, scope = 'rail' }: SearchFiltersProps) {
   const years = yearOptions(coverage);
   const activeYear = params.yil;
 
@@ -189,6 +197,7 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
         <h2 className="mb-2.5 text-xs text-ink-faint">Tarih aralığı</h2>
         <div className="flex flex-col gap-2">
           <DateField
+            scope={scope}
             name="baslangic"
             label="Başlangıç"
             defaultValue={params.baslangic}
@@ -196,6 +205,7 @@ export function SearchFilters({ params, facets, coverage }: SearchFiltersProps) 
             max={coverageMax}
           />
           <DateField
+            scope={scope}
             name="bitis"
             label="Bitiş"
             defaultValue={params.bitis}
@@ -304,6 +314,14 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
     });
   }
 
+  for (const type of params.tur) {
+    chips.push({
+      key: 'tur-' + type,
+      label: docTypeLabel(type),
+      href: buildSearchHref(params, { tur: toggle(params.tur, type), sayfa: 1 }),
+    });
+  }
+
   if (params.yil) {
     chips.push({
       key: 'yil',
@@ -312,10 +330,7 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
     });
   }
 
-  /*
-   * baslangic/bitis are no longer produced by the UI, but they can still arrive in
-   * old shared links; we show their chip so they remain removable.
-   */
+  /* The range is produced by the rail again; the chip is how it comes off. */
   if (params.baslangic || params.bitis) {
     chips.push({
       key: 'tarih',
@@ -361,19 +376,21 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
 }
 
 function DateField({
+  scope,
   name,
   label,
   defaultValue,
   min,
   max,
 }: {
+  scope: string;
   name: string;
   label: string;
   defaultValue?: string;
   min?: string;
   max?: string;
 }) {
-  const id = 'filter-' + name;
+  const id = 'filter-' + scope + '-' + name;
   return (
     <div className="flex items-center gap-2">
       <label htmlFor={id} className="w-[52px] shrink-0 text-sm text-ink-muted">

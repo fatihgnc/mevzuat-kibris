@@ -120,8 +120,8 @@ export function SiteHeader({
            * middle with a gap before the switch. Grouping them puts the two
            * controls next to each other and pins the pair to the right edge.
            */
-          <div className="flex items-center gap-4 sm:gap-[22px]">
-            <nav className="flex items-center gap-4 text-base text-ink-muted sm:gap-[22px]">
+          <div className="flex flex-1 items-center justify-end gap-4 sm:gap-[22px]">
+            <nav className="flex flex-1 items-center justify-end gap-4 text-base text-ink-muted sm:gap-[22px]">
               {/*
                 * Every link, on every screen — the narrow layout MOVES them into a
                 * menu rather than dropping them. Three of them used to vanish below
@@ -154,10 +154,17 @@ export function SiteHeader({
                 * you cannot type into is a small lie, and it was only taking space
                 * once the row tightened.
                 */}
+              {/*
+                * At full width Ara STRETCHES to fill what is left between the
+                * links and the theme switch, the way the search header's real box
+                * does. At a fixed 200px it sat as an island with dead space either
+                * side; filling the gap makes the row read as one bar and gives the
+                * link the shape of the page it opens.
+                */}
               <Link
                 href={SEARCH_LINK.href}
                 aria-label={SEARCH_LINK.label}
-                className="hidden items-center gap-2 rounded border border-line px-2.5 py-1.5 text-sm text-ink-placeholder no-underline hover:border-line-strong hover:no-underline min-[1060px]:flex min-[1060px]:w-[200px]"
+                className="hidden min-w-0 flex-1 items-center gap-2 rounded border border-line px-2.5 py-1.5 text-sm text-ink-placeholder no-underline hover:border-line-strong hover:no-underline min-[1060px]:flex"
               >
                 {SEARCH_LINK.label}
               </Link>

@@ -148,6 +148,24 @@ export function buildQuery(params: SearchParams): BuiltQuery {
   return { ...base, tsquery, hasPhrase };
 }
 
+/**
+ * How many filters are applied — the number on the narrow screen's "Filtreler"
+ * button, so the sheet does not have to be opened to see that one is on.
+ *
+ * A date range counts as ONE however many of its two ends are filled: it is one
+ * decision, and one chip removes it.
+ */
+export function activeFilterCount(params: SearchParams): number {
+  return (
+    params.konu.length +
+    params.tur.length +
+    (params.yil ? 1 : 0) +
+    (params.baslangic || params.bitis ? 1 : 0) +
+    (params.kurum ? 1 : 0) +
+    (params.yer ? 1 : 0)
+  );
+}
+
 /** Whether any filter is active — drives whether the "clear filters" link is shown. */
 export function hasActiveFilters(params: SearchParams): boolean {
   return Boolean(

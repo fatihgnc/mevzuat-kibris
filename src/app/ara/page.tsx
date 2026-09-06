@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { RecordList } from '@/components/record-list';
 import { Pagination } from '@/components/pagination';
+import { FilterSheet } from '@/components/filter-sheet';
 import { ActiveFilterChips, SearchFilters } from '@/components/search-filters';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
@@ -20,6 +21,7 @@ import { archiveCoverage } from '@/lib/db/queries/coverage';
 import { formatCount } from '@/lib/db/queries/shared';
 import {
   buildQuery,
+  activeFilterCount,
   buildSearchHref,
   hasActiveFilters,
   parseSearchParams,
@@ -89,16 +91,49 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             Measured: with self-start the cell is 632px, without it 3172px; in the
             first the form tracks scrolling exactly, in the second it pins at 72px.
           */}
+          {/*
+            * Two presentations of one rail.
+            *
+            * On a wide screen it is the column it has always been. On a narrow one
+            * the grid collapses and the full rail — nine topics, eight document
+            * types, seven years, a date range — used to stand between the search
+            * box and the results, so a search pushed its own answers off screen.
+            * There it becomes a button, a sheet, and a row of chips for whatever
+            * is applied.
+            *
+            * Both copies are in the DOM at once, which is why they take a `scope`:
+            * the date inputs carry ids and two elements cannot share one.
+            */}
           <div className="min-w-0">
-            {empty ? (
+            <div className="hidden lg:block">
+              {empty ? (
+                <ActiveFilterChips params={params} />
+              ) : (
+                <SearchFilters
+                  params={params}
+                  facets={result.facets}
+                  coverage={coverage}
+                  scope="rail"
+                />
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3.5 lg:hidden">
+              <FilterSheet activeCount={activeFilterCount(params)}>
+                <SearchFilters
+                  params={params}
+                  facets={result.facets}
+                  coverage={coverage}
+                  scope="sheet"
+                />
+              </FilterSheet>
+              {/*
+                * Outside the sheet, so what is applied is readable without opening
+                * anything — and each chip's × removes that one filter and applies
+                * the result straight away.
+                */}
               <ActiveFilterChips params={params} />
-            ) : (
-              <SearchFilters
-                params={params}
-                facets={result.facets}
-                coverage={coverage}
-              />
-            )}
+            </div>
           </div>
 
           <div className="min-w-0">
