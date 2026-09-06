@@ -26,6 +26,14 @@ interface SearchFiltersProps {
    * its field and a screen reader reads the wrong one.
    */
   scope?: string;
+  /**
+   * True on an entity page, where the only thing in `params` is the pin naming
+   * the page itself. Nothing has been APPLIED there, so "Filtreleri kaldır" —
+   * which `hasActiveFilters` would otherwise switch on, the pin counting as a
+   * filter everywhere else — becomes a control that clears nothing and links to
+   * the page you are already standing on.
+   */
+  pinned?: boolean;
 }
 
 /**
@@ -48,14 +56,20 @@ interface SearchFiltersProps {
  * filter must return you to page 1, and simply never sending the field does that
  * on its own.
  */
-export function SearchFilters({ params, facets, coverage, scope = 'rail' }: SearchFiltersProps) {
+export function SearchFilters({
+  params,
+  facets,
+  coverage,
+  scope = 'rail',
+  pinned = false,
+}: SearchFiltersProps) {
   const years = yearOptions(coverage);
   const activeYear = params.yil;
 
   // The picker's bounds come from the archive, not the calendar (spec 8.4).
   const coverageMin = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
   const coverageMax = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
-  const filtersOpen = hasActiveFilters(params);
+  const filtersOpen = !pinned && hasActiveFilters(params);
 
   /*
    * Topics are ALWAYS the full list. Emitting only the facet rows narrowed the
@@ -154,7 +168,14 @@ export function SearchFilters({ params, facets, coverage, scope = 'rail' }: Sear
       {params.sirala !== DEFAULT_SORT ? (
         <input type="hidden" name="sirala" value={params.sirala} />
       ) : null}
+      {/*
+       * The entity pin. On /kurum/x, /sirket/x and /yer/x this same rail sits on
+       * the entity's own page, and submitting it hands the whole thing to /ara
+       * WITH the entity still applied — otherwise "Bakanlar Kurulu + ihale +
+       * 2024" would come back as every ihale in 2024.
+       */}
       {params.kurum ? <input type="hidden" name="kurum" value={params.kurum} /> : null}
+      {params.sirket ? <input type="hidden" name="sirket" value={params.sirket} /> : null}
       {params.yer ? <input type="hidden" name="yer" value={params.yer} /> : null}
 
       <section>
@@ -263,7 +284,13 @@ export function SearchFilters({ params, facets, coverage, scope = 'rail' }: Sear
         </button>
         {filtersOpen ? (
           <Link
-            href={buildSearchHref({ q: params.q })}
+            /* The entity pin survives clearing; it is not one of the filters. */
+            href={buildSearchHref({
+              q: params.q,
+              kurum: params.kurum,
+              sirket: params.sirket,
+              yer: params.yer,
+            })}
             className="rounded border border-line-strong py-2 text-center text-base text-ink-body no-underline transition-colors hover:border-ink hover:text-ink hover:no-underline"
           >
             Filtreleri kaldır
@@ -329,9 +356,40 @@ function toggle<T extends string>(list: readonly T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
+/** The three entity pins, with the name to print for each. */
+export interface PinNames {
+  kurum?: string;
+  sirket?: string;
+  yer?: string;
+}
+
 /** Active filter chips — the "Son 12 ay ×" badges in artboard 1f. */
-export function ActiveFilterChips({ params }: { params: SearchParams }) {
+export function ActiveFilterChips({
+  params,
+  pinNames,
+}: {
+  params: SearchParams;
+  /**
+   * Display names for `kurum`/`sirket`/`yer`, resolved by the caller — the URL
+   * carries a slug and a chip has to say "Bakanlar Kurulu", not
+   * "bakanlar-kurulu". Without them the pin is INVISIBLE: arriving from an
+   * entity page's rail, the results are restricted to that entity and nothing on
+   * the screen says so, which reads as the search being wrong.
+   */
+  pinNames?: PinNames;
+}) {
   const chips: Array<{ key: string; label: string; href: string }> = [];
+
+  /* The pin is the widest thing applied, so it is named first. */
+  for (const pin of ['kurum', 'sirket', 'yer'] as const) {
+    const slug = params[pin];
+    if (!slug) continue;
+    chips.push({
+      key: pin,
+      label: pinNames?.[pin] ?? slug,
+      href: buildSearchHref(params, { [pin]: undefined, sayfa: 1 }),
+    });
+  }
 
   /*
    * The query is a chip too, and it comes first.
@@ -413,7 +471,7 @@ export function ActiveFilterChips({ params }: { params: SearchParams }) {
             * remove everything in the list or it is lying about what it does.
             */
           href={buildSearchHref(
-            { q: '' },
+            { q: '', kurum: params.kurum, sirket: params.sirket, yer: params.yer },
             { konu: [], tur: [], baslangic: undefined, bitis: undefined, yil: undefined },
           )}
           className="text-base"

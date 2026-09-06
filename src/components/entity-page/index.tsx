@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { FilterSheet } from '@/components/filter-sheet';
+import { SearchFilters } from '@/components/search-filters';
 import { FollowCard } from '@/components/follow-card';
 import { RssCard } from '@/components/rss-card';
 import { Pagination } from '@/components/pagination';
@@ -10,7 +12,9 @@ import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { coOccurring, getEntity } from '@/lib/db/queries/entities';
-import { countRecords, listRecords } from '@/lib/db/queries/records';
+import { countRecords, listRecords, searchFacets } from '@/lib/db/queries/records';
+import { archiveCoverage } from '@/lib/db/queries/coverage';
+import { parseSearchParams } from '@/lib/search/build-query';
 import { formatCount } from '@/lib/db/queries/shared';
 import { PAGE_SIZE } from '@/lib/seo/config';
 import { buildMetadata } from '@/lib/seo/metadata';
@@ -18,6 +22,13 @@ import { pageHref } from '@/lib/seo/pagination';
 import { breadcrumbJsonLd, institutionJsonLd } from '@/lib/seo/json-ld';
 import { ENTITY_LABEL, ENTITY_LABEL_PLURAL, ENTITY_PATH } from '@/types/entity';
 import type { EntityKind } from '@/types/record';
+
+/** Which /ara parameter pins this kind of entity — see searchParamsSchema. */
+const PIN_PARAM: Record<EntityKind, 'kurum' | 'sirket' | 'yer'> = {
+  institution: 'kurum',
+  company: 'sirket',
+  place: 'yer',
+};
 
 const INTRO: Record<EntityKind, (name: string) => string> = {
   institution: (name) =>
@@ -74,10 +85,29 @@ export async function EntityPage({
   const entity = await getEntity(kind, slug);
   if (!entity || entity.recordCount < 2) notFound();
 
-  const [records, total, neighbours] = await Promise.all([
+  /*
+   * THE RAIL HANDS OFF TO /ara; IT DOES NOT FILTER THIS PAGE.
+   *
+   * Filtering in place would mean reading `searchParams` here, and in the App
+   * Router a route that touches searchParams is dynamic — ALL of it, for every
+   * request. These are the entity pages: thousands of them, and the ones search
+   * engines actually land on. Every visit would become a database round trip to
+   * save a redirect.
+   *
+   * So the rail is pinned to this entity and submits to /ara. The page stays
+   * prerendered, and the filtered view is the search screen, which is already
+   * built to show what is applied and let you take it off again. It also buys
+   * more than filtering here could: the full set — words, topic, document type,
+   * year, date range — rather than the dates a static page could have managed.
+   */
+  const pinned = parseSearchParams({ [PIN_PARAM[kind]]: slug });
+
+  const [records, total, neighbours, facets, coverage] = await Promise.all([
     listRecords({ entitySlug: slug, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
     countRecords({ entitySlug: slug }),
     coOccurring(entity.id, 8),
+    searchFacets(pinned),
+    archiveCoverage(),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -101,7 +131,33 @@ export async function EntityPage({
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-8 lg:px-10">
         <Breadcrumbs items={crumbs} />
 
-        <div className="grid items-start gap-10 lg:grid-cols-page">
+        <div className="grid items-start gap-10 lg:grid-cols-topic">
+          {/*
+           * Two presentations of one rail, the same pair as /ara: a column on a
+           * wide screen, a button and a sheet on a narrow one. `scope` keeps the
+           * two copies' input ids apart — both are in the DOM at once.
+           *
+           * `activeCount` is 0 on purpose. The entity pin is not something the
+           * visitor applied and cannot be taken off here, so counting it would
+           * put a "1" on a button whose sheet shows nothing ticked.
+           */}
+          {/*
+            * `lg:h-full` — the sticky rail needs a container TALLER than itself,
+            * and this grid has `items-start`, which shrinks the cell to the
+            * rail's own height and leaves `position: sticky` nowhere to move.
+            * Height resolves against the grid area, so it works whatever the
+            * alignment is. See the longer note in /ara/page.tsx.
+            */}
+          <div className="hidden min-w-0 lg:block lg:h-full">
+            <SearchFilters
+              params={pinned}
+              facets={facets}
+              coverage={coverage}
+              scope="rail"
+              pinned
+            />
+          </div>
+
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-ink-faint">{ENTITY_LABEL[kind]}</p>
             <h1 className="m-0 mt-1 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">
@@ -118,6 +174,25 @@ export async function EntityPage({
             <p className="mt-4 text-base text-ink-muted">
               <span className="font-semibold text-ink">{formatCount(total)} kayıt</span>
             </p>
+
+            {/*
+              * The sheet's button belongs HERE on a narrow screen, not up in the
+              * rail's grid cell. Put there it rendered above the breadcrumb's
+              * page — a button to narrow a list, standing before the heading that
+              * says what the list is. The name of the entity is what the page is
+              * for; the filter comes once you have read it and want less.
+              */}
+            <div className="mt-6 lg:hidden">
+              <FilterSheet activeCount={0}>
+                <SearchFilters
+                  params={pinned}
+                  facets={facets}
+                  coverage={coverage}
+                  scope="sheet"
+                  pinned
+                />
+              </FilterSheet>
+            </div>
 
             <div className="mt-6">
               <RecordList

@@ -58,6 +58,13 @@ export const searchParamsSchema = z.object({
     .pipe(z.array(z.enum(DOC_TYPES)).max(DOC_TYPES.length))
     .catch([]),
   kurum: z.string().trim().max(120).optional().catch(undefined),
+  /*
+   * The third entity kind. `kurum` and `yer` were here from the start and
+   * `sirket` was not — an omission, not a decision: a company page had no way to
+   * hand its records to the search screen, so the one entity kind with tens of
+   * thousands of rows was the one you could not filter.
+   */
+  sirket: z.string().trim().max(120).optional().catch(undefined),
   yer: z.string().trim().max(120).optional().catch(undefined),
   yil: z.coerce.number().int().min(1900).max(2200).optional().catch(undefined),
   baslangic: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
@@ -87,7 +94,9 @@ export function parseSearchParams(
 ): SearchParams {
   const flattened: Record<string, string | string[] | undefined> = { ...raw };
 
-  for (const key of ['q', 'kurum', 'yer', 'yil', 'baslangic', 'bitis', 'sirala', 'sayfa']) {
+  const single = ['q', 'kurum', 'sirket', 'yer', 'yil', 'baslangic', 'bitis', 'sirala', 'sayfa'];
+
+  for (const key of single) {
     const value = flattened[key];
     if (Array.isArray(value)) flattened[key] = value[0];
   }
@@ -162,6 +171,7 @@ export function activeFilterCount(params: SearchParams): number {
     (params.yil ? 1 : 0) +
     (params.baslangic || params.bitis ? 1 : 0) +
     (params.kurum ? 1 : 0) +
+    (params.sirket ? 1 : 0) +
     (params.yer ? 1 : 0)
   );
 }
@@ -172,6 +182,7 @@ export function hasActiveFilters(params: SearchParams): boolean {
     params.konu.length ||
       params.tur.length ||
       params.kurum ||
+      params.sirket ||
       params.yer ||
       params.yil ||
       params.baslangic ||
@@ -208,6 +219,7 @@ export function buildSearchHref(
   push('konu', merged.konu);
   push('tur', merged.tur);
   push('kurum', merged.kurum);
+  push('sirket', merged.sirket);
   push('yer', merged.yer);
   push('yil', merged.yil);
   push('baslangic', merged.baslangic);

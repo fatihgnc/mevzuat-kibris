@@ -90,22 +90,14 @@ function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur
   if (params.bitis) {
     parts.push(sql`r.published_at <= ${params.bitis}::date`);
   }
-  if (params.kurum) {
-    parts.push(
-      sql`exists (
-        select 1 from record_entities re join entities e on e.id = re.entity_id
-         where re.record_id = r.id and e.kind = 'institution' and e.slug = ${params.kurum}
-      )`,
-    );
-  }
-  if (params.yer) {
-    parts.push(
-      sql`exists (
-        select 1 from record_entities re join entities e on e.id = re.entity_id
-         where re.record_id = r.id and e.kind = 'place' and e.slug = ${params.yer}
-      )`,
-    );
-  }
+  /*
+   * The three entity kinds, one shape. They were two copy-pasted blocks and
+   * `sirket` was simply missing from the pair — adding a third copy is how that
+   * omission gets repeated, so the kind is a parameter now.
+   */
+  if (params.kurum) parts.push(entityCondition('institution', params.kurum));
+  if (params.sirket) parts.push(entityCondition('company', params.sirket));
+  if (params.yer) parts.push(entityCondition('place', params.yer));
 
   return sql.join(parts, sql` and `);
 }
@@ -117,6 +109,13 @@ function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur
  * can be restored) but no longer drives ordering. See build-query.ts ->
  * SORT_OPTIONS.
  */
+function entityCondition(kind: 'institution' | 'company' | 'place', slug: string) {
+  return sql`exists (
+    select 1 from record_entities re join entities e on e.id = re.entity_id
+     where re.record_id = r.id and e.kind = ${kind} and e.slug = ${slug}
+  )`;
+}
+
 function orderBy(sort: SortOption) {
   if (sort === 'eski') return sql`r.published_at asc, r.id asc`;
   return sql`r.published_at desc, r.id desc`;
@@ -217,6 +216,53 @@ export async function searchRecords(
     capped: total >= COUNT_CAP,
     facets: { topics, docTypes },
   };
+}
+
+/**
+ * Facet counts ALONE, for a rail that is not sitting next to its own results.
+ *
+ * The entity pages carry the search rail but list their records themselves, so
+ * they need the numbers beside each topic and document type without paying for
+ * the row and count queries `searchRecords` also runs. The counts are scoped by
+ * whatever is in `params` — on /kurum/x that is the institution — so the rail
+ * offers the types that institution actually has, in its own order.
+ *
+ * Each dimension still excludes ITS OWN filter, the same rule as in search:
+ * ticking a topic must not reduce the topic list to that one topic.
+ */
+export async function searchFacets(params: SearchParams): Promise<SearchResult['facets']> {
+  const topicFacetFilters = filterConditions(params, 'konu');
+  const docTypeFacetFilters = filterConditions(params, 'tur');
+
+  const facetRows = await db.execute<Row<{ kind: string; key: string; n: string }>>(sql`
+    select 'topic' as kind, rt.topic as key, count(*)::int as n
+      from records r
+      join issues i on i.id = r.issue_id
+      join record_topics rt on rt.record_id = r.id
+     where r.has_own_page and ${topicFacetFilters}
+     group by rt.topic
+    union all
+    select 'doc_type', r.doc_type, count(*)::int
+      from records r
+      join issues i on i.id = r.issue_id
+     where r.has_own_page and ${docTypeFacetFilters}
+     group by r.doc_type
+  `);
+
+  const topics: SearchResult['facets']['topics'] = [];
+  const docTypes: SearchResult['facets']['docTypes'] = [];
+
+  for (const row of facetRows) {
+    const n = Number(row.n);
+    if (row.kind === 'topic' && isTopicSlug(row.key)) topics.push({ key: row.key, n });
+    else if (row.kind === 'doc_type')
+      docTypes.push({ key: row.key, label: docTypeLabel(row.key), n });
+  }
+
+  topics.sort((a, b) => b.n - a.n);
+  docTypes.sort((a, b) => b.n - a.n);
+
+  return { topics, docTypes };
 }
 
 /** Trigram suggestion on 0 results (spec 5.4 step 7, artboard 1f). */

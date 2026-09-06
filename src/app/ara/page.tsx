@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { RecordList } from '@/components/record-list';
 import { Pagination } from '@/components/pagination';
 import { FilterSheet } from '@/components/filter-sheet';
-import { ActiveFilterChips, SearchFilters } from '@/components/search-filters';
+import { ActiveFilterChips, SearchFilters, type PinNames } from '@/components/search-filters';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
@@ -18,6 +18,7 @@ import {
   suggestSimilar,
 } from '@/lib/db/queries/records';
 import { archiveCoverage } from '@/lib/db/queries/coverage';
+import { getEntity } from '@/lib/db/queries/entities';
 import { formatCount } from '@/lib/db/queries/shared';
 import {
   buildQuery,
@@ -26,6 +27,7 @@ import {
   hasActiveFilters,
   parseSearchParams,
   searchParamsSchema,
+  type SearchParams,
 } from '@/lib/search/build-query';
 import { PAGE_SIZE } from '@/lib/seo/config';
 
@@ -47,9 +49,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = parseSearchParams(raw);
   const built = buildQuery(params);
 
-  const [result, coverage] = await Promise.all([
+  const [result, coverage, pinNames] = await Promise.all([
     searchRecords(params, built),
     archiveCoverage(),
+    resolvePinNames(params),
   ]);
 
   /*
@@ -123,7 +126,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               */}
             <div className="hidden lg:block lg:h-full">
               {empty ? (
-                <ActiveFilterChips params={params} />
+                <ActiveFilterChips params={params} pinNames={pinNames} />
               ) : (
                 <SearchFilters
                   params={params}
@@ -148,7 +151,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 * anything — and each chip's × removes that one filter and applies
                 * the result straight away.
                 */}
-              <ActiveFilterChips params={params} />
+              <ActiveFilterChips params={params} pinNames={pinNames} />
             </div>
           </div>
 
@@ -209,6 +212,23 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <SiteFooter />
     </>
   );
+}
+
+/**
+ * Turns the entity slugs in the URL into the names a chip can print.
+ *
+ * These arrive when an entity page's rail is submitted — the rail hands its
+ * filters to this screen with the entity still pinned. All three lookups are
+ * cached by slug, and none of them runs unless the pin is actually there.
+ */
+async function resolvePinNames(params: SearchParams): Promise<PinNames> {
+  const [kurum, sirket, yer] = await Promise.all([
+    params.kurum ? getEntity('institution', params.kurum) : null,
+    params.sirket ? getEntity('company', params.sirket) : null,
+    params.yer ? getEntity('place', params.yer) : null,
+  ]);
+
+  return { kurum: kurum?.name, sirket: sirket?.name, yer: yer?.name };
 }
 
 /**
