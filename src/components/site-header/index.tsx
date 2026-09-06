@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { NavMenu } from '@/components/nav-menu';
 import { SearchBox } from '@/components/search-box';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
@@ -33,6 +34,9 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: '/takip', label: 'Takip' },
   { href: '/hakkinda', label: 'Hakkında' },
 ];
+
+/** Search is a nav destination too; it just gets its own shape at full width. */
+const SEARCH_LINK = { href: '/ara', label: 'Ara' };
 
 interface SiteHeaderProps {
   /**
@@ -86,123 +90,83 @@ export function SiteHeader({
           * visitor is least likely to know. Stacking it frees the horizontal room
           * that made it droppable in the first place.
           *
-          * `origin-left` keeps the tilt from pushing the text off its start; the
-          * angle is small enough to read as a stamp rather than a mistake.
           */}
         <Link
           href="/"
           className="flex shrink-0 flex-col items-start leading-none no-underline hover:no-underline"
         >
           <span className="text-2xl font-bold tracking-tighter text-ink">{SITE_NAME}</span>
-          <span className="mt-1 origin-left -rotate-3 text-xs text-ink-muted">{SITE_KICKER}</span>
+          <span className="mt-1 text-xs text-ink-muted">{SITE_KICKER}</span>
         </Link>
 
         {variant === 'search' ? (
-          <div className="min-w-0 flex-1">
-            <SearchBox
-              size="compact"
-              defaultValue={query}
-              active={searchActive}
-              placeholder="Ara"
-            />
-          </div>
-        ) : (
-          <nav className="flex items-center gap-4 text-base text-ink-muted sm:gap-[22px]">
-            {/*
-              * Every link, on every screen — the narrow layout MOVES them into a
-              * menu rather than dropping them. Three of them used to vanish below
-              * `lg`, which quietly made the entity indexes unreachable on a phone;
-              * a link you cannot reach is worse than a menu you have to open.
-              */}
-            <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-ink-muted no-underline hover:text-ink hover:no-underline"
-                >
-                  {item.label}
-                </Link>
-              ))}
+          <>
+            <div className="min-w-0 flex-1">
+              <SearchBox
+                size="compact"
+                defaultValue={query}
+                active={searchActive}
+                placeholder="Ara"
+              />
             </div>
+            <ThemeToggle />
+          </>
+        ) : (
+          /*
+           * Navigation and the theme switch share one right-hand group.
+           *
+           * They used to be siblings of the brand under `justify-between`, which
+           * spread all three across the row and left the menu stranded in the
+           * middle with a gap before the switch. Grouping them puts the two
+           * controls next to each other and pins the pair to the right edge.
+           */
+          <div className="flex items-center gap-4 sm:gap-[22px]">
+            <nav className="flex items-center gap-4 text-base text-ink-muted sm:gap-[22px]">
+              {/*
+                * Every link, on every screen — the narrow layout MOVES them into a
+                * menu rather than dropping them. Three of them used to vanish below
+                * `lg`, which quietly made the entity indexes unreachable on a phone;
+                * a link you cannot reach is worse than a menu you have to open.
+                */}
+              <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
+                {NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-ink-muted no-underline hover:text-ink hover:no-underline"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
 
-            <NavMenu />
+              {/*
+                * The menu carries Ara as its last item, so the narrow header holds
+                * exactly two controls: the menu and the theme switch. Ara had been
+                * left outside as loose text next to the menu button, which made two
+                * things that look alike sit side by side and do different things.
+                */}
+              <NavMenu items={[...NAV, SEARCH_LINK]} />
 
-            {/*
-              * Below 1060px "Ara" is a plain text link, not a box.
-              *
-              * The bordered 200px box reads as a search FIELD, and a field you
-              * cannot type into is a small lie — it is a link to /ara. At full
-              * width the box earns that by looking like the destination; once the
-              * row tightens it is only taking space and making a promise it does
-              * not keep.
-              */}
-            <Link
-              href="/ara"
-              className="text-ink-muted no-underline hover:text-ink hover:no-underline min-[1060px]:hidden"
-            >
-              Ara
-            </Link>
-            <Link
-              href="/ara"
-              aria-label="Ara"
-              className="hidden items-center gap-2 rounded border border-line px-2.5 py-1.5 text-sm text-ink-placeholder no-underline hover:border-line-strong hover:no-underline min-[1060px]:flex min-[1060px]:w-[200px]"
-            >
-              Ara
-            </Link>
-          </nav>
+              {/*
+                * At full width Ara is a box that looks like where it takes you.
+                * Below 1060px it is inside the menu instead: a bordered 200px field
+                * you cannot type into is a small lie, and it was only taking space
+                * once the row tightened.
+                */}
+              <Link
+                href={SEARCH_LINK.href}
+                aria-label={SEARCH_LINK.label}
+                className="hidden items-center gap-2 rounded border border-line px-2.5 py-1.5 text-sm text-ink-placeholder no-underline hover:border-line-strong hover:no-underline min-[1060px]:flex min-[1060px]:w-[200px]"
+              >
+                {SEARCH_LINK.label}
+              </Link>
+            </nav>
+
+            <ThemeToggle />
+          </div>
         )}
-
-        {/* Rightmost in both variants; because the search box is flex-1 it sits
-            beside the box without narrowing it. */}
-        <ThemeToggle />
       </div>
     </header>
-  );
-}
-
-/**
- * The narrow-screen menu.
- *
- * A `<details>` element, not a client component with state. It costs no
- * JavaScript, keyboard and screen readers already understand it, and it keeps
- * this header a server component — the same reasons the filter rail is a plain
- * form. The panel is `absolute` so opening it cannot change the header's height,
- * which `--header-h` depends on being fixed.
- */
-function NavMenu() {
-  return (
-    <details className="group relative min-[1060px]:hidden">
-      <summary
-        aria-label="Menü"
-        className="flex cursor-pointer list-none items-center gap-1.5 text-ink-muted marker:hidden hover:text-ink [&::-webkit-details-marker]:hidden"
-      >
-        Menü
-        <span aria-hidden className="text-2xs transition-transform group-open:rotate-180">
-          ▾
-        </span>
-      </summary>
-      {/*
-        * `hidden group-open:flex`, NOT a bare `flex`.
-        *
-        * The browser hides a closed <details>'s content with a UA rule of roughly
-        * `details > *:not(summary) { display: none }`. A utility class setting
-        * `display: flex` outranks it, so the panel stayed on screen with the menu
-        * shut — measured: 316px tall while `open` was false. Tying the display to
-        * the open state puts the class and the element's state back in agreement.
-        */}
-      <ul className="absolute right-0 top-[calc(100%+12px)] z-30 hidden w-[190px] flex-col rounded-md border border-line bg-surface py-1.5 shadow-lg group-open:flex">
-        {NAV.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="block px-4 py-2 text-ink-body no-underline hover:bg-surface-hover hover:text-ink hover:no-underline"
-            >
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </details>
   );
 }
