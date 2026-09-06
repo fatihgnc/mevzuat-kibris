@@ -103,6 +103,23 @@ export function recordJsonLd(record: RecordDetail) {
   const url = absoluteUrl('/karar/' + record.slug);
   const name = record.summary ?? record.title;
   const datePublished = toIsoDate(record.publishedAt);
+
+  /*
+   * `dateModified` — a freshness signal for search and for answer engines, which
+   * weigh how recently a page was touched when deciding what to quote.
+   *
+   * It reports when WE last processed the issue, not when the gazette changed.
+   * The gazette does not revise what it has published; our extraction of it is
+   * rewritten every time a better OCR pass or a fixed font mapping runs over the
+   * PDF again, and that is a real change to what this page says.
+   *
+   * Clamped to never predate publication. The two values come from different
+   * columns — `records.published_at` is the gazette's date, `issues.updated_at`
+   * is ours — so an issue backfilled years after the fact would otherwise claim
+   * it was modified before it existed.
+   */
+  const processed = record.issue.updatedAt.slice(0, 10);
+  const dateModified = processed > datePublished ? processed : datePublished;
   const institution = record.entities.find((entity) => entity.kind === 'institution');
 
   const publisher = {
@@ -118,6 +135,7 @@ export function recordJsonLd(record: RecordDetail) {
       title: name,
       description: record.bodyText ?? record.title,
       datePosted: datePublished,
+      dateModified,
       validThrough: toIsoDate(record.deadlineAt),
       employmentType: 'FULL_TIME',
       hiringOrganization: {
@@ -146,6 +164,7 @@ export function recordJsonLd(record: RecordDetail) {
       alternateName: record.title,
       legislationIdentifier: record.refNumber ?? undefined,
       legislationDate: datePublished,
+      dateModified,
       legislationType: docTypeLabel(record.docType),
       jurisdiction: {
         '@type': 'AdministrativeArea',
@@ -164,6 +183,7 @@ export function recordJsonLd(record: RecordDetail) {
     headline: name,
     alternativeHeadline: record.title,
     datePublished,
+    dateModified,
     inLanguage: 'tr',
     url,
     isBasedOn: record.issue.pdfUrl,

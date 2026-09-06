@@ -500,6 +500,7 @@ interface RawDetailRow extends RawListRow {
   pdf_url: string;
   text_status: string;
   text_quality: number | null;
+  issue_updated_at: string | Date;
 }
 
 /**
@@ -524,7 +525,8 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
            i.published_at as issue_published_at,
            i.pdf_url,
            i.text_status,
-           i.text_quality
+           i.text_quality,
+           i.updated_at as issue_updated_at
       from records r
       ${sql.raw(LIST_JOINS)}
      where r.slug = ${slug}
@@ -610,6 +612,10 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
       pdfUrl: row.pdf_url,
       textStatus: row.text_status as RecordDetail['issue']['textStatus'],
       textQuality: row.text_quality,
+      updatedAt:
+        row.issue_updated_at instanceof Date
+          ? row.issue_updated_at.toISOString()
+          : String(row.issue_updated_at),
     },
     topics: base.topics,
     entities: entityRows.map((entity) => ({

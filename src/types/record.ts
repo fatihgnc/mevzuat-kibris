@@ -79,6 +79,21 @@ export interface RecordDetail extends RecordRow {
     pdfUrl: string;
     textStatus: TextStatus;
     textQuality: number | null;
+    /**
+     * When we last processed this issue — NOT when the gazette changed.
+     *
+     * The gazette does not revise what it has published; what changes is our
+     * extraction of it. A record's body text is rewritten every time
+     * parse-records runs over the issue again, which is what a better OCR pass
+     * or a fixed font mapping does. That is a real modification of the page, so
+     * it is what `dateModified` reports.
+     *
+     * CAVEAT: crawl-archive also touches this column when it re-sees an issue's
+     * index row, which does not change any text. So the value can be slightly
+     * newer than the last real change. `records` has only `created_at` and no
+     * column of its own; a precise answer needs one.
+     */
+    updatedAt: string;
   };
   topics: TopicSlug[];
   entities: Array<{ id: number; kind: EntityKind; slug: string; name: string }>;
