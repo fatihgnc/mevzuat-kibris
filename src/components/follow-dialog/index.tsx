@@ -1,15 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-
 import { FollowCard } from '@/components/follow-card';
+import { Modal } from '@/components/modal';
 import { RssCard } from '@/components/rss-card';
 import { cn } from '@/lib/utils';
 
 interface FollowDialogProps {
   /**
    * The words on the trigger. Each screen says what it would be following —
-   * "Bu aramayı takip et", "Bu konuyu takip et" — because a bare "Takip et" on a
+   * "Bu aramayi takip et", "Bu konuyu takip et" — because a bare "Takip et" on a
    * page carrying a query, a topic and a document type does not say which of
    * them it means.
    */
@@ -44,9 +43,15 @@ interface FollowDialogProps {
  * weight as email, and dropping the card without moving the feed somewhere would
  * have quietly demoted it to nothing.
  *
- * A real `<dialog>` with showModal(), the same as the search and filter modals:
- * focus moves in and is trapped, the page behind goes inert, Escape closes it,
- * and `::backdrop` is a real element.
+ * The dialog is `components/modal`, shared with the header's search and the
+ * filter sheet. No `title` is passed to it: FollowCard carries its own heading
+ * and two would repeat.
+ *
+ * IT STAYS A CLIENT COMPONENT even though the state moved into Modal. `trigger`
+ * is a function, and a server component cannot hand a function across the
+ * boundary to a client one — the markup renders during SSR and then has nothing
+ * to hydrate against. The wrapper is three lines of markup; the cost of the
+ * directive is nothing next to the render prop it buys.
  */
 export function FollowDialog({
   label,
@@ -57,98 +62,28 @@ export function FollowDialog({
   rssHref,
   className,
 }: FollowDialogProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  /*
-   * The body lock follows the `open` ATTRIBUTE, not the `close` event. The event
-   * does not fire in this browser — measured on the filter sheet: `close()`
-   * flipped `open` to false and the listener never ran. Watching the attribute
-   * also covers Escape, which never passes through a handler of ours.
-   */
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-
-    const sync = () => {
-      document.body.style.overflow = dialog.open ? 'hidden' : '';
-    };
-
-    const observer = new MutationObserver(sync);
-    observer.observe(dialog, { attributes: true, attributeFilter: ['open'] });
-    sync();
-
-    return () => {
-      observer.disconnect();
-      document.body.style.overflow = '';
-    };
-  }, []);
-
-  const open = () => {
-    if (!ref.current?.open) ref.current?.showModal();
-  };
-  const close = () => ref.current?.close();
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={open}
-        className={cn(
-          'text-base text-link underline-offset-2 hover:underline',
-          className,
-        )}
-      >
-        {label}
-      </button>
-
-      <dialog
-        ref={ref}
-        aria-label={title}
-        className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 text-ink backdrop:bg-black/60 backdrop:backdrop-blur-sm"
-      >
-        {/*
-          * The dismiss handler is on this wrapper, not on the dialog. It fills
-          * the dialog, so every click inside the window lands here and bubbles
-          * with this element as its target; the dialog itself has no bare area
-          * left to be clicked, and testing against it never fires.
-          */}
-        <div
-          onClick={(event) => {
-            if (event.target === event.currentTarget) close();
-          }}
-          className="flex min-h-full items-center justify-center px-4 py-8"
+    <Modal
+      label={title}
+      trigger={(open) => (
+        <button
+          type="button"
+          onClick={open}
+          className={cn('text-base text-link underline-offset-2 hover:underline', className)}
         >
-          {/*
-            * THE PANEL HAS ITS OWN BACKGROUND. Without one the two cards floated
-            * on the blurred page with nothing holding them together, and the gap
-            * between them was a window onto the page behind — which read as two
-            * loose boxes rather than one thing that had opened.
-            */}
-          <div className="w-full max-w-[34em] rounded-lg border border-line bg-surface p-5 shadow-lg">
-            {/* No heading here: FollowCard carries its own, and two would repeat. */}
-            <div className="mb-1 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={close}
-                aria-label="Kapat"
-                className="rounded px-2 py-1 text-xl leading-none text-ink-muted hover:text-ink"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-[18px]">
-              <FollowCard
-                title={title}
-                description={description}
-                subject={subject}
-                showFrequency={showFrequency}
-              />
-              <RssCard href={rssHref} />
-            </div>
-          </div>
-        </div>
-      </dialog>
-    </>
+          {label}
+        </button>
+      )}
+    >
+      <div className="flex flex-col gap-[18px] pt-1">
+        <FollowCard
+          title={title}
+          description={description}
+          subject={subject}
+          showFrequency={showFrequency}
+        />
+        <RssCard href={rssHref} />
+      </div>
+    </Modal>
   );
 }
