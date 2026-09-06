@@ -182,25 +182,33 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           <AdSlot kind="in-article" slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE} className="mt-8" />
         </div>
 
-        <aside className="flex flex-col gap-[18px]">
-          <FollowCard
-            title="Bu kaydı takip et"
-            description={
-              institution
-                ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
-                : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
-            }
-            subject={{
-              label: primaryTopic?.name ?? 'Bu kayıt',
-              topic: primaryTopic?.slug,
-              entityId: institution?.id,
-            }}
-            showFrequency={false}
-          />
-          <RssCard
-            href={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
-          />
-          <SourceNotice />
+        {/*
+          * Sticky, the same way the topic and entity columns are — see the note
+          * in topic-page. The <aside> is the tall cell and the div inside it is
+          * what sticks; the sticky element cannot move outside its own
+          * containing block, so the two cannot be one element.
+          */}
+        <aside className="lg:h-full">
+          <div className="no-scrollbar flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
+            <FollowCard
+              title="Bu kaydı takip et"
+              description={
+                institution
+                  ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
+                  : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
+              }
+              subject={{
+                label: primaryTopic?.name ?? 'Bu kayıt',
+                topic: primaryTopic?.slug,
+                entityId: institution?.id,
+              }}
+              showFrequency={false}
+            />
+            <RssCard
+              href={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
+            />
+            <SourceNotice />
+          </div>
         </aside>
       </div>
     </article>

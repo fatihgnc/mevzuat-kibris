@@ -298,21 +298,41 @@ export async function TopicPage({
 
           </div>
 
-          <aside className="flex flex-col gap-[18px]">
-            <FollowCard
-              title="Bu konuyu takip et"
-              description={'Yeni ' + topic.name.toLocaleLowerCase('tr') + ' kaydı yayımlandığı gün haber veririz.'}
-              subject={{ label: topic.name, topic: konu }}
-            />
+          {/*
+            * The follow and RSS cards travel with the scroll, the way the home
+            * page's side column does. They are the page's two actions and the
+            * feed above them is hundreds of rows long; anchored at the top they
+            * were only reachable by scrolling back.
+            *
+            * TWO ELEMENTS, DELIBERATELY. The <aside> is the tall one and the div
+            * inside it is what sticks — a sticky element can only move inside its
+            * own containing block, and this grid is `items-start`, which shrinks
+            * the cell to its content and leaves nothing to move in. `lg:h-full`
+            * resolves against the grid area, so the cell takes the row's height
+            * whatever the alignment says. Same trap as the filter rail's, written
+            * up in /ara/page.tsx.
+            *
+            * The height cap plus its own scroller is for short windows: the two
+            * cards are around 500px and a pinned column taller than the viewport
+            * would hide its own bottom with no way to reach it.
+            */}
+          <aside className="lg:h-full">
+            <div className="no-scrollbar flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
+              <FollowCard
+                title="Bu konuyu takip et"
+                description={'Yeni ' + topic.name.toLocaleLowerCase('tr') + ' kaydı yayımlandığı gün haber veririz.'}
+                subject={{ label: topic.name, topic: konu }}
+              />
 
-            <RssCard href={'/konu/' + konu + '/rss.xml'} />
+              <RssCard href={'/konu/' + konu + '/rss.xml'} />
 
-            {supportsDeadline && openCount > 0 ? (
-              <p className="border-t border-line pt-4 text-sm leading-[1.55] text-ink-muted">
-                Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî PDF&apos;e
-                bakın.
-              </p>
-            ) : null}
+              {supportsDeadline && openCount > 0 ? (
+                <p className="border-t border-line pt-4 text-sm leading-[1.55] text-ink-muted">
+                  Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî PDF&apos;e
+                  bakın.
+                </p>
+              ) : null}
+            </div>
           </aside>
         </div>
       </main>

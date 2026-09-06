@@ -235,20 +235,40 @@ export async function EntityPage({
             ) : null}
           </div>
 
-          <aside className="flex flex-col gap-[18px]">
-            <FollowCard
-              title={entity.name + ' takibi'}
-              description={
-                kind === 'place'
-                  ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
-                  : 'Bu ' +
-                    ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
-                    ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
-              }
-              subject={{ label: entity.name, entityId: entity.id }}
-            />
+          {/*
+            * The follow and RSS cards travel with the scroll, the way the home
+            * page's side column does. They are the page's two actions and the
+            * feed above them is hundreds of rows long; anchored at the top they
+            * were only reachable by scrolling back.
+            *
+            * TWO ELEMENTS, DELIBERATELY. The <aside> is the tall one and the div
+            * inside it is what sticks — a sticky element can only move inside its
+            * own containing block, and this grid is `items-start`, which shrinks
+            * the cell to its content and leaves nothing to move in. `lg:h-full`
+            * resolves against the grid area, so the cell takes the row's height
+            * whatever the alignment says. Same trap as the filter rail's, written
+            * up in /ara/page.tsx.
+            *
+            * The height cap plus its own scroller is for short windows: the two
+            * cards are around 500px and a pinned column taller than the viewport
+            * would hide its own bottom with no way to reach it.
+            */}
+          <aside className="lg:h-full">
+            <div className="no-scrollbar flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
+              <FollowCard
+                title={entity.name + ' takibi'}
+                description={
+                  kind === 'place'
+                    ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
+                    : 'Bu ' +
+                      ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
+                      ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
+                }
+                subject={{ label: entity.name, entityId: entity.id }}
+              />
 
-            <RssCard href={basePath + '/rss.xml'} />
+              <RssCard href={basePath + '/rss.xml'} />
+            </div>
           </aside>
         </div>
       </main>
