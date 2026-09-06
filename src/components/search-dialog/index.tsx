@@ -63,7 +63,7 @@ export function SearchDialog({ defaultValue = '' }: { defaultValue?: string }) {
         * a shareable address (spec 5.5). router.push is only there for the soft
         * transition.
         */}
-      <form action="/ara" method="get" role="search" onSubmit={onSubmit} className="pt-1">
+      <form action="/ara" method="get" role="search" onSubmit={onSubmit}>
         <label className="sr-only" htmlFor="q-dialog">
           Resmî Gazete kayıtlarında ara
         </label>

@@ -55,7 +55,7 @@ export function FilterSheet({
         </button>
       )}
     >
-      <div className="pt-4">{children}</div>
+      {children}
     </Modal>
   );
 }

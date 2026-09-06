@@ -77,7 +77,7 @@ export function FollowDialog({
         </button>
       )}
     >
-      <div className="flex flex-col gap-[18px] pt-1">
+      <div className="flex flex-col gap-[18px]">
         {/* No `title` here: the modal's header carries it — see FollowCard. */}
         <FollowCard
           description={description}
