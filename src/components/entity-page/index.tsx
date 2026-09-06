@@ -5,8 +5,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { FilterSheet } from '@/components/filter-sheet';
 import { SearchFilters } from '@/components/search-filters';
-import { FollowCard } from '@/components/follow-card';
-import { RssCard } from '@/components/rss-card';
+import { FollowBlock } from '@/components/follow-block';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -131,7 +130,7 @@ export async function EntityPage({
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-8 lg:px-10">
         <Breadcrumbs items={crumbs} />
 
-        <div className="grid items-start gap-10 lg:grid-cols-topic">
+        <div className="grid items-start gap-10 lg:grid-cols-feed">
           {/*
            * Two presentations of one rail, the same pair as /ara: a column on a
            * wide screen, a button and a sheet on a narrow one. `scope` keeps the
@@ -233,6 +232,19 @@ export async function EntityPage({
                 </ul>
               </section>
             ) : null}
+
+            <FollowBlock
+              title={entity.name + ' takibi'}
+              description={
+                kind === 'place'
+                  ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
+                  : 'Bu ' +
+                    ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
+                    ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
+              }
+              subject={{ label: entity.name, entityId: entity.id }}
+              rssHref={basePath + '/rss.xml'}
+            />
           </div>
 
           {/*
@@ -253,23 +265,6 @@ export async function EntityPage({
             * cards are around 500px and a pinned column taller than the viewport
             * would hide its own bottom with no way to reach it.
             */}
-          <aside className="lg:h-full">
-            <div className="no-scrollbar flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
-              <FollowCard
-                title={entity.name + ' takibi'}
-                description={
-                  kind === 'place'
-                    ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
-                    : 'Bu ' +
-                      ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
-                      ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
-                }
-                subject={{ label: entity.name, entityId: entity.id }}
-              />
-
-              <RssCard href={basePath + '/rss.xml'} />
-            </div>
-          </aside>
         </div>
       </main>
 

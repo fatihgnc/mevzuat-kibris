@@ -1,8 +1,7 @@
 import Link from 'next/link';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { FollowCard } from '@/components/follow-card';
-import { RssCard } from '@/components/rss-card';
+import { FollowBlock } from '@/components/follow-block';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -168,7 +167,7 @@ export async function TopicPage({
       <main id="icerik" className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-8 lg:px-10">
         <Breadcrumbs items={crumbs} />
 
-        <div className="grid items-start gap-10 lg:grid-cols-topic">
+        <div className="grid items-start gap-10 lg:grid-cols-feed">
           {/*
             * The rail comes FIRST in the source as well as on screen, so tab order
             * and reading order agree with the layout.
@@ -296,6 +295,24 @@ export async function TopicPage({
               </section>
             ) : null}
 
+
+            <FollowBlock
+              title="Bu konuyu takip et"
+              description={
+                'Yeni ' +
+                topic.name.toLocaleLowerCase('tr') +
+                ' kaydı yayımlandığı gün haber veririz.'
+              }
+              subject={{ label: topic.name, topic: konu }}
+              rssHref={'/konu/' + konu + '/rss.xml'}
+            >
+              {supportsDeadline && openCount > 0 ? (
+                <p className="mt-[18px] text-sm leading-[1.55] text-ink-muted">
+                  Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî
+                  PDF&apos;e bakın.
+                </p>
+              ) : null}
+            </FollowBlock>
           </div>
 
           {/*
@@ -316,24 +333,6 @@ export async function TopicPage({
             * cards are around 500px and a pinned column taller than the viewport
             * would hide its own bottom with no way to reach it.
             */}
-          <aside className="lg:h-full">
-            <div className="no-scrollbar flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
-              <FollowCard
-                title="Bu konuyu takip et"
-                description={'Yeni ' + topic.name.toLocaleLowerCase('tr') + ' kaydı yayımlandığı gün haber veririz.'}
-                subject={{ label: topic.name, topic: konu }}
-              />
-
-              <RssCard href={'/konu/' + konu + '/rss.xml'} />
-
-              {supportsDeadline && openCount > 0 ? (
-                <p className="border-t border-line pt-4 text-sm leading-[1.55] text-ink-muted">
-                  Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî PDF&apos;e
-                  bakın.
-                </p>
-              ) : null}
-            </div>
-          </aside>
         </div>
       </main>
 

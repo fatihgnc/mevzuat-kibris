@@ -105,9 +105,9 @@ const config: Config = {
         record: '1fr 250px',
         // Arama: filtre rayı + sonuçlar
         search: '210px 1fr',
-        // Konu akışı: filtre rayı + akış + takip sütunu. Ray arama sayfasındakinden
-        // dar, çünkü yalnızca tarih ve sıralama taşıyor.
-        topic: '190px 1fr 300px',
+        // Konu ve varlık akışı: filtre rayı + akış. Takip sütunu kalktı; teklif
+        // artık sayfanın sonunda (components/follow-block).
+        feed: '190px 1fr',
       },
     },
   },

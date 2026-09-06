@@ -3,10 +3,9 @@ import Link from 'next/link';
 import { AdSlot } from '@/components/ad-slot';
 import { CopyLink } from '@/components/copy-link';
 import { EntityChip } from '@/components/entity-chip';
-import { FollowCard } from '@/components/follow-card';
-import { RssCard } from '@/components/rss-card';
 import { MaskedText } from '@/components/masked-text';
 import { RawTitle } from '@/components/raw-title';
+import { FollowBlock } from '@/components/follow-block';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 import { SourceNotice, OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
@@ -120,7 +119,11 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         <CopyLink url={url} />
       </div>
 
-      <div className="mt-9 grid gap-10 lg:grid-cols-record">
+      {/*
+        * ONE COLUMN. The follow offer used to be a sticky column here; it is at
+        * the end of the page now — see components/follow-block.
+        */}
+      <div className="mt-9">
         <div className="min-w-0">
           {hasBody ? (
             <>
@@ -182,35 +185,30 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           <AdSlot kind="in-article" slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE} className="mt-8" />
         </div>
 
-        {/*
-          * Sticky, the same way the topic and entity columns are — see the note
-          * in topic-page. The <aside> is the tall cell and the div inside it is
-          * what sticks; the sticky element cannot move outside its own
-          * containing block, so the two cannot be one element.
-          */}
-        <aside className="lg:h-full">
-          <div className="no-scrollbar flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
-            <FollowCard
-              title="Bu kaydı takip et"
-              description={
-                institution
-                  ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
-                  : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
-              }
-              subject={{
-                label: primaryTopic?.name ?? 'Bu kayıt',
-                topic: primaryTopic?.slug,
-                entityId: institution?.id,
-              }}
-              showFrequency={false}
-            />
-            <RssCard
-              href={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
-            />
-            <SourceNotice />
-          </div>
-        </aside>
       </div>
+
+      <FollowBlock
+        title="Bu kaydı takip et"
+        description={
+          institution
+            ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
+            : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
+        }
+        subject={{
+          label: primaryTopic?.name ?? 'Bu kayıt',
+          topic: primaryTopic?.slug,
+          entityId: institution?.id,
+        }}
+        showFrequency={false}
+        rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
+      >
+        {/*
+          * The binding-text notice follows the body rather than sitting beside it
+          * (spec 16 item 6 wants it on the page, not in a particular corner). At
+          * the end of the reading is where "the original is what binds" lands.
+          */}
+        <SourceNotice className="mt-[18px]" />
+      </FollowBlock>
     </article>
   );
 }

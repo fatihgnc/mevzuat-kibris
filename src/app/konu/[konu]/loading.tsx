@@ -1,6 +1,5 @@
 import {
   SkeletonAnnounce,
-  SkeletonAside,
   SkeletonBlock,
   SkeletonList,
   SkeletonRail,
@@ -28,7 +27,7 @@ export default function Loading() {
 
         <SkeletonBlock className="h-3 w-[220px]" />
 
-        <div className="mt-6 grid items-start gap-10 lg:grid-cols-topic">
+        <div className="mt-6 grid items-start gap-10 lg:grid-cols-feed">
           <div className="hidden lg:block">
             <SkeletonRail />
           </div>
@@ -45,8 +44,6 @@ export default function Loading() {
 
             <SkeletonList rows={6} />
           </div>
-
-          <SkeletonAside />
         </div>
       </main>
     </>

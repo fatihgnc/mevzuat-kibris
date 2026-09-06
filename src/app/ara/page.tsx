@@ -8,8 +8,7 @@ import { ActiveFilterChips, SearchFilters, type PinNames } from '@/components/se
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
-import { FollowCard } from '@/components/follow-card';
-import { RssCard } from '@/components/rss-card';
+import { FollowBlock } from '@/components/follow-block';
 import { TOPIC_LIST } from '@/lib/constants/topics';
 import {
   countForQuery,
@@ -190,19 +189,35 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   emptyMessage="Bu filtrelerle kayıt yok. Filtreleri gevşetmeyi deneyin."
                 />
 
-                <div className="mt-[22px] flex flex-col items-center gap-3.5">
-                  <Pagination
-                    className="justify-center"
-                    page={params.sayfa}
-                    totalPages={Math.min(totalPages, 500)}
-                    hrefFor={(page) => buildSearchHref(params, { sayfa: page })}
+                <Pagination
+                  className="mt-[22px] justify-center"
+                  page={params.sayfa}
+                  totalPages={Math.min(totalPages, 500)}
+                  hrefFor={(page) => buildSearchHref(params, { sayfa: page })}
+                />
+
+                {/*
+                  * The offer used to be a bare "Bu aramayı takibe al" link to
+                  * /takip, which is a page that cannot know what you searched —
+                  * it asked you to set the alert up again from scratch. This is
+                  * the same card the empty-results screen has always carried,
+                  * and it arrives with the query already in hand.
+                  *
+                  * Only with a query. There is nothing to follow about /ara with
+                  * no words in it.
+                  */}
+                {built.raw ? (
+                  <FollowBlock
+                    title="Bu aramayı takibe al"
+                    description={
+                      '“' +
+                      built.raw +
+                      '” için yeni kayıt yayımlandığında haber veririz.'
+                    }
+                    subject={{ label: built.raw, query: built.raw }}
+                    rssHref="/rss.xml"
                   />
-                  {built.raw ? (
-                    <Link href="/takip" className="text-base">
-                      Bu aramayı takibe al
-                    </Link>
-                  ) : null}
-                </div>
+                ) : null}
               </>
             )}
           </div>
@@ -304,14 +319,12 @@ async function EmptyResults({
         </ul>
       </section>
 
-      <FollowCard
-        className="mt-[30px]"
+      <FollowBlock
         title="Bu aramayı takibe alın"
         description="Bugün kayıt yok, yarın olabilir. Bu arama için yeni kayıt yayımlandığında haber veririz."
         subject={{ label: query, query }}
+        rssHref="/rss.xml"
       />
-
-      <RssCard className="mt-[18px]" href="/rss.xml" />
     </div>
   );
 }

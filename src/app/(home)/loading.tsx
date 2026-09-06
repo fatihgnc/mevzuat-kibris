@@ -2,17 +2,18 @@ import { SkeletonAnnounce, SkeletonAside, SkeletonBlock, SkeletonList } from '@/
 import { SiteHeader } from '@/components/site-header';
 
 /**
- * The home page's loading state — and the app's last resort.
+ * The home page's loading state.
  *
- * A loading.tsx at the root serves its own route and stands in for any
- * descendant that has none. Every route that queries the database has its own by
- * now, so in practice this is the home page; what is left over is the static
- * prose (rehber, hakkında, gizlilik, kullanım koşulları), which is prerendered
- * and arrives without a round trip, so this shape should never be seen there.
+ * IT LIVES IN A ROUTE GROUP, and that is the point. At the root it was also the
+ * fallback for every descendant without one, so every page on the site streamed
+ * this home-shaped skeleton — hero, search box, list of records — before its own
+ * content resolved. A fallback of the wrong shape is worse than none: it paints,
+ * then the layout jumps when the real page lands. `(home)` is not part of the
+ * URL, so this still serves `/` and nothing else.
  *
- * That is worth stating because a wrong-shaped fallback is a real cost: it makes
- * the layout jump when the content lands. It is here as the safety net for a
- * route added later and forgotten, which is the failure this file is really for.
+ * The cost is that there is no longer a net for a route added later without a
+ * loading file. That is the right trade: a missing skeleton is a page that feels
+ * like it did last week, while a wrong one is a page that flickers.
  */
 export default function Loading() {
   return (
