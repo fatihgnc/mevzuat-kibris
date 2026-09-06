@@ -8,7 +8,7 @@ import { ActiveFilterChips, SearchFilters, type PinNames } from '@/components/se
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
-import { FollowBlock } from '@/components/follow-block';
+import { FollowDialog } from '@/components/follow-dialog';
 import { TOPIC_LIST } from '@/lib/constants/topics';
 import {
   countForQuery,
@@ -177,10 +177,26 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     </span>{' '}
                     bulundu
                   </p>
-                  <SortLinks
-                    active={params.sirala}
-                    hrefFor={(option) => buildSearchHref(params, { sirala: option, sayfa: 1 })}
-                  />
+                  <div className="flex items-baseline gap-x-[18px]">
+                    {/*
+                      * Only with a query: there is nothing to follow about /ara
+                      * with no words in it.
+                      */}
+                    {built.raw ? (
+                      <FollowDialog
+                        title="Bu aramayı takibe al"
+                        description={
+                          '“' + built.raw + '” için yeni kayıt yayımlandığında haber veririz.'
+                        }
+                        subject={{ label: built.raw, query: built.raw }}
+                        rssHref="/rss.xml"
+                      />
+                    ) : null}
+                    <SortLinks
+                      active={params.sirala}
+                      hrefFor={(option) => buildSearchHref(params, { sirala: option, sayfa: 1 })}
+                    />
+                  </div>
                 </div>
 
                 <RecordList
@@ -196,28 +212,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   hrefFor={(page) => buildSearchHref(params, { sayfa: page })}
                 />
 
-                {/*
-                  * The offer used to be a bare "Bu aramayı takibe al" link to
-                  * /takip, which is a page that cannot know what you searched —
-                  * it asked you to set the alert up again from scratch. This is
-                  * the same card the empty-results screen has always carried,
-                  * and it arrives with the query already in hand.
-                  *
-                  * Only with a query. There is nothing to follow about /ara with
-                  * no words in it.
-                  */}
-                {built.raw ? (
-                  <FollowBlock
-                    title="Bu aramayı takibe al"
-                    description={
-                      '“' +
-                      built.raw +
-                      '” için yeni kayıt yayımlandığında haber veririz.'
-                    }
-                    subject={{ label: built.raw, query: built.raw }}
-                    rssHref="/rss.xml"
-                  />
-                ) : null}
               </>
             )}
           </div>
@@ -319,12 +313,21 @@ async function EmptyResults({
         </ul>
       </section>
 
-      <FollowBlock
-        title="Bu aramayı takibe alın"
-        description="Bugün kayıt yok, yarın olabilir. Bu arama için yeni kayıt yayımlandığında haber veririz."
-        subject={{ label: query, query }}
-        rssHref="/rss.xml"
-      />
+      {/*
+        * On the empty screen the offer is the last of the four ways out (artboard
+        * 1f), so it stays where the list of suggestions ends rather than moving
+        * to the top of results that do not exist.
+        */}
+      <p className="mt-[30px] border-t border-line pt-5 text-base text-ink-muted">
+        Bugün kayıt yok, yarın olabilir.{' '}
+        <FollowDialog
+          label="Bu aramayı takibe alın"
+          title="Bu aramayı takibe alın"
+          description="Bu arama için yeni kayıt yayımlandığında haber veririz."
+          subject={{ label: query, query }}
+          rssHref="/rss.xml"
+        />
+      </p>
     </div>
   );
 }

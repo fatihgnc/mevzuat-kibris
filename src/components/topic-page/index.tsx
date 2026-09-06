@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { FollowBlock } from '@/components/follow-block';
+import { FollowDialog } from '@/components/follow-dialog';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -212,7 +212,25 @@ export async function TopicPage({
                   </>
                 ) : null}
               </div>
-              <SortLinks active={sirala} hrefFor={sortHref} />
+              {/*
+                * "Takip et" joins the count line rather than getting a block of
+                * its own. It is one line at the top of the feed instead of a card
+                * at the bottom nobody scrolls to, or a column pinned beside the
+                * reading — see components/follow-dialog for how it got here.
+                */}
+              <div className="flex items-baseline gap-x-[18px]">
+                <FollowDialog
+                  title="Bu konuyu takip et"
+                  description={
+                    'Yeni ' +
+                    topic.name.toLocaleLowerCase('tr') +
+                    ' kaydı yayımlandığı gün haber veririz.'
+                  }
+                  subject={{ label: topic.name, topic: konu }}
+                  rssHref={'/konu/' + konu + '/rss.xml'}
+                />
+                <SortLinks active={sirala} hrefFor={sortHref} />
+              </div>
             </div>
 
             {/*
@@ -296,23 +314,12 @@ export async function TopicPage({
             ) : null}
 
 
-            <FollowBlock
-              title="Bu konuyu takip et"
-              description={
-                'Yeni ' +
-                topic.name.toLocaleLowerCase('tr') +
-                ' kaydı yayımlandığı gün haber veririz.'
-              }
-              subject={{ label: topic.name, topic: konu }}
-              rssHref={'/konu/' + konu + '/rss.xml'}
-            >
-              {supportsDeadline && openCount > 0 ? (
-                <p className="mt-[18px] text-sm leading-[1.55] text-ink-muted">
-                  Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî
-                  PDF&apos;e bakın.
-                </p>
-              ) : null}
-            </FollowBlock>
+            {supportsDeadline && openCount > 0 ? (
+              <p className="mt-8 border-t border-line pt-4 text-sm leading-[1.55] text-ink-muted">
+                Başvuru tarihleri kayıt metninden çıkarılmıştır. Kesin tarih için resmî
+                PDF&apos;e bakın.
+              </p>
+            ) : null}
           </div>
 
           {/*

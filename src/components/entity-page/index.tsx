@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { FilterSheet } from '@/components/filter-sheet';
 import { SearchFilters } from '@/components/search-filters';
-import { FollowBlock } from '@/components/follow-block';
+import { FollowDialog } from '@/components/follow-dialog';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -178,7 +178,27 @@ export async function EntityPage({
               * `records[0]` is the newest because the list is ordered that way,
               * and it is absent only on a page past the last one.
               */}
-            <p className="mt-4 text-base text-ink-muted">{entityLede(entity.name, total, records[0]?.publishedAt)}</p>
+            {/*
+              * The count sentence and the follow link share a line — one row at
+              * the top of the feed rather than a card at the bottom of it.
+              */}
+            <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-[18px] gap-y-2">
+              <p className="m-0 text-base text-ink-muted">
+                {entityLede(entity.name, total, records[0]?.publishedAt)}
+              </p>
+              <FollowDialog
+                title={entity.name + ' takibi'}
+                description={
+                  kind === 'place'
+                    ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
+                    : 'Bu ' +
+                      ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
+                      ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
+                }
+                subject={{ label: entity.name, entityId: entity.id }}
+                rssHref={basePath + '/rss.xml'}
+              />
+            </div>
 
             {/*
               * The sheet's button belongs HERE on a narrow screen, not up in the
@@ -233,18 +253,6 @@ export async function EntityPage({
               </section>
             ) : null}
 
-            <FollowBlock
-              title={entity.name + ' takibi'}
-              description={
-                kind === 'place'
-                  ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
-                  : 'Bu ' +
-                    ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
-                    ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
-              }
-              subject={{ label: entity.name, entityId: entity.id }}
-              rssHref={basePath + '/rss.xml'}
-            />
           </div>
 
           {/*

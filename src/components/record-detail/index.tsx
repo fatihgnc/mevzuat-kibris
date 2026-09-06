@@ -5,7 +5,7 @@ import { CopyLink } from '@/components/copy-link';
 import { EntityChip } from '@/components/entity-chip';
 import { MaskedText } from '@/components/masked-text';
 import { RawTitle } from '@/components/raw-title';
-import { FollowBlock } from '@/components/follow-block';
+import { FollowDialog } from '@/components/follow-dialog';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 import { SourceNotice, OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
@@ -117,12 +117,28 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           Resmî PDF{pageLabel}
         </a>
         <CopyLink url={url} />
+        {/*
+          * "Takip et" belongs with the other two actions rather than in a card
+          * of its own at the end of the page — see components/follow-dialog.
+          */}
+        <FollowDialog
+          className="px-1 py-2.5 text-md"
+          title="Bu kaydı takip et"
+          description={
+            institution
+              ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
+              : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
+          }
+          subject={{
+            label: primaryTopic?.name ?? 'Bu kayıt',
+            topic: primaryTopic?.slug,
+            entityId: institution?.id,
+          }}
+          showFrequency={false}
+          rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
+        />
       </div>
 
-      {/*
-        * ONE COLUMN. The follow offer used to be a sticky column here; it is at
-        * the end of the page now — see components/follow-block.
-        */}
       <div className="mt-9">
         <div className="min-w-0">
           {hasBody ? (
@@ -187,28 +203,12 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
 
       </div>
 
-      <FollowBlock
-        title="Bu kaydı takip et"
-        description={
-          institution
-            ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
-            : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
-        }
-        subject={{
-          label: primaryTopic?.name ?? 'Bu kayıt',
-          topic: primaryTopic?.slug,
-          entityId: institution?.id,
-        }}
-        showFrequency={false}
-        rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
-      >
-        {/*
-          * The binding-text notice follows the body rather than sitting beside it
-          * (spec 16 item 6 wants it on the page, not in a particular corner). At
-          * the end of the reading is where "the original is what binds" lands.
-          */}
-        <SourceNotice className="mt-[18px]" />
-      </FollowBlock>
+      {/*
+        * The binding-text notice stands alone now. Spec 16 item 6 wants it on
+        * the page, and after the reading is where "the original is what binds"
+        * lands.
+        */}
+      <SourceNotice className="mt-9" />
     </article>
   );
 }
