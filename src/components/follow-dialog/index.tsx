@@ -7,8 +7,13 @@ import { RssCard } from '@/components/rss-card';
 import { cn } from '@/lib/utils';
 
 interface FollowDialogProps {
-  /** The word on the trigger. Short — it sits in a row of counts and sort links. */
-  label?: string;
+  /**
+   * The words on the trigger. Each screen says what it would be following —
+   * "Bu aramayı takip et", "Bu konuyu takip et" — because a bare "Takip et" on a
+   * page carrying a query, a topic and a document type does not say which of
+   * them it means.
+   */
+  label: string;
   title: string;
   description: string;
   subject: {
@@ -44,7 +49,7 @@ interface FollowDialogProps {
  * and `::backdrop` is a real element.
  */
 export function FollowDialog({
-  label = 'Takip et',
+  label,
   title,
   description,
   subject,
@@ -113,8 +118,15 @@ export function FollowDialog({
           }}
           className="flex min-h-full items-center justify-center px-4 py-8"
         >
-          <div className="w-full max-w-[34em]">
-            <div className="mb-3 flex items-center justify-end">
+          {/*
+            * THE PANEL HAS ITS OWN BACKGROUND. Without one the two cards floated
+            * on the blurred page with nothing holding them together, and the gap
+            * between them was a window onto the page behind — which read as two
+            * loose boxes rather than one thing that had opened.
+            */}
+          <div className="w-full max-w-[34em] rounded-lg border border-line bg-surface p-5 shadow-lg">
+            {/* No heading here: FollowCard carries its own, and two would repeat. */}
+            <div className="mb-1 flex items-center justify-end">
               <button
                 type="button"
                 onClick={close}

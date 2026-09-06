@@ -22,6 +22,13 @@ import { breadcrumbJsonLd, institutionJsonLd } from '@/lib/seo/json-ld';
 import { ENTITY_LABEL, ENTITY_LABEL_PLURAL, ENTITY_PATH } from '@/types/entity';
 import type { EntityKind } from '@/types/record';
 
+/** The trigger's words, per kind — a bare "Takip et" would not say what of. */
+const FOLLOW_LABEL: Record<EntityKind, string> = {
+  institution: 'Bu kurumu takip et',
+  company: 'Bu şirketi takip et',
+  place: 'Bu yeri takip et',
+};
+
 /** Which /ara parameter pins this kind of entity — see searchParamsSchema. */
 const PIN_PARAM: Record<EntityKind, 'kurum' | 'sirket' | 'yer'> = {
   institution: 'kurum',
@@ -187,6 +194,7 @@ export async function EntityPage({
                 {entityLede(entity.name, total, records[0]?.publishedAt)}
               </p>
               <FollowDialog
+                label={FOLLOW_LABEL[kind]}
                 title={entity.name + ' takibi'}
                 description={
                   kind === 'place'

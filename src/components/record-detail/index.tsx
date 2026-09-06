@@ -122,6 +122,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           * of its own at the end of the page — see components/follow-dialog.
           */}
         <FollowDialog
+          label="Bu kaydı takip et"
           className="px-1 py-2.5 text-md"
           title="Bu kaydı takip et"
           description={

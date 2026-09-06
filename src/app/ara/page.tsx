@@ -184,6 +184,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                       */}
                     {built.raw ? (
                       <FollowDialog
+                        label="Bu aramayı takip et"
                         title="Bu aramayı takibe al"
                         description={
                           '“' + built.raw + '” için yeni kayıt yayımlandığında haber veririz.'

@@ -220,6 +220,7 @@ export async function TopicPage({
                 */}
               <div className="flex items-baseline gap-x-[18px]">
                 <FollowDialog
+                  label="Bu konuyu takip et"
                   title="Bu konuyu takip et"
                   description={
                     'Yeni ' +
