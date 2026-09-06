@@ -614,7 +614,22 @@ Format: `{yıl}-{ref_type}-{ref_number}-{başlık-slug}`. Yıl ve referans numar
 
 100.000+ sayfa, crawl budget yönetimi gerektirir. Kurallar:
 
-1. **Sitemap önceliklendirmesi.** `sitemap-index.xml` altında parçalı sitemap'ler. Son 24 ay `priority 0.8`, `changefreq monthly`. Eski arşiv `priority 0.3`, `changefreq yearly`. Yeni kayıtlar ayrı bir `sitemap-recent.xml` içinde tutulur, Google en sık onu çeker.
+1. **Sitemap önceliklendirmesi.** Tek giriş noktası `sitemap-index.xml`; `robots.txt` yalnızca onu ilan eder. İndeksin kendisinde URL yoktur, altı parçayı gösterir:
+
+   | parça | içerik | priority | changefreq |
+   | --- | --- | --- | --- |
+   | `/sitemap/0.xml` | statik sayfalar + konu sayfaları | 0.3–1.0 | yearly–daily |
+   | `/sitemap/1.xml` | son 24 ayın kayıtları | 0.8 | monthly |
+   | `/sitemap/2.xml` | sayılar + yıl indeksleri | | |
+   | `/sitemap/3.xml` | varlıklar (kurum, şirket, yer) | | |
+   | `/sitemap/4.xml` | konu × yıl | | |
+   | `/sitemap/5.xml` | 24 aydan eski arşiv | 0.3 | yearly |
+
+   Bölme boyut için değil **tarama önceliği** içindir: 23 bin URL tek dosyaya sığar (protokol sınırı 50.000), ama hepsi tek dosyada olsaydı yeni yayımlanan kararlar eski arşivin arasında aynı gözle taranırdı. Sınır `RECENT_MONTHS = 24`.
+
+   Arşiv parçası sayısı `SITEMAP_ARCHIVE_CHUNKS` ile belirlenir, parça başına 45.000 URL. Şu an **1** — arşiv 2020'de başladığı için tek parça yetiyor. ⚠️ Kapsam eskiye açılırsa bu sayı da artırılmalı: `SITEMAP_ARCHIVE_CHUNKS × 45.000`'i aşan kayıt sitemap'ten **sessizce** düşer.
+
+   ⚠️ Aralık dışı bir parça id'si **404 döner**, boş sitemap değil. Google boş sitemap'i hata olarak raporlar, ve eski indeksi elinde tutan bir tarayıcı kaldırılmış parçaları çekmeye devam eder.
 2. **İnce içerik konsolidasyonu.** Bazı kayıtlar tek satırlık ("SÖZLEŞMELİ PERSONEL / ALİ ÖZCANLI"). Bunlar tek başına sayfa açmayı hak etmez. Kural: `body_text` 200 karakterden kısa ve entity bağlantısı yoksa kayıt kendi sayfasını almaz, yalnızca sayı sayfasında listelenir ve `/sayilar/[yil]/[sayi]#karar-{ref}` anchor'ı alır.
 3. **Boş varlık sayfası yok.** `entities.record_count < 2` olan şirket/yer sayfası üretilmez.
 4. **Sayfalama.** Liste sayfalarında `?sayfa=2` kullanılır, 2. sayfadan itibaren `noindex, follow`.
