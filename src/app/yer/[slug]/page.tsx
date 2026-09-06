@@ -11,7 +11,13 @@ import { entitySlugs } from '@/lib/db/queries/entities';
  * all. Pagination now lives at ./sayfa/[n], so nothing here touches the query
  * string and both this window and `generateStaticParams` do what they say.
  */
-export const revalidate = 604800;
+/**
+ * ISR, 30 days — raised from 7 for the reason recorded on /karar/[slug]: the
+ * window was a re-write schedule, not a freshness claim. An entity page changes
+ * only when a record naming that entity is published, and ingest already
+ * revalidates `entity:<slug>` when that happens.
+ */
+export const revalidate = 2592000;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {

@@ -11,7 +11,13 @@ import { parsePageSegment } from '@/lib/seo/pagination';
  * count, and enumerating that for 610 companies at build time would cost more than
  * it saves. `dynamicParams` renders each on first request and ISR keeps it.
  */
-export const revalidate = 604800;
+/**
+ * ISR, 30 days — raised from 7 for the reason recorded on /karar/[slug]: the
+ * window was a re-write schedule, not a freshness claim. An entity page changes
+ * only when a record naming that entity is published, and ingest already
+ * revalidates `entity:<slug>` when that happens.
+ */
+export const revalidate = 2592000;
 export const dynamicParams = true;
 
 type Props = { params: Promise<{ slug: string; n: string }> };

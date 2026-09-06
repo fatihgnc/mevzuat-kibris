@@ -14,8 +14,27 @@ import { breadcrumbJsonLd, recordJsonLd } from '@/lib/seo/json-ld';
 import { buildMetadata, recordTitle } from '@/lib/seo/metadata';
 import { truncateAtSentence } from '@/lib/text/truncate';
 
-/** ISR, 30 days. A gazette record does not change once published (spec 11.1). */
-export const revalidate = 2592000;
+/**
+ * ISR, ONE YEAR. A gazette record does not change once published (spec 11.1).
+ *
+ * It was 30 days, which was not a claim about the data — nothing here changes
+ * after publication — but a number nobody had a reason for. It costs money: the
+ * archive holds 13.168 record pages that are NOT prerendered, they are written to
+ * the ISR cache the first time a crawler asks for one, and a 30-day window means
+ * every one of them is written again a month later to produce identical HTML.
+ * Crawled inside a week, they would have expired inside a week too — a second
+ * wave of ~2.000 pointless writes a day.
+ *
+ * Measured on the free plan in September 2026: 231K ISR writes against a 200K
+ * allowance, `/karar/[slug]` carrying 86% of them.
+ *
+ * A YEAR IS NOT A PROMISE THAT THE PAGE IS FRESH FOR A YEAR. Ingest calls
+ * `/api/revalidate` after every run, which invalidates by tag and path; this
+ * window is the belt to that pair of braces, for the case where the call is
+ * missed. If a record ever does need to change, the fix is to revalidate it, not
+ * to wait.
+ */
+export const revalidate = 31536000;
 export const dynamicParams = true;
 
 /**
