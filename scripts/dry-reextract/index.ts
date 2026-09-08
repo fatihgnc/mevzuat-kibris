@@ -47,6 +47,8 @@ const PDFMINER_MS = 120_000;
 const DIAGNOSE_MS = 90_000;
 const PER_ISSUE_MS = 300_000;
 const WALL_CLOCK_MS = Number(process.env.DRY_HOURS ?? 7) * 3_600_000;
+/** Sayı arası ek bekleme. politeFetch'in 1 sn'lik aralığı gündüz yetmedi. */
+const GAP_MS = Number(process.env.DRY_GAP_MS ?? 0);
 
 const startedAt = Date.now();
 const left = () => WALL_CLOCK_MS - (Date.now() - startedAt);
@@ -158,7 +160,9 @@ async function handleIssue(issue: IssueRow, dbBodies: Map<string, { id: string; 
     const pdfText = await pdfminerText(pdfPath);
     if (!pdfText) throw new Error('pdfminer metin veremedi');
 
-    const pages = await diagnosePages(pdfPath);
+    // Sayfa kalitesi gece koşumunda bütün arşiv için ölçüldü; SKIP_PAGES=1 ile
+    // tekrar ölçülmüyor. Sayı başına 2 pdftotext + 1 pymupdf çağrısı eder.
+    const pages = process.env.SKIP_PAGES === '1' ? null : await diagnosePages(pdfPath);
 
     const rawIndex = issue.raw_index_html ?? '';
     const fromTable = parseIndexTable(rawIndex);
@@ -167,6 +171,10 @@ async function handleIssue(issue: IssueRow, dbBodies: Map<string, { id: string; 
       .map((p) => bodyAnchor(p.refType, p.refNumber))
       .filter((l): l is string => Boolean(l));
 
+    // Kuyruk bir kez hesaplanıyor: `ranToEof` kontrolü kayıt başına TÜM metni
+    // kopyalıyordu (311 kayıtlı, 2 MB metinli bir sayıda kayıt başına 2 MB).
+    // Gövde zaten trim'li döndüğü için son 200 karakteri karşılaştırmak yeter.
+    const eofTail = pdfText.trimEnd().slice(-200);
     const records = parsed.map((rec) => {
       const anchor = bodyAnchor(rec.refType, rec.refNumber);
       const { body, pageFrom } = extractBody(pdfText, anchor, allAnchors.filter((l) => l !== anchor));
@@ -174,19 +182,61 @@ async function handleIssue(issue: IssueRow, dbBodies: Map<string, { id: string; 
       const db = dbBodies.get(key);
       const newLen = body?.length ?? 0;
       const oldLen = db?.len ?? 0;
+
+      /*
+       * FAIL-CLOSED ÖLÇÜMÜ — asıl sorulan soru.
+       *
+       * `extractBody` bitiş çapasını bulup bulmadığını söylemiyor; bulamayınca
+       * `end = pdfText.length` yapıyor. Dolayısıyla gövde PDF metninin SONUNA
+       * kadar gidiyorsa bitiş çapası bulunamamış demektir.
+       *
+       * Bu, "çok kayıtlı sayıda güvenilir sınır yoksa gövde verme" kuralının
+       * kaç kaydın gövdesini alacağını verir. O sayı bilinmeden kural
+       * onaylanamaz.
+       */
+      const startFound = body !== null;
+      const ranToEof =
+        startFound && body!.length >= eofTail.length && body!.endsWith(eofTail);
+
       return {
         ref: key, anchor, pageFrom,
         dbRecordId: db?.id ?? null,
         oldLen, newLen, delta: newLen - oldLen,
         // Tavanın kestiği kayıtların imzası
         wasTruncated: oldLen >= 18380 && oldLen <= 18432,
+        startFound,
+        // bitiş çapası bulunamadı
+        ranToEof,
       };
     });
+
+    /*
+     * SAYISAL BOZULMA SİNYALİ — kayıt 76569 (2026/167, A.E. 818) yüzünden.
+     * Harfleri temiz, rakamları bozuk: "%3.04" → "903.04", "2015=100" →
+     * "20152100". Türkçe düzyazı sağlam olduğu için `estimateQuality` 0,964
+     * veriyor ve sayfa sınıflandırıcısı da "OK" diyor — ikisi de harflere
+     * bakıyor. İstatistik, kur ve bütçe belgelerinde asıl içerik rakam.
+     *
+     * Burada tespit YAPMIYORUZ, yalnızca ham sayaçları kaydediyoruz: PDF'leri
+     * saklamadığımız için ölçüyü sonradan geliştirmek yeniden indirme demek.
+     * Veriyi şimdi topla, dedektörü çevrimdışı yaz.
+     */
+    const numTokens = pdfText.match(/\S*\d\S*/g) ?? [];
+    const numeric = {
+      tokens: numTokens.length,
+      // rakama bitişik tırnak/kırık noktalama: "637.70, 20152100
+      odd: numTokens.filter((t) => /[“”"'`^~|]/.test(t)).length,
+      // harf-rakam karışık token
+      mixed: numTokens.filter((t) => /\p{L}/u.test(t)).length,
+      // 5+ haneli ondalıksız sayı — birleşmiş rakam dizisi şüphesi
+      long: numTokens.filter((t) => /^\d{5,}$/.test(t)).length,
+    };
 
     const recovered = records.filter((r) => r.wasTruncated);
     return {
       ok: true as const,
       issue: `${issue.year}/${issue.number}`, issueId: issue.id,
+      numeric,
       pages: pages?.length ?? null,
       pageQuality: pages
         ? {
@@ -210,8 +260,16 @@ async function handleIssue(issue: IssueRow, dbBodies: Map<string, { id: string; 
 
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
+  /*
+   * `.trim()` ŞART. Checkpoint dosyası elle yeniden yazıldığında (ulaşılamayan
+   * issue'ları ayıklamak için) Windows satır sonuyla `\r\n` yazılabiliyor;
+   * `split('\n')` sonda `\r` bırakıyor ve hiçbir kayıt eşleşmiyordu. Sonuç
+   * sessizdi: koşum "656 sayı atlanacak" deyip hepsini baştan işliyordu.
+   */
   const done = new Set(
-    existsSync(DONE) ? (await readFile(DONE, 'utf8')).split('\n').filter(Boolean) : [],
+    existsSync(DONE)
+      ? (await readFile(DONE, 'utf8')).split('\n').map((l) => l.trim()).filter(Boolean)
+      : [],
   );
   await log(`BAŞLIYOR — tamamlanmış ${done.size} sayı atlanacak, bütçe ${(WALL_CLOCK_MS / 3.6e6).toFixed(1)} saat`);
 
@@ -234,9 +292,16 @@ async function main(): Promise<void> {
 
   let okCount = 0, failCount = 0, fixedTotal = 0, charsTotal = 0;
   let dbDownStreak = 0;
+  /*
+   * SİGORTA. Kaynak devlet sunucusu; art arda hata almak "bize kızdı"
+   * demektir, ısrar etmek hem veri getirmez hem zarar verir. 5 arka arkaya
+   * hatada yavaşla, 25'te temiz dur.
+   */
+  let failStreak = 0;
 
   for (const issue of queue) {
     if (left() < 120_000) { await log('duvar saati bütçesi doldu, temiz kapanış'); break; }
+    if (GAP_MS) await new Promise((r) => setTimeout(r, GAP_MS));
     const key = String(issue.id);
     if (done.has(key)) continue;
 
@@ -267,13 +332,33 @@ async function main(): Promise<void> {
         continue;
       }
       failCount += 1;
+      failStreak += 1;
       record = { ok: false, issue: `${issue.year}/${issue.number}`, issueId: issue.id, error: String(error).slice(0, 300) };
       await log(`✗ ${issue.year}/${issue.number} ${String(error).slice(0, 140)}`);
+      if (failStreak >= 25) {
+        await log('art arda 25 hata — kaynak sunucu bizi kısıtlıyor olmalı, temiz duruluyor');
+        await appendFile(RESULTS, JSON.stringify(record) + '\n', 'utf8');
+        break;
+      }
+      if (failStreak >= 5) {
+        const wait = Math.min(60_000, 5_000 * (failStreak - 4));
+        await log(`art arda ${failStreak} hata, ${wait / 1000}s yavaşlama`);
+        await new Promise((r) => setTimeout(r, wait));
+      }
     }
 
     dbDownStreak = 0;
+    if ((record as { ok?: boolean }).ok) failStreak = 0;
     await appendFile(RESULTS, JSON.stringify(record) + '\n', 'utf8');
-    await appendFile(DONE, key + '\n', 'utf8');
+    /*
+     * YALNIZCA BAŞARILI SAYI checkpoint'lenir.
+     *
+     * Önceki sürüm hatalı sayıyı da "tamamlandı" yazıyordu. Kaynak sunucu
+     * gündüz yükü altında bizi kısıtlayınca 440 sayı arka arkaya düştü ve
+     * hepsi kalıcı işaretlendi — bir daha hiç denenmeyeceklerdi. Handoff'un
+     * backfill sürücüsü bunu doğru yapıyor: düşenleri ikinci geçiş toplar.
+     */
+    if ((record as { ok?: boolean }).ok) await appendFile(DONE, key + '\n', 'utf8');
   }
 
   await log(`BİTTİ — başarılı ${okCount}, hatalı ${failCount}, onarılan kesik kayıt ${fixedTotal}, geri gelen ${charsTotal} karakter`);
