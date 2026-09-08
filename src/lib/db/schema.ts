@@ -89,6 +89,11 @@ export const records = pgTable(
     correctsId: bigint('corrects_id', { mode: 'number' }),
     hasPersonalData: boolean('has_personal_data').notNull().default(false),
     hasOwnPage: boolean('has_own_page').notNull().default(true),
+    // Readability of the extracted text, weighted over the record's page range
+    // (migration 0011). Distinct from issues.textQuality, which only measures
+    // whether extraction succeeded — record 2977 scored 0.972 there while its
+    // body was unreadable.
+    textQuality: real('text_quality'),
     searchVector: tsvector('search_vector'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

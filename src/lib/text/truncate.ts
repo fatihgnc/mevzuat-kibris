@@ -28,17 +28,13 @@ export function truncateTitle(input: string, maxLength = 60): string {
   return window.slice(0, lastSpace > 0 ? lastSpace : maxLength).trimEnd() + '…';
 }
 
-/** body_text is cut at 20 KB (spec 14.3) — measured in bytes, not characters. */
-export const BODY_TEXT_LIMIT_BYTES = 20 * 1024;
-
-export function truncateBytes(input: string, limit = BODY_TEXT_LIMIT_BYTES): string {
-  const encoder = new TextEncoder();
-  if (encoder.encode(input).length <= limit) return input;
-
-  let out = input.slice(0, limit);
-  while (encoder.encode(out).length > limit) {
-    out = out.slice(0, Math.floor(out.length * 0.9));
-  }
-  const lastSpace = out.lastIndexOf(' ');
-  return lastSpace > 0 ? out.slice(0, lastSpace) : out;
-}
+/*
+ * The 20 KB body cap is GONE (migration 0011). It was cutting 670 records
+ * (625 of them mid-sentence); in record 2977 the cut removed the ruling itself,
+ * which sat cleanly in the PDF. `body_text` is now stored in full and the index is kept
+ * in check by limiting `search_vector` to the first 30.720 characters of the
+ * body instead — see supabase/migrations/0011-full-body-text.sql.
+ *
+ * Do not reintroduce a byte cap here. If storage ever needs bounding, bound
+ * the index or the number of records, not the content of a record.
+ */

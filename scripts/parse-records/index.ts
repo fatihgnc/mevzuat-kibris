@@ -1,6 +1,5 @@
 import { recordSlug } from '../../src/lib/text/slugify';
 import { normalizeForSearch } from '../../src/lib/text/turkish-lower';
-import { truncateBytes } from '../../src/lib/text/truncate';
 import { classifyDocType, classifyTopics, detectPersonalData } from '../classify/rules';
 import { extractEntities } from '../extract-entities/extractor';
 import { extractPdfText } from '../extract-text';
@@ -115,7 +114,9 @@ export async function processIssue(issue: {
     const otherAnchors = allAnchors.filter((label) => label !== anchor);
 
     const { body, pageFrom } = extractBody(pdfText, anchor, otherAnchors);
-    const bodyText = body ? truncateBytes(body) : null;
+    // Full body, no cap (migration 0011): the old 20 KB byte cut removed the
+    // ruling itself from record 2977. search_vector is what gets bounded now.
+    const bodyText = body ?? null;
 
     const docType = classifyDocType({
       title: record.title,

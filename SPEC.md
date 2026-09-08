@@ -282,7 +282,7 @@ ALTER TABLE records ADD COLUMN search_vector tsvector
   GENERATED ALWAYS AS (
     setweight(to_tsvector('tr_rg', coalesce(title, '')), 'A') ||
     setweight(to_tsvector('tr_rg', coalesce(subject, '')), 'B') ||
-    setweight(to_tsvector('tr_rg', coalesce(body_text, '')), 'C')
+    setweight(to_tsvector('tr_rg', left(coalesce(body_text, ''), 30720)), 'C')  -- indeks 30 KB ile sınırlı
   ) STORED;
 
 CREATE INDEX records_search_idx ON records USING GIN (search_vector);
@@ -352,7 +352,7 @@ CREATE TABLE records (
   title             text NOT NULL,           -- ham başlık
   title_normalized  text NOT NULL,           -- tr-lowercase + unaccent
   subject           text,                    -- "KONU:" sonrası
-  body_text         text,                    -- PDF'ten çıkarılan ilgili gövde, 20 KB'de kesilir
+  body_text         text,                    -- PDF'ten çıkarılan ilgili gövde, TAM saklanır (kesme yok)
   summary           text,                    -- üretilen özet cümle (bkz. 3.8), kalıcı saklanır
   summary_source    text,                    -- rule | llm
   deadline_at       date,                    -- münhal/ihale son başvuru tarihi (bkz. 3.9)
@@ -1057,7 +1057,7 @@ Türkçe içerik ve KKTC ağırlıklı trafikte gerçekçi RPM aralığı $1–3
 Bunlar spec'in başka yerlerinde de geçiyor, burada gerekçesiyle toplanıyor:
 
 - **PDF saklanmıyor** (3.6). Saklansaydı ~10 GB olurdu; Supabase Storage'da bu tek başına ücretli plan demekti.
-- **`body_text` 20 KB'de kesiliyor.** Çok uzun kayıtlarda ilk 20 KB saklanır, devamı için PDF'e yönlendirilir. 100 bin kayıtta bu, veritabanını 500 MB sınırının altında tutmanın ana kaldıracı.
+- **`body_text` TAM saklanıyor, arama indeksi sınırlı.** Eski 20 KB kesme kuralı kaldırıldı (migration 0011): 670 kaydı kesiyordu (625'i cümle ortasında) ve kayıt 2977'de kesilen kısımda kararın hükmü vardı. Arşiv geneli kuru yeniden çıkarım, kesilen kayıtlarda geri gelecek metnin 22,5 milyon karakter olduğunu gösterdi. Gerekçesi de hatalıydı — Postgres TOAST 2 KB üstünü zaten sıkıştırıyor ve tekrarlı hukuki metin %70-80 sıkışıyor, yani ham bayt hesabı maliyeti üç dört kat abartıyordu. Yerine `search_vector` gövdenin ilk 30.720 karakterinden üretiliyor; GIN indeksi sınırlı kalıyor, içerik eksiksiz kalıyor. Uzun bir belgenin 40. sayfasındaki kelimeyle arama yapılamaması kabul edilebilir; hükmün sayfada hiç görünmemesi değil.
 - **Neredeyse tamamen statik render** (11.1). Kayıt ve liste sayfaları ISR ile cache'lenir; Vercel function çağrısı sadece arama, alarm ve API rotalarında olur.
 - **Görsel yok.** Metin ürünü olduğu için bant genişliği doğal olarak düşük. `opengraph-image` dışında raster görsel kullanılmaz.
 - **Ingest GitHub Actions'ta**, Vercel'de değil. Ağır iş (indirme, OCR) faturasız runner'da çalışır.
@@ -1135,7 +1135,7 @@ Kalan konular, varlık sayfaları (kurum/şirket/yer), `/sayilar/*`, rehber içe
 | **Trafik başabaşa ulaşmaz**              | Cepten finansman    | Maliyet kalemleri sırayla ertelenir; ertelenemeyen tek kalem Vercel Pro ($20/ay)                        |
 | **E-posta kotası dolar**                 | Alarm gecikir       | Kota bekçisi ertelenen gönderimleri loglar (10.3); RSS sınırsız yedek kanal                             |
 | Vercel Hobby'de reklamla yakalanmak      | Proje askıya alınır | Reklam eklendiği gün Pro'ya geçilmiş olmalı, istisnasız                                                 |
-| Supabase 500 MB sınırı aşılır            | Yazma durur         | `body_text` 20 KB kesme kuralı; sınıra %80'de uyarı alarmı kur                                          |
+| Supabase 500 MB sınırı aşılır            | Yazma durur         | `search_vector` 30 KB sınırı + TOAST sıkıştırması; sınıra %80'de uyarı alarmı kur (gövde KESİLMEZ)      |
 
 ---
 
