@@ -18,7 +18,13 @@
 -- altında kalır. Uzun bir bütçe belgesinin 40. sayfasındaki kelimeyle arama
 -- yapılamaması kabul edilebilir; hükmün sayfada hiç görünmemesi değil.
 
-begin;
+-- NOT: burada acik `begin/commit` YOK.
+-- postgres.js havuzlu baglantida acik transaction'i reddediyor
+-- ("UNSAFE_TRANSACTION: Only use sql.begin, sql.reserved or max: 1") ve
+-- migration runner exit 1 veriyor — is aslinda uygulanmis olsa bile.
+-- Zaten gerek de yok: `sql.unsafe()` cok ifadeli metni simple query protokolu
+-- ile gonderiyor, PostgreSQL onu ortuk tek transaction olarak calistiriyor.
+-- Asil atomiklik ihtiyaci olan search_vector islemi zaten tek bir DO blogunda.
 
 -- DIKKAT: scripts/migrate/index.ts bir takip tablosu tutmuyor, her koşumda
 -- BÜTÜN .sql dosyalarını yeniden çalıştırıyor. search_vector'ü koşulsuz
@@ -73,5 +79,3 @@ comment on column records.text_quality is
   'Kaydın kapsadığı PDF sayfalarının karakterle ağırlıklı sözlük isabeti (0-1). '
   'issues.text_quality çıkarmanın BAŞARISINI ölçer; bu kolon çıkan metnin '
   'OKUNABİLİRLİĞİNİ ölçer. İkisi karıştırılmamalı.';
-
-commit;
