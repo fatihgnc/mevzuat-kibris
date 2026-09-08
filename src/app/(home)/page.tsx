@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AdSlot } from "@/components/ad-slot";
 import { FollowCard } from "@/components/follow-card";
 import { IssueCard } from "@/components/issue-card";
+import { KnownIssueNotice } from "@/components/known-issue-notice";
 import { RecordCard } from "@/components/record-card";
 import { RssCard } from "@/components/rss-card";
 import { SearchBox } from "@/components/search-box";
@@ -80,6 +81,9 @@ export default async function HomePage() {
             ))}
           </div>
         ) : null}
+
+        {/* GEÇİCİ: gövde metni kalitesi duyurusu. Düzeltme yayına girince bu satır silinir. */}
+        <KnownIssueNotice className="mt-8" />
 
         <div className="mt-11 grid gap-10 lg:grid-cols-page">
           <div className="min-w-0">
