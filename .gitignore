@@ -26,3 +26,12 @@ q.ts
 # Oturumlar arasi devir dosyasi. Repoda DURMAZ: 141eebf ile bilerek cikarildi,
 # ve bir oturum onu yeniden `git add`leyip geri soktu. Bu satir onu engelliyor.
 HANDOFF.md
+
+# Gece koşumunun ürettikleri. Kod değil, ölçüm çıktısı: JSONL sonuçlar,
+# checkpoint ve log. `scripts/dry-reextract` bunları DRY_OUT'a yazar,
+# varsayılanı burasıdır. Depoya girmez.
+.dry-reextract/
+
+# Python önbelleği (scripts/rg_teshis.py, scripts/extract-text/pdf_text.py)
+__pycache__/
+*.pyc
