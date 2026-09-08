@@ -530,14 +530,51 @@ export function extractBody(
  * number and does not. Measured in the archive: 41 pairs of A.E. records share
  * an issue where one number is a digit-prefix of the other.
  */
+/*
+ * THE SERIES PREFIX IS UNRELIABLE, AND IT WAS MEASURED, NOT GUESSED.
+ *
+ * The prefix of a Council of Ministers reference — "Ü(K-I)" — comes off the page
+ * in several spellings. Downloading real issues and looking at what actually
+ * sits before the record's number:
+ *
+ *   2023/53   KARAR SAYISI: Ü(K-1) 266-2023     digit one for the Roman I
+ *   2023/91   KARAR SAYISI: Ü(K-1) 385-2023     same
+ *   2026/107  KARAR SAYISI: U(K-I) 1016-2026    plain U for Ü
+ *   2026/107  KARAR SAYISI: O(K-I) 1017-2026    letter O for Ü
+ *
+ * In a sample of six random issues, three of the five "(K-" occurrences carrying
+ * a Ü prefix were spelled "Ü(K-1)". The handoff had documented the I/1 case at
+ * 3.1%; the letter substitutions on Ü were not known at all.
+ *
+ * WHY THIS IS SAFE, unlike the word-level decoder that damaged 3,218 sound words.
+ * That one rewrote the TEXT and had to guess at every character. This widens only
+ * the PATTERN, at two positions, inside a match that stays anchored to a specific
+ * record number and year: "X(K-I) 1016-2026". A four-digit number plus a year
+ * makes a false hit essentially impossible, so loosening the two characters in
+ * front of it costs nothing. The text itself is never modified.
+ *
+ * Measured effect on records with no body, in issues whose pages are CLEAN (so
+ * OCR damage is not the cause): uki 10.6%, yt 22.5%, while ae — whose anchor is
+ * the plain "Sayı : N" — sits at 1.2%. The complexity of the prefix is the
+ * problem, not the page.
+ */
+const CONFUSABLE: Array<[RegExp, string]> = [
+  // Ü read as U, O or zero. Applies only where a series paren follows.
+  [/Ü(?=\\\(|\\\.\?\\\()/g, '[ÜUO0]'],
+  // Roman I inside the paren read as digit one or lowercase L.
+  [/K-I(?!I)/g, 'K-[I1l]'],
+  [/K-II/g, 'K-[I1l][I1l]'],
+];
+
 function findLabel(text: string, label: string, from: number): number {
-  const escaped = label
+  let escaped = label
     .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     // Every dot the label has becomes optional...
     .replace(/\\\./g, '\\.?')
     // ...and the PDF may add one the label does not have, before the series paren.
     .replace(/\\\(/g, '\\.?\\(')
     .replace(/\s+/g, '\\s*');
+  for (const [pattern, replacement] of CONFUSABLE) escaped = escaped.replace(pattern, replacement);
   const match = new RegExp(escaped + '(?!\\d)', 'i').exec(text.slice(from));
   return match ? from + match.index : -1;
 }

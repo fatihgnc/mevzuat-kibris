@@ -175,3 +175,55 @@ describe('bodyAnchor — EK III kendi numarasını "Sayı :" diye basıyor', () 
     expect(extractBody(EK_III, bodyAnchor('ae', '8'), []).body).toBeNull();
   });
 });
+
+/*
+ * Series-prefix confusables — every case below was read off a real PDF, not
+ * invented. See the CONFUSABLE table in parser.ts for where each was found.
+ */
+describe('extractBody — bozuk seri öneki', () => {
+  const anchor = 'Ü(K-I) 1016-2026';
+  const digerleri = ['Ü(K-I) 1017-2026'];
+
+  const govde = (basilan: string) =>
+    extractBody(
+      `KARAR SAYISI: ${basilan} 1016-2026\nİŞLETME İZNİ hakkında karar.\n` +
+        'KARAR SAYISI: Ü(K-I) 1017-2026\nBAŞKA BİR KARAR.',
+      anchor,
+      digerleri,
+    ).body;
+
+  it('Ü(K-1) — Roma rakamı yerine rakam bir (2023/53, 2023/91)', () => {
+    expect(govde('Ü(K-1)')).toContain('İŞLETME İZNİ');
+  });
+
+  it('U(K-I) — Ü yerine düz U (2026/107)', () => {
+    expect(govde('U(K-I)')).toContain('İŞLETME İZNİ');
+  });
+
+  it('O(K-I) — Ü yerine O (2026/107)', () => {
+    expect(govde('O(K-I)')).toContain('İŞLETME İZNİ');
+  });
+
+  it('bozuk önek END anchor olarak da tanınır, gövde taşmaz', () => {
+    const body = extractBody(
+      'KARAR SAYISI: Ü(K-I) 1016-2026\nİŞLETME İZNİ hakkında karar.\n' +
+        'KARAR SAYISI: Ü(K-1) 1017-2026\nBAŞKA BİR KARAR.',
+      anchor,
+      digerleri,
+    ).body;
+    expect(body).toContain('İŞLETME İZNİ');
+    expect(body).not.toContain('BAŞKA BİR KARAR');
+  });
+
+  it('YANLIŞ EŞLEŞME YAPMAZ: farklı numara tolerans yüzünden tutmaz', () => {
+    // Gövde 40 karakterden uzun olmalı; altında extractBody null döndürüyor.
+    const body = extractBody(
+      'KARAR SAYISI: Ü(K-1) 9999-2026\nALAKASIZ KARAR, bu gövdeye girmemeli.\n' +
+        'KARAR SAYISI: Ü(K-I) 1016-2026\nDOĞRU KARAR metni burada, yeterince uzun.',
+      anchor,
+      [],
+    ).body;
+    expect(body).toContain('DOĞRU KARAR');
+    expect(body).not.toContain('ALAKASIZ');
+  });
+});
