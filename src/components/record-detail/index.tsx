@@ -165,32 +165,14 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
 
       <div className="mt-9">
         <div className="min-w-0">
-          {hasBody ? (
-            <>
-              {record.issue.textStatus === 'ocr' || record.issue.textStatus === 'needs_review' ? (
-                <OcrNotice className="mb-[22px]" />
-              ) : null}
-
-              {/*
-               * The body is not rendered for records containing personal data (spec
-               * 3.7 rule 2): we do not want to turn exam result lists and similar
-               * documents into a searchable index of people.
-               */}
-              {record.hasPersonalData ? (
-                <PersonalDataNotice pdfUrl={record.issue.pdfUrl} />
-              ) : (
-                <div className="flex max-w-prose flex-col gap-[18px] text-xl leading-[1.72] text-ink-body">
-                  {splitParagraphs(record.bodyText!).map((paragraph, index) => (
-                    <p key={index} className="m-0">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <MissingTextCard record={record} />
-          )}
+          {/*
+           * GEÇİCİ: gövde hiçbir kayıtta gösterilmiyor, hepsinde aynı tek
+           * mesaj basılıyor. hasBody/OCR/hasPersonalData dallanması ve
+           * BodyText/BodyHiddenCard/MissingTextCard/PersonalDataNotice
+           * fonksiyonları kasıtlı olarak SİLİNMEDİ — sorun çözülünce bu blok
+           * eski dallanmaya geri döner.
+           */}
+          <BodyTemporarilyUnavailableNotice record={record} />
 
           {record.entities.length ? (
             <section className="mt-[30px] border-t border-line pt-[22px]">
@@ -241,6 +223,46 @@ function Divider() {
   return <span aria-hidden className="inline-block h-[11px] w-px bg-line" />;
 }
 
+/*
+ * GEÇİCİ kart — gövde çıkarma hattı düzelene kadar hangi durumda olursa olsun
+ * (metin var/yok, kişisel veri var/yok, OCR kalitesi ne olursa olsun) tek bu
+ * mesaj basılıyor. Aşağıdaki BodyText/BodyHiddenCard/MissingTextCard/
+ * PersonalDataNotice ve ilgili yardımcılar kasıtlı olarak duruyor; sorun
+ * çözülünce RecordDetail içindeki çağrı eski dallanmaya geri alınacak.
+ */
+function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType }) {
+  const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
+
+  return (
+    <div className="overflow-hidden rounded-md border border-line">
+      <div className="px-6 pb-6 pt-[22px]">
+        <h2 className="text-3xl font-semibold text-ink">Kararın metni şu an gösterilmiyor</h2>
+        <p className="mt-2 max-w-[36em] text-lg leading-[1.6] text-ink-body">
+          Şu an gövdeleri düzgün bir şekilde çıkarıp sizlere gösteremiyoruz. Bunun üzerinde
+          çalışıyoruz, sorunu halledip tekrar size sunacağız. O zamana kadar orijinal
+          PDF&apos;ten okumanızı rica ederiz.
+        </p>
+        <div className="mt-[18px] flex flex-wrap gap-2.5">
+          <a
+            href={record.issue.pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded bg-accent px-5 py-3 text-lg font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:text-accent-ink hover:no-underline"
+          >
+            PDF&apos;i aç{page}
+          </a>
+          <Link
+            href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
+            className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
+          >
+            Sayı {record.issue.number}&apos;in tamamı
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * A record whose body text could not be extracted — artboard 1g.
  *
@@ -249,6 +271,96 @@ function Divider() {
  * right; only the body is missing. A promise to retry is made too, and it is
  * backed by code (spec 7.2's retry queue).
  */
+/** Gövdeyi basar; sınırı aşarsa keser ve kalanı PDF'e yönlendirir. */
+function BodyText({ record }: { record: RecordDetailType }) {
+  const paragraphs = splitParagraphs(record.bodyText!);
+  const { shown, hiddenParagraphs, hiddenChars } = clampParagraphs(
+    paragraphs,
+    RENDERED_BODY_LIMIT,
+    RENDERED_PARAGRAPH_LIMIT,
+  );
+
+  return (
+    <>
+      <div className="flex max-w-prose flex-col gap-[18px] text-xl leading-[1.72] text-ink-body">
+        {shown.map((paragraph, index) => (
+          <p key={index} className="m-0">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+      {hiddenParagraphs > 0 ? (
+        <div className="mt-6 rounded border border-notice-border bg-notice px-4 py-3.5 text-notice-ink">
+          <p className="m-0 text-base font-semibold leading-[1.5]">
+            Bu kaydın metni çok uzun; sayfada bir bölümü gösteriliyor.
+          </p>
+          <p className="m-0 mt-1.5 max-w-lede text-sm leading-[1.6]">
+            Kalan {hiddenParagraphs.toLocaleString('tr')} paragraf (yaklaşık{' '}
+            {Math.round(hiddenChars / 1000).toLocaleString('tr')} bin karakter) burada
+            basılmıyor. Metnin tamamı resmî PDF&apos;te; arama ise gövdenin tamamı üzerinde
+            çalışıyor.
+          </p>
+          <div className="mt-3">
+            <a
+              href={record.issue.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded bg-accent px-4 py-2.5 text-base font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:text-accent-ink hover:no-underline"
+            >
+              Tamamı için PDF&apos;i aç
+              {record.pageFrom ? ', sayfa ' + record.pageFrom : ''}
+            </a>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/*
+ * Gövde gizliyken gösterilen kart.
+ *
+ * `MissingTextCard`'dan AYRI olması şart: o kart "metni çıkaramadık" diyor ve
+ * metni olan bir kayıtta bu doğru olmaz. Burada olan şey farklı — metin var
+ * ama yayımlanacak kalitede değil, ve okuyucuya bunu olduğu gibi söylüyoruz.
+ */
+function BodyHiddenCard({ record }: { record: RecordDetailType }) {
+  const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
+
+  return (
+    <div className="overflow-hidden rounded-md border border-line">
+      <div className="px-6 pb-6 pt-[22px]">
+        <h2 className="text-3xl font-semibold text-ink">Kararın metni resmî PDF&apos;te</h2>
+        <p className="mt-2 max-w-[36em] text-lg leading-[1.6] text-ink-body">
+          Gazete sayıları taranmış görüntü olarak yayımlandığı için otomatik okuma yeterince
+          temiz sonuç vermiyor. Yanlış okunmuş bir metni doğruymuş gibi göstermektense, kararın
+          tamamını kaynağından okumanızı tercih ediyoruz. Metin kalitesi üzerinde çalışıyoruz.
+        </p>
+        <div className="mt-[18px] flex flex-wrap gap-2.5">
+          <a
+            href={record.issue.pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded bg-accent px-5 py-3 text-lg font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:text-accent-ink hover:no-underline"
+          >
+            Kararı PDF&apos;te oku{page}
+          </a>
+          <Link
+            href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
+            className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
+          >
+            Sayı {record.issue.number}&apos;in tamamı
+          </Link>
+        </div>
+      </div>
+      <p className="border-t border-line bg-surface-muted px-6 py-3.5 text-base leading-[1.55] text-ink-muted">
+        Arama yine kararın tam metni üzerinde çalışıyor — aradığınız kelime bu kayıtta geçiyorsa
+        sonuçlarda çıkar.
+      </p>
+    </div>
+  );
+}
+
 function MissingTextCard({ record }: { record: RecordDetailType }) {
   const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
 
@@ -348,6 +460,104 @@ function RelatedBlock({
  * mid-word, so a single line break becomes a space; only a blank line counts as a
  * paragraph separator.
  */
+/*
+ * SAYFADA BASILAN METNİN ÜST SINIRI — depolamanın değil, render'ın sınırı.
+ *
+ * Vercel bir ISR sayfasını 19,07 MB'da kesiyor (FALLBACK_BODY_TOO_LARGE) ve
+ * production deploy'u bu yüzden kırmızıya döndü. Sebep: 20 KB gövde tavanı
+ * kalkınca tam metinler `body_text`'e girdi ve iki kayıt sayfayı patlattı —
+ * 5.199.857 karakter (59,55 MB HTML) ve 2.454.861 karakter (37,52 MB).
+ *
+ * Karakter başına ~11,5 bayta çıkmasının sebebi metnin sayfada İKİ kez
+ * bulunması: bir kez HTML, bir kez de RSC flight payload'ı olarak.
+ *
+ * `next build` bu limiti uygulamıyor, Vercel'in "Deploying outputs" adımı
+ * uyguluyor — yani yerel build yeşil görünürken çıktı bozuk olabiliyor.
+ *
+ * EŞİK ÖLÇÜMLE SEÇİLDİ. 17.795 gövdeli kayıtta p50 1.098, p90 7.592,
+ * p99 52.837 karakter. 100.000'lik sınır p99'un üstünde: 75 kaydı (%0,4)
+ * etkiliyor, en ağır sayfayı ~1,1 MB'a indiriyor ve 19 MB'a 17 kat pay
+ * bırakıyor. 100.000 karakter zaten ~50 sayfa metin.
+ *
+ * DEPOLAMAYA DOKUNULMUYOR. `body_text` tam kalıyor, arama tam metin üzerinde
+ * çalışmaya devam ediyor; kısıtlanan yalnızca sayfanın bastığı miktar. Bu,
+ * truncate.ts'teki "depolamayı değil indeksi sınırla" notuyla çelişmiyor.
+ */
+/*
+ * GÖVDE METNİ ŞİMDİLİK SAYFADA GÖSTERİLMİYOR — ürün sahibinin kararı.
+ *
+ * Gerekçe: çıkarılan metnin tipografik kalitesi yayımlanacak seviyede değil.
+ * Ölçüm (17.831 gövdeli kayıt): %2,0'si harf harf parçalanmış, %0,5'i düşük
+ * kaliteli, %62,9'unun kuyruğunda sonraki kaydın başlığı duruyor. Kuyruk
+ * temizliği bunu %97,4'e çıkarıyor ama harf düzeyindeki bozulmalar
+ * (ÜRETiM, TADİL ED İLME S İ, sayl) kalıyor ve bunların çözümü yeniden OCR.
+ *
+ * Bu bir RENDER kararı, veri kararı değil:
+ *   - `body_text` veritabanında olduğu gibi duruyor
+ *   - arama gövdenin tamamı üzerinde çalışmaya devam ediyor
+ *   - geri almak bu sabiti `true` yapmaktan ibaret
+ *
+ * Metin kalitesi yayımlanabilir seviyeye geldiğinde `true` yapılacak.
+ */
+export const SHOW_RECORD_BODIES = false;
+
+export const RENDERED_BODY_LIMIT = 100_000;
+
+/*
+ * PARAGRAF SAYISI DA SINIRLI — ve asıl şişiren buymuş.
+ *
+ * Karakter sınırı tek başına yetmedi: 2024/886'nın sayfası 100.000 karakterle
+ * bile 2,93 MB kaldı. Dosyanın içine bakınca sebep çıktı — o 100.000 karakter
+ * 27.052 PARAGRAFA bölünmüş (paragraf başına 3,7 karakter; metin satır satır
+ * parçalanmış bir bozulma). Her paragraf hem HTML'de hem RSC payload'ında ayrı
+ * bir eleman ve eleman başına ~89 bayt maliyet metnin kendisini gölgede
+ * bırakıyor: sayfanın %78'i script bloğuydu.
+ *
+ * Ölçüm (17.832 kayıt): p50 9 paragraf, p90 107, p99 925, p99.9 14.671,
+ * max 511.559. 1.000'lik sınır p99'un hemen üstünde ve kayıtların %1,2'sine
+ * dokunuyor.
+ */
+export const RENDERED_PARAGRAPH_LIMIT = 1_000;
+
+/** Sınırı aşan gövdeyi paragraf sınırında keser. */
+function clampParagraphs(paragraphs: string[], limit: number, maxParagraphs: number): {
+  shown: string[];
+  hiddenParagraphs: number;
+  hiddenChars: number;
+} {
+  let used = 0;
+  const shown: string[] = [];
+  let kesilenIlk = 0;
+  for (const p of paragraphs) {
+    if (used >= limit || shown.length >= maxParagraphs) break;
+    if (used + p.length <= limit) {
+      shown.push(p);
+      used += p.length;
+      continue;
+    }
+    /*
+     * TEK PARAGRAF SINIRDAN BÜYÜK OLABİLİR. İlk sürüm paragrafı bölünmez
+     * kabul ediyordu ve "ilk paragrafı her hâlükârda bas" davranışı yüzünden
+     * 255 bin karakterlik tek bir paragraf olduğu gibi basılıyordu — sayfa
+     * 2,93 MB. Sınır o zaman garanti değil, tesadüf oluyor. Kelime sınırında
+     * bölüp bitiriyoruz.
+     */
+    const kalan = limit - used;
+    const parca = p.slice(0, kalan);
+    const bosluk = parca.lastIndexOf(' ');
+    shown.push(bosluk > kalan * 0.5 ? parca.slice(0, bosluk) : parca);
+    kesilenIlk = p.length - shown[shown.length - 1]!.length;
+    used = limit;
+    break;
+  }
+  const hidden = paragraphs.slice(shown.length);
+  return {
+    shown,
+    hiddenParagraphs: hidden.length + (kesilenIlk > 0 ? 1 : 0),
+    hiddenChars: hidden.reduce((a, p) => a + p.length, 0) + kesilenIlk,
+  };
+}
+
 function splitParagraphs(text: string): string[] {
   return text
     .split(/\n\s*\n/)
