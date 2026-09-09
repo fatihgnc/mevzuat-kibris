@@ -64,7 +64,8 @@ export default async function HomePage() {
           Resmî Gazete&apos;de ne yayımlandığını arayın
         </h1>
         <p className="mb-[22px] max-w-lede text-xl leading-[1.55] text-ink-muted">
-          KKTC Resmî Gazete&apos;si yalnızca PDF olarak yayımlanıyor. Biz her
+          KKTC Resmî Gazete&apos;si &mdash; yaygın yazımıyla Resmi Gazete &mdash;
+          yalnızca PDF olarak yayımlanıyor. Biz her
           sayıyı indirip metne çeviriyor, kararlara ayırıyor ve aranabilir hale
           getiriyoruz. {coverageSentence(coverage)}
         </p>
