@@ -14,8 +14,9 @@ export const revalidate = 86400;
 
 export const metadata: Metadata = buildMetadata({
   title: 'Resmî Gazete sayıları',
+  // The unaccented "Resmi" appears once on purpose — see DEFAULT_METADATA.
   description:
-    'KKTC Resmî Gazete sayılarının yıl yıl dizini. Her sayının içindekiler tablosu okunabilir hâlde, orijinal PDF bağlantısıyla.',
+    'KKTC Resmi Gazete arşivi. Resmî Gazete sayılarının yıl yıl dizini; her sayının içindekiler tablosu okunabilir hâlde, orijinal PDF bağlantısıyla.',
   path: '/sayilar',
 });
 

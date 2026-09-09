@@ -8,7 +8,7 @@ import { RawTitle } from '@/components/raw-title';
 import { FollowDialog } from '@/components/follow-dialog';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 import { SourceNotice, OcrNotice } from '@/components/source-notice';
-import { docTypeLabel, formatRef } from '@/lib/constants/doc-types';
+import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
 import { recordHref } from '@/lib/db/queries/shared';
 import { recordLede } from '@/lib/seo/lede';
@@ -27,6 +27,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
   const primaryTopic = record.topics[0] ? TOPICS[record.topics[0]] : null;
   const institution = record.entities.find((entity) => entity.kind === 'institution') ?? null;
   const refLabel = formatRef(record.refType, record.refNumber);
+  const aliases = refAliases(record.refType, record.refNumber);
   const titleTokens = maskTitle(record.title);
   const heading = record.summary ?? record.title;
   const url = absoluteUrl('/karar/' + record.slug);
@@ -89,6 +90,28 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             : null,
         })}
       />
+
+      {/*
+        * The same reference number, spelled the way it gets typed.
+        *
+        * The meta bar above already shows "A.E. 21196"; nobody searching for it
+        * writes the dots, and Search Console shows the query arriving as one
+        * unbroken token. Without this line the page does not contain the string
+        * the visitor typed, so the result reads as the wrong record and goes
+        * unclicked at a rank that was already good enough.
+        *
+        * IT IS VISIBLE, DELIBERATELY. A hidden block of spelling variants is
+        * exactly what a search engine treats as keyword stuffing, and the line
+        * earns its place for a reader too: it confirms, in the words they used,
+        * that this is the record they came for. Rendered only when refAliases
+        * finds a prefix worth respelling, so ordinary "Karar 123" references get
+        * no line at all.
+        */}
+      {aliases.length ? (
+        <p className="mt-4 text-xs text-ink-faint">
+          Arama karşılıkları: {aliases.join(', ')}
+        </p>
+      ) : null}
 
       {record.deadlineAt ? (
         <p className="mt-4 text-md">

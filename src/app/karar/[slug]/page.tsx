@@ -73,7 +73,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const heading = record.summary ?? record.title;
 
   return buildMetadata({
-    title: recordTitle(heading, record.issue.number, record.issue.year),
+    title: recordTitle(
+      heading,
+      record.issue.number,
+      record.issue.year,
+      formatRef(record.refType, record.refNumber),
+    ),
     description: truncateAtSentence(record.subject ?? record.bodyText ?? record.title, 155),
     path: '/karar/' + record.slug,
     type: 'article',

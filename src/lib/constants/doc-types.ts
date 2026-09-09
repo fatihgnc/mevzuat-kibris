@@ -182,3 +182,67 @@ export function formatRef(refType: string | null, refNumber: string | null): str
       return refNumber;
   }
 }
+
+/**
+ * The same reference, spelled the way people type it into a search box.
+ *
+ * The gazette writes "A.E. 21196"; Search Console shows the query arriving as
+ * `ai21196` — no dots, no space, and the Turkish letters flattened. A record
+ * page that never contains that string has nothing for the query to match, which
+ * is how a reference number can take 23 impressions and no clicks at all.
+ *
+ * ALIASES ARE DERIVED, NEVER LISTED. formatRef has twenty branches and gains one
+ * whenever the archive turns up a new prefix; a hand-written alias table would
+ * silently cover only the prefixes that existed the day it was written. So the
+ * label is split at its number and only the PREFIX is reworked.
+ *
+ * The prefix has to look like a code to qualify — it must carry one of `. ( ) :`
+ * or `-`. That test is what keeps `Karar No 123` and `Karar 123` out: their
+ * prefixes are ordinary words, and "KararNo123" is a string nobody has ever
+ * typed. Only the last whitespace-separated token is used, so `GENELGE MİA.123`
+ * yields MIA rather than GENELGEMIA.
+ */
+const ASCII_FOLD: Record<string, string> = {
+  Ç: 'C',
+  Ğ: 'G',
+  İ: 'I',
+  Ö: 'O',
+  Ş: 'S',
+  Ü: 'U',
+  ç: 'c',
+  ğ: 'g',
+  ı: 'i',
+  ö: 'o',
+  ş: 's',
+  ü: 'u',
+};
+
+function foldToAscii(input: string): string {
+  return input.replace(/[ÇĞİÖŞÜçğıöşü]/g, (char) => ASCII_FOLD[char] ?? char);
+}
+
+export function refAliases(refType: string | null, refNumber: string | null): string[] {
+  const label = formatRef(refType, refNumber);
+  if (!label || !refNumber) return [];
+
+  /*
+   * `cut <= 0` covers the default branch, where the label IS the number: there is
+   * no prefix to respell and the page already carries the string.
+   */
+  const cut = label.lastIndexOf(refNumber);
+  if (cut <= 0) return [];
+
+  const token = label.slice(0, cut).trim().split(/\s+/).pop() ?? '';
+  if (!/[().:-]/.test(token) || !/\p{L}/u.test(token)) return [];
+
+  const code = token.replace(/[().:\s-]/g, '');
+  if (!code) return [];
+  const ascii = foldToAscii(code);
+
+  const aliases = [ascii + ' ' + refNumber, ascii + refNumber];
+  // Only worth adding when folding actually changed something — "Ü(K-I)" is also
+  // typed with its Turkish letters intact.
+  if (ascii !== code) aliases.push(code + ' ' + refNumber);
+
+  return aliases.filter((alias) => alias !== label);
+}

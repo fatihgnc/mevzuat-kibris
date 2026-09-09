@@ -101,9 +101,41 @@ export function buildMetadata(input: PageMetaInput): Metadata {
   };
 }
 
-/** Record page title: "{title} — RG {issue}/{year} | Mevzuat Kıbrıs" */
-export function recordTitle(summaryOrTitle: string, issueNumber: number, year: number): string {
-  return truncateTitle(summaryOrTitle, 60) + ' — RG ' + issueNumber + '/' + year;
+/**
+ * The title budget, matching the cap buildMetadata applies. Kept as a constant so
+ * the two cannot drift: recordTitle composes right up to this length and
+ * buildMetadata's own truncation then has nothing left to do.
+ */
+const RECORD_TITLE_MAX = 70;
+
+/**
+ * Record page title: "A.E. 21196 — {başlık} — RG {sayı}/{yıl} | Mevzuat Kıbrıs".
+ *
+ * THE REFERENCE NUMBER LEADS. People search for the number itself — Search
+ * Console has `ai21196` taking impressions and no clicks — and a result whose
+ * title does not show the number they typed does not look like the record they
+ * asked for, whatever it ranks at. It goes in front rather than at the end
+ * because Google truncates the tail.
+ *
+ * THE BUDGET IS COMPUTED, NOT ASSUMED. The heading used to be cut at a flat 60
+ * and the issue suffix appended after, which put the result at 74 characters —
+ * past buildMetadata's own 70-character cap, so for any long heading the "RG
+ * 145/2026" was itself trimmed away. Here the fixed parts are measured first and
+ * the heading gets what is left, so nothing composed by this function is ever cut
+ * again. The floor of 24 is a guard for a hypothetical very long prefix; no
+ * formatRef branch comes close to needing it.
+ */
+export function recordTitle(
+  summaryOrTitle: string,
+  issueNumber: number,
+  year: number,
+  refLabel?: string | null,
+): string {
+  const prefix = refLabel ? refLabel + ' — ' : '';
+  const suffix = ' — RG ' + issueNumber + '/' + year;
+  const room = Math.max(RECORD_TITLE_MAX - prefix.length - suffix.length, 24);
+
+  return prefix + truncateTitle(summaryOrTitle, room) + suffix;
 }
 
 export const DEFAULT_METADATA: Metadata = {
@@ -111,8 +143,22 @@ export const DEFAULT_METADATA: Metadata = {
     default: SITE_NAME + ' — ' + SITE_TAGLINE,
     template: '%s | ' + SITE_NAME,
   },
+  /*
+   * "Resmi" WITHOUT THE CIRCUMFLEX IS DELIBERATE, ONCE, HERE.
+   *
+   * The site writes "Resmî Gazete" in all 79 places it says it, which is the
+   * correct spelling and stays the house style. Almost nobody types the
+   * circumflex into a search box, though, and this description is what the home
+   * page shows for the highest-volume query in the niche. Carrying both forms
+   * costs one sentence and settles the question rather than relying on the
+   * search engine to fold the letter for us.
+   *
+   * Do not sweep the rest of the site to match this. One natural occurrence on
+   * the pages that target the term is the whole point; a global find-and-replace
+   * would just misspell the site.
+   */
   description:
-    'KKTC Resmî Gazete kayıtlarında arama yapın, konu ve kurum takibi kurun. Her kayıt orijinal PDF sayfasına bağlıdır.',
+    'KKTC Resmi Gazete arşivinde arama yapın: Resmî Gazete kayıtları, konu ve kurum takibi. Her kayıt orijinal PDF sayfasına bağlıdır.',
   applicationName: SITE_NAME,
   robots: ROBOTS_DEFAULT,
   formatDetection: { telephone: false, address: false, email: false },
