@@ -25,18 +25,63 @@ import {
   coverageShort,
 } from "@/lib/db/queries/coverage";
 import { RSS_ALTERNATE } from "@/lib/seo/metadata";
+import { SITE_NAME } from "@/lib/seo/config";
+import { formatCount } from "@/lib/db/queries/shared";
 
 /**
- * The home page's own canonical. It used to be declared in the root layout, where
- * every page without an `alternates` block inherited it (see the note there).
+ * THE HOME PAGE'S OWN TITLE AND DESCRIPTION — and why they are not the site-wide
+ * defaults any more.
  *
- * `types` is restated because Next replaces `alternates` wholesale rather than
- * merging into it — declaring only the canonical here would drop the feed link from
- * the one page that still has it. Both values come from the shared constant.
+ * Measured on production, 9 Eylül 2026: Google was throwing the meta description
+ * away and building the snippet out of the FOOTER instead — the "resmî bir kurum
+ * değildir" disclaimer, then "Tamamen ücretsiz", then a run of navigation labels.
+ * That happens when the description does not describe. The old one was a list of
+ * instructions ("arama yapın", "takibi kurun") and said nothing about what is in
+ * the archive, so there was nothing in it worth showing and the crawler went
+ * looking for prose of its own.
+ *
+ * So the description now states the thing itself: how far back it goes, how many
+ * records, what kinds, and what each one links to. The count is read live rather
+ * than typed in — a number in a snippet is the first thing to rot, and this one
+ * moves every week. `archiveCoverage` is cached and the page already calls it, so
+ * generateMetadata costs no extra query.
+ *
+ * The title leads with "KKTC Resmi Gazete", unaccented, because that is the
+ * highest-volume query in the niche and the form people actually type. It is the
+ * one place on this page that spells it that way; the description keeps the
+ * correct "Resmî", which is also the house style everywhere else.
+ *
+ * `absolute` because the root layout's template would otherwise append the brand
+ * a second time to a title that already ends in it.
+ *
+ * NONE OF THIS FORCES GOOGLE'S HAND. It picks the snippet, and for a brand query
+ * it may still quote the page. A description that describes is what makes it
+ * likely to use ours; it is not a guarantee, and the way to tell is the CTR on
+ * the home page's own impressions a few weeks from now.
+ *
+ * The canonical below used to be declared in the root layout, where every page
+ * without an `alternates` block inherited it (see the note there). `types` is
+ * restated because Next replaces `alternates` wholesale rather than merging into
+ * it — declaring only the canonical here would drop the feed link from the one
+ * page that still has it.
  */
-export const metadata: Metadata = {
-  alternates: { canonical: '/', types: RSS_ALTERNATE },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const coverage = await archiveCoverage();
+
+  const scope =
+    coverage.totalRecords && coverage.earliestYear
+      ? coverage.earliestYear + "'den bugüne " + formatCount(coverage.totalRecords) + ' kaydı'
+      : 'kayıtları';
+
+  return {
+    title: { absolute: 'KKTC Resmi Gazete arşivi ve arama — ' + SITE_NAME },
+    description:
+      "KKTC Resmî Gazete'nin " +
+      scope +
+      ': yasa, tüzük, münhal, ihale, şirket. Tamamı aranabilir metin, her kayıtta orijinal PDF bağlantısı.',
+    alternates: { canonical: '/', types: RSS_ALTERNATE },
+  };
+}
 
 // ISR + tag: when ingest finishes, revalidateTag('latest') refreshes this page (spec 11.1).
 export const revalidate = 3600;
