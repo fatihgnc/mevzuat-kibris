@@ -2,10 +2,33 @@ import Link from 'next/link';
 
 import { formatCount } from '@/lib/db/queries/shared';
 import { docTypeLabel, type DocType } from '@/lib/constants/doc-types';
+import { cn } from '@/lib/utils';
 
 interface TopicFiltersProps {
   /** Where the form submits — the topic's own path, so the filter stays in place. */
   action: string;
+  /**
+   * Where "Filtreleri kaldır" goes: the bare topic address.
+   *
+   * It cannot be `action`. The form has to submit to the path carrying the
+   * applied status, or changing a date would silently drop the status; clearing
+   * has to drop it, or the one filter that lives in the path would be the one
+   * the clear button cannot reach.
+   */
+  clearHref?: string;
+  /**
+   * The application-status rows, prebuilt by the caller: label, count and the
+   * address that applies it. Empty for topics without deadlines, which is what
+   * hides the section — münhal and ihale are the only two where a deadline is a
+   * property of the document at all.
+   */
+  statusOptions?: ReadonlyArray<{
+    key: string;
+    label: string;
+    n: number;
+    href: string;
+    active: boolean;
+  }>;
   baslangic?: string;
   bitis?: string;
   /** The applied document types. */
@@ -48,6 +71,8 @@ interface TopicFiltersProps {
  */
 export function TopicFilters({
   action,
+  clearHref,
+  statusOptions = [],
   baslangic,
   bitis,
   tur = [],
@@ -56,7 +81,9 @@ export function TopicFilters({
 }: TopicFiltersProps) {
   const min = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
   const max = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
-  const active = Boolean(baslangic || bitis || tur.length);
+  const active = Boolean(
+    baslangic || bitis || tur.length || statusOptions.some((o) => o.active && o.key !== 'tumu'),
+  );
 
   /*
    * Zero-count rows are dropped — ticking one returns an empty page — but a
@@ -78,7 +105,12 @@ export function TopicFilters({
    * so after a soft navigation to the cleared address React would keep the old
    * dates visible while the list below showed everything.
    */
-  const appliedKey = [baslangic ?? '', bitis ?? '', [...tur].sort().join(',')].join('|');
+  const appliedKey = [
+    baslangic ?? '',
+    bitis ?? '',
+    [...tur].sort().join(','),
+    statusOptions.find((o) => o.active)?.key ?? '',
+  ].join('|');
 
   return (
     <form
@@ -89,6 +121,59 @@ export function TopicFilters({
       aria-label="Kayıt filtreleri"
       className="flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)]"
     >
+      {/*
+        A SECTION OF LINKS INSIDE A FORM OF CHECKBOXES — deliberate, and the one
+        place this rail mixes the two.
+
+        The status lives in the PATH (/konu/munhal/acik), so it cannot be a field:
+        a `method="get"` form can only append a query string, and a radio group
+        here would need JS to rewrite the form's action. Making them links keeps
+        the whole rail working with JS off, which is the property the rest of it
+        was built for.
+
+        The cost is that they act on click while the checkboxes wait for
+        "Filtrele". That is the same bargain SortLinks already makes above the
+        list, and it is the right way round: a status is one decision, not one you
+        assemble.
+
+        EVERY ROW STAYS AT A COUNT OF ZERO, unlike the document types, which drop
+        out when empty. A type with no records is noise; a status with no records
+        is the answer to the question the visitor came with — "is anything still
+        open?" — and hiding it makes the site look like it cannot answer.
+      */}
+      {statusOptions.length ? (
+        <section>
+          <div className="mb-2.5 flex items-baseline justify-between">
+            <h2 className="text-xs text-ink-faint">Başvuru durumu</h2>
+            <span className="text-2xs text-ink-placeholder">bu konuda</span>
+          </div>
+          <ul className="flex flex-col gap-[7px]">
+            {statusOptions.map((option) => (
+              <li key={option.key}>
+                <Link
+                  href={option.href}
+                  aria-current={option.active ? 'true' : undefined}
+                  className={cn(
+                    'flex items-center justify-between gap-2 text-base no-underline hover:text-accent hover:no-underline',
+                    option.active ? 'font-semibold text-ink' : 'text-ink-body',
+                  )}
+                >
+                  <span className="truncate">{option.label}</span>
+                  <span
+                    className={cn(
+                      'shrink-0 text-sm',
+                      option.active ? 'text-ink-muted' : 'text-ink-fainter',
+                    )}
+                  >
+                    {formatCount(option.n)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {typeOptions.length > 1 ? (
         <section>
           <div className="mb-2.5 flex items-baseline justify-between">
@@ -139,7 +224,7 @@ export function TopicFilters({
           */}
         {active ? (
           <Link
-            href={action}
+            href={clearHref ?? action}
             className="rounded border border-line-strong py-2 text-center text-base text-ink-body no-underline transition-colors hover:border-ink hover:text-ink hover:no-underline"
           >
             Filtreleri kaldır

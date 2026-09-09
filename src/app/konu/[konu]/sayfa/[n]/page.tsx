@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = parsePageSegment(n);
   if (page === null) return { title: 'Sayfa bulunamadı' };
 
-  return topicMetadata(konu, page, false);
+  return topicMetadata(konu, page);
 }
 
 export default async function Page({ params, searchParams }: Props) {
@@ -30,5 +30,5 @@ export default async function Page({ params, searchParams }: Props) {
 
   const filters = parseTopicParams(await searchParams);
 
-  return <TopicPage konu={konu} page={page} openOnly={false} {...filters} />;
+  return <TopicPage konu={konu} page={page} {...filters} />;
 }
