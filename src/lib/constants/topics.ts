@@ -33,6 +33,23 @@ export interface Topic {
   sortOrder: number;
 }
 
+/**
+ * The application-status filter carried by the münhal and ihale feeds.
+ *
+ * It is a ROUTE SEGMENT, never a query parameter — `/konu/munhal/acik`,
+ * `/konu/munhal/kapali` — for the same reason the page number is one: it
+ * enumerates, and a value that enumerates belongs in the path where it keeps the
+ * route statically cacheable and gives every view one canonical address. The
+ * absence of a segment is the third state, "all records", and it is deliberately
+ * not spelled `/tumu`: the unfiltered feed already has an address and giving it a
+ * second one is the duplicate Google would have to be told to ignore.
+ */
+export type DeadlineState = 'acik' | 'kapali';
+
+export function isDeadlineState(value: string): value is DeadlineState {
+  return value === 'acik' || value === 'kapali';
+}
+
 export const TOPICS: Record<TopicSlug, Topic> = {
   munhal: {
     slug: 'munhal',

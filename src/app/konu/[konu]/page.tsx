@@ -44,7 +44,7 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return topicMetadata((await params).konu, 1, false);
+  return topicMetadata((await params).konu, 1);
 }
 
 export default async function Page({ params, searchParams }: Props) {
@@ -53,5 +53,5 @@ export default async function Page({ params, searchParams }: Props) {
 
   const filters = parseTopicParams(await searchParams);
 
-  return <TopicPage konu={konu} page={1} openOnly={false} {...filters} />;
+  return <TopicPage konu={konu} page={1} {...filters} />;
 }

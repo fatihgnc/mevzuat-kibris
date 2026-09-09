@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { TAG, cachedQuery } from '@/lib/db/cache';
 import { docTypeLabel, formatRef, type DocType } from '@/lib/constants/doc-types';
-import { isTopicSlug, type TopicSlug } from '@/lib/constants/topics';
+import { isTopicSlug, type DeadlineState, type TopicSlug } from '@/lib/constants/topics';
 import { HEADLINE_OPTIONS } from '@/lib/search/highlight';
 import { maskTitle } from '@/lib/search/mask-title';
 import type { BuiltQuery, SearchParams, SortOption } from '@/lib/search/build-query';
@@ -315,8 +315,15 @@ export interface ListOptions {
   topic?: TopicSlug;
   entitySlug?: string;
   year?: number;
-  /** Only records whose applications are still open (spec 3.9, artboard 1e). */
-  openDeadlineOnly?: boolean;
+  /**
+   * Narrow to an application status (spec 3.9, artboard 1e) — 'acik' for a
+   * deadline still ahead, 'kapali' for one that has passed. Undefined is every
+   * record, INCLUDING the ones with no deadline at all, which is why this cannot
+   * be a boolean: "not open" and "closed" are different sets here, and the vast
+   * majority of records fall outside both because a deadline was never extracted
+   * from them.
+   */
+  deadlineState?: DeadlineState;
   /** Inclusive ISO bounds — the topic rail's custom range. */
   baslangic?: string;
   bitis?: string;
@@ -346,7 +353,7 @@ function listCacheKey(prefix: string, options: ListOptions): string[] {
     options.topic ?? '',
     options.entitySlug ?? '',
     String(options.year ?? ''),
-    options.openDeadlineOnly ? 'acik' : '',
+    options.deadlineState ?? '',
     options.baslangic ?? '',
     options.bitis ?? '',
     /* Sorted, so two spellings of the same set are one cache entry. */
@@ -396,8 +403,11 @@ function listConditions(options: ListOptions) {
     );
   }
   if (options.year) conditions.push(sql`i.year = ${options.year}`);
-  if (options.openDeadlineOnly) {
+  if (options.deadlineState === 'acik') {
     conditions.push(sql`r.deadline_at is not null and r.deadline_at >= current_date`);
+  }
+  if (options.deadlineState === 'kapali') {
+    conditions.push(sql`r.deadline_at is not null and r.deadline_at < current_date`);
   }
   if (options.baslangic) conditions.push(sql`r.published_at >= ${options.baslangic}::date`);
   if (options.bitis) conditions.push(sql`r.published_at <= ${options.bitis}::date`);

@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 
-import { TOPICS, isTopicSlug } from '@/lib/constants/topics';
+import { TOPICS, isTopicSlug, type DeadlineState } from '@/lib/constants/topics';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { topicHref } from '@/components/topic-page';
 
 /**
- * Shared by all four topic routes so they cannot describe the same topic
+ * Shared by every topic route so they cannot describe the same topic
  * differently. Only the path varies, and it comes from `topicHref`.
  */
-export function topicMetadata(konu: string, page: number, openOnly: boolean): Metadata {
+export function topicMetadata(konu: string, page: number, durum?: DeadlineState): Metadata {
   if (!isTopicSlug(konu)) return { title: 'Konu bulunamadı' };
 
   const topic = TOPICS[konu];
@@ -16,16 +16,16 @@ export function topicMetadata(konu: string, page: number, openOnly: boolean): Me
   return buildMetadata({
     title: topic.name + ' — KKTC Resmî Gazete kayıtları',
     description: topic.description,
-    path: topicHref(konu, { openOnly, page }),
+    path: topicHref(konu, { durum, page }),
     feedPath: '/konu/' + konu + '/rss.xml',
     page,
     /*
-     * The "applications open" view is a filtered slice of the same feed, so it is
-     * kept out of the index even on page 1 — otherwise the topic would compete with
-     * itself for the same query. Its canonical points at itself, not at the
-     * unfiltered page: a noindex page whose canonical names an indexable one can
-     * hand its noindex to that page.
+     * A status view is a filtered slice of the same feed, so it is kept out of the
+     * index even on page 1 — otherwise the topic would compete with itself for the
+     * same query. Its canonical points at itself, not at the unfiltered page: a
+     * noindex page whose canonical names an indexable one can hand its noindex to
+     * that page.
      */
-    noindex: openOnly,
+    noindex: Boolean(durum),
   });
 }
