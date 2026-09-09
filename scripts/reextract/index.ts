@@ -80,10 +80,26 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   });
 }
 
-/** Yeni gövde eskisinden bu oranın altına düşerse kötüleşme sayılır. */
-const SHRINK_LIMIT = 0.9;
-/** 20 KB tavanının kestiği kayıtların imzası — bunlarda büyüme beklenir. */
-const wasTruncated = (len: number) => len >= 18380 && len <= 18432;
+/*
+ * KISALMA TEK BAŞINA KÖTÜLEŞME DEĞİLDİR — bu ölçülerek öğrenildi.
+ *
+ * İlk kural "%10'dan fazla kısalan kaydı geri al" idi ve 443 kaydı geri aldı.
+ * Geri alınanların en az 154'ünde (%35) ESKİ gövde, aynı sayıdaki BAŞKA
+ * kayıtların referans numaralarını taşıyordu: yani eski gövde komşusunun
+ * metnini yutuyordu ve kısalma düzeltmenin ta kendisiydi. Kural, getirmek
+ * istediğimiz düzeltmeyi geri alıyordu.
+ *
+ * Sebep açık: anchor toleransı eklenince daha önce bulunamayan BİTİŞ
+ * anchor'ları bulunuyor, gövde doğru yerde duruyor ve doğal olarak kısalıyor.
+ * (%35 bir alt sınır: test yalnızca `ref_number`'ı olan komşuları yakalıyor.)
+ *
+ * Yeni kural yalnızca GERÇEK kaybı hedefliyor: çıkarmanın o sayıda tamamen
+ * başarısız olması. Ölçülü kısalma korunuyor, yedek zaten duruyor.
+ */
+/** Kayıt bazında: gövde tamamen kaybolduysa geri al. */
+const CATASTROPHIC_RATIO = 0.2;
+/** Sayı bazında: sayının toplam metni bu oranın altına düştüyse çıkarma çökmüştür. */
+const ISSUE_COLLAPSE_RATIO = 0.5;
 
 interface Row { id: string; body_text: string | null; page_from: number | null }
 
@@ -111,7 +127,7 @@ async function main(): Promise<void> {
      order by year desc, number desc
   `;
 
-  let seen = 0, buyuyen = 0, kotulesen = 0, geriAlinan = 0, dokunulmayan = 0, atlanan = 0;
+  let seen = 0, buyuyen = 0, kotulesen = 0, geriAlinan = 0, dokunulmayan = 0, atlanan = 0, kisalan = 0;
   let kazanilanKarakter = 0;
   const degisenIssue: Array<{ year: number; number: number }> = [];
 
@@ -175,6 +191,29 @@ async function main(): Promise<void> {
     const sonra = await dbRetry(() => sql<Row[]>`
       select id, body_text, page_from from records where issue_id = ${issue.id}
     `, 'sonra');
+    /*
+     * ÖNCE SAYI BAZINDA BAK. Asıl korktuğumuz şey tek bir kaydın kısalması
+     * değil, o sayıda çıkarmanın tamamen çökmesi (PDF inmedi, OCR boş döndü).
+     * Öyleyse sayının TOPLAM metni çöker; tek tek kayıtlara bakmak bunu
+     * ayırt edemez.
+     */
+    const eskiToplam = once.reduce((a, r) => a + (r.body_text?.length ?? 0), 0);
+    const yeniToplam = sonra.reduce((a, r) => a + (r.body_text?.length ?? 0), 0);
+    if (eskiToplam > 0 && yeniToplam < eskiToplam * ISSUE_COLLAPSE_RATIO) {
+      for (const eski of once) {
+        await sql`
+          update records set body_text = ${eski.body_text}, page_from = ${eski.page_from}
+           where id = ${eski.id}
+        `;
+      }
+      kotulesen += once.length; geriAlinan += once.length;
+      log.warn('SAYI ÇÖKTÜ, tamamı geri alındı', {
+        sayi: `${issue.year}/${issue.number}`, eski: eskiToplam, yeni: yeniToplam,
+      });
+      await appendFile(DONE, String(issue.id) + '\n', 'utf8');
+      continue;
+    }
+
     let issueDegisti = false;
     for (const yeni of sonra) {
       const eski = oncekiler.get(String(yeni.id));
@@ -183,21 +222,21 @@ async function main(): Promise<void> {
       const yeniLen = yeni.body_text?.length ?? 0;
       if (eskiLen === yeniLen) { dokunulmayan += 1; continue; }
 
-      const kayip = eskiLen > 0 && yeniLen < eskiLen * SHRINK_LIMIT;
-      if (kayip && !wasTruncated(eskiLen)) {
-        // Kötüleşti — eski metni geri yaz.
+      // Yalnızca gövdenin tamamen kaybolması geri alınır. Ölçülü kısalma
+      // korunuyor: çoğu zaman bitiş anchor'ının bulunması demek.
+      if (eskiLen >= 40 && yeniLen < eskiLen * CATASTROPHIC_RATIO) {
         await sql`
           update records set body_text = ${eski.body_text}, page_from = ${eski.page_from}
            where id = ${yeni.id}
         `;
         kotulesen += 1; geriAlinan += 1;
-        log.warn('kayıt kötüleşti, geri alındı', {
+        log.warn('gövde kayboldu, geri alındı', {
           id: String(yeni.id), eski: eskiLen, yeni: yeniLen,
         });
       } else if (yeniLen > eskiLen) {
         buyuyen += 1; kazanilanKarakter += yeniLen - eskiLen; issueDegisti = true;
       } else {
-        dokunulmayan += 1;
+        kisalan += 1; issueDegisti = true;
       }
     }
     if (issueDegisti) degisenIssue.push({ year: issue.year, number: issue.number });
@@ -212,7 +251,7 @@ async function main(): Promise<void> {
   }
 
   log.info('BİTTİ', {
-    islenenSayi: seen, buyuyenKayit: buyuyen, kotulesenKayit: kotulesen,
+    islenenSayi: seen, buyuyenKayit: buyuyen, kisalanKayit: kisalan,
     geriAlinan, dokunulmayan, atlanan, kazanilanKarakter,
   });
 
