@@ -41,6 +41,44 @@ const LIMIT = limitArg > -1 ? Number(process.argv[limitArg + 1]) : Infinity;
 const OUT = process.env.REEXTRACT_OUT ?? join(process.cwd(), '.reextract');
 const DONE = join(OUT, 'done.txt');
 const REPORT = join(OUT, 'report.jsonl');
+const SKIPPED = join(OUT, 'skipped.txt');
+
+/** Sayı başına sert bütçe. Aşan sayı atlanır ve listeye yazılır. */
+const ISSUE_BUDGET_MS = Number(process.env.ISSUE_BUDGET_MIN ?? 20) * 60_000;
+
+/** Ağ kaynaklı, geçici veritabanı hatası mı? */
+function isTransientDbError(error: unknown): boolean {
+  return /ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|CONNECTION_CLOSED|CONNECTION_ENDED|socket hang up/i
+    .test(String(error));
+}
+
+/*
+ * Gece koşumu DNS düşmesinden bir kez öldü: postgres.js bağlantıyı 30 sn boşta
+ * kalınca kapatıyor, uzun bir sayıdan sonra yeni bağlantı yeni DNS sorgusu
+ * demek ve o ara sıra patlıyor. `politeFetch` yeniden deniyordu, veritabanı
+ * sorgusu denemiyordu.
+ */
+async function dbRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  const backoff = [2_000, 5_000, 15_000, 30_000, 60_000];
+  let last: unknown;
+  for (let i = 0; i <= backoff.length; i += 1) {
+    try { return await fn(); } catch (e) {
+      last = e;
+      if (!isTransientDbError(e) || i === backoff.length) break;
+      log.warn('DB geçici hata, yeniden denenecek', { label, ms: backoff[i] });
+      await new Promise((r) => setTimeout(r, backoff[i]!));
+    }
+  }
+  throw last;
+}
+
+/** Sert zaman aşımı. Alt süreçler (ocrmypdf) execFile timeout'uyla ayrıca sınırlı. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((res, rej) => {
+    const t = setTimeout(() => rej(new Error(`BÜTÇE AŞILDI: ${label} (${ms / 60000} dk)`)), ms);
+    p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
+  });
+}
 
 /** Yeni gövde eskisinden bu oranın altına düşerse kötüleşme sayılır. */
 const SHRINK_LIMIT = 0.9;
@@ -73,7 +111,7 @@ async function main(): Promise<void> {
      order by year desc, number desc
   `;
 
-  let seen = 0, buyuyen = 0, kotulesen = 0, geriAlinan = 0, dokunulmayan = 0;
+  let seen = 0, buyuyen = 0, kotulesen = 0, geriAlinan = 0, dokunulmayan = 0, atlanan = 0;
   let kazanilanKarakter = 0;
   const degisenIssue: Array<{ year: number; number: number }> = [];
 
@@ -83,9 +121,9 @@ async function main(): Promise<void> {
     seen += 1;
 
     // 1. ÖNCE: mevcut gövdeleri oku (kuru koşumda da lazım, karşılaştırma için)
-    const once = await sql<Row[]>`
+    const once = await dbRetry(() => sql<Row[]>`
       select id, body_text, page_from from records where issue_id = ${issue.id}
-    `;
+    `, 'once');
     const oncekiler = new Map(once.map((r) => [String(r.id), r]));
 
     if (!APPLY) {
@@ -106,19 +144,37 @@ async function main(): Promise<void> {
     `;
 
     // 3. Üretim yolunun kendisi. Ayrı bir kopya yazmıyoruz ki davranış ayrışmasın.
-    await processIssue({
-      id: Number(issue.id),
-      year: issue.year,
-      number: issue.number,
-      publishedAt: toIso(issue.published_at),
-      pdfUrl: issue.pdf_url,
-      rawIndexHtml: issue.raw_index_html,
-    });
+    try {
+      await withTimeout(processIssue({
+        id: Number(issue.id),
+        year: issue.year,
+        number: issue.number,
+        publishedAt: toIso(issue.published_at),
+        pdfUrl: issue.pdf_url,
+        rawIndexHtml: issue.raw_index_html,
+      }), ISSUE_BUDGET_MS, `sayı ${issue.year}/${issue.number}`);
+    } catch (error) {
+      /*
+       * Bir sayı bütün koşumu durdurmaz. Bütçeyi aşan ya da patlayan sayı
+       * atlananlar listesine yazılır; gövdeler yedekten zaten korunuyor ve
+       * `processIssue` yarıda kaldıysa aşağıdaki karşılaştırma kötüleşenleri
+       * geri alır.
+       */
+      atlanan += 1;
+      log.error('sayı atlandı', {
+        sayi: `${issue.year}/${issue.number}`, sebep: String(error).slice(0, 160),
+      });
+      await appendFile(
+        SKIPPED,
+        [issue.year + '/' + issue.number, String(error).slice(0, 200)].join('\t') + '\n',
+        'utf8',
+      );
+    }
 
     // 4. SONRA: karşılaştır, kötüleşeni geri al.
-    const sonra = await sql<Row[]>`
+    const sonra = await dbRetry(() => sql<Row[]>`
       select id, body_text, page_from from records where issue_id = ${issue.id}
-    `;
+    `, 'sonra');
     let issueDegisti = false;
     for (const yeni of sonra) {
       const eski = oncekiler.get(String(yeni.id));
@@ -157,7 +213,7 @@ async function main(): Promise<void> {
 
   log.info('BİTTİ', {
     islenenSayi: seen, buyuyenKayit: buyuyen, kotulesenKayit: kotulesen,
-    geriAlinan, dokunulmayan, kazanilanKarakter,
+    geriAlinan, dokunulmayan, atlanan, kazanilanKarakter,
   });
 
   /*

@@ -257,7 +257,17 @@ async function runOcr(
       await run(
         'ocrmypdf',
         ['--language', 'tur', mode, '--optimize', '1', '--output-type', 'pdf', input, ocrOutput],
-        { maxBuffer: 64 * 1024 * 1024, timeout: 30 * 60_000 },
+        /*
+         * Mod başına zaman aşımı. Varsayılan 30 dakika üretim davranışıdır ve
+         * korunuyor; toplu koşumlar OCR_TIMEOUT_MIN ile kısabilir.
+         *
+         * NEDEN GEREKLİ: bir sayı ÜÇ ayrı OCR geçişi görebiliyor (--redo-ocr,
+         * --force-ocr, bozuk katman tespitiyle bir tane daha), yani 90 dakika.
+         * 2025/221 tek başına 2 saat 5 dakika sürmüştü ve sayı başına bütçe
+         * yoktu. `execFile`'ın timeout'u alt süreci gerçekten öldürüyor, bu
+         * yüzden sınır burada anlamlı.
+         */
+        { maxBuffer: 64 * 1024 * 1024, timeout: Number(process.env.OCR_TIMEOUT_MIN ?? 30) * 60_000 },
       );
       const { stdout } = await run('pdftotext', ['-layout', '-enc', 'UTF-8', ocrOutput, '-'], {
         maxBuffer: 64 * 1024 * 1024,
