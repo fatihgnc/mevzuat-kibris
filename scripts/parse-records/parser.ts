@@ -449,6 +449,50 @@ export function bodyAnchor(refType: RefType | null, refNumber: string | null): s
  * and take everything up to the next one. If it is not found, null — an invented
  * body is worse than no body.
  */
+/*
+ * SONRAKİ KAYDIN BAŞLIĞI ÖNCEKİNİN GÖVDESİNDE KALIYOR.
+ *
+ * Gövde, sonraki kaydın ANCHOR'ında bitiyor. Ama gazetede anchor'dan önce
+ * bir sayfa sonu, sayfa numarası ve "KARAR SAYISI:" etiketi geliyor:
+ *
+ *     ...karar verdi.
+ *     30.5.2024
+ *     \f642                 <- sayfa sonu + sayfa numarasi
+ *     KARAR SAYISI:         <- sonraki kaydin ETIKETI
+ *     Ü(K-I)1846-2024       <- aradigimiz anchor, govde BURADA bitiyor
+ *
+ * Sonuç: her gövdenin kuyruğuna sonraki kaydın başlığından bir parça takılıyor.
+ * Ölçüldü: 17.349 gövdenin 9.136'sı (%53) "KARAR SAYISI:" ile bitiyor, 3.000
+ * rastgele kayıtta son üç satır %65 "KARAR SAYISI", %5 sayfa numarası.
+ *
+ * İçerik eksik değil, fazla — ve okuyucu sayfanın sonunda bunu görüyor.
+ *
+ * Sıra önemli: önce etiket, sonra (etiket kırpıldıysa) sayfa numarası, sonra
+ * sayfa sonu. Çıplak sayı yalnızca başlık bölgesinde olduğumuzu bildiğimizde
+ * kırpılıyor — kararın kendisi bir tutarla bitebilir, onu yemeyelim.
+ */
+export function trimTrailingHeader(input: string): string {
+  let out = input.trimEnd();
+  for (;;) {
+    const before = out;
+    const etiketsiz = out.replace(/\s*(?:KARAR\s*SAYISI|Sayı)\s*:?\s*$/i, '');
+    if (etiketsiz !== out) {
+      /*
+       * Etiketi attık; hemen öncesindeki sayfa numarası da başlığa ait.
+       *
+       * SAYFA NUMARASI KENDİ SATIRINDA DURUR — bu şart. Testler olmadan
+       * yazılmış hâli `\d{1,5}$` idi ve tarihin yılını yiyordu:
+       * "karar verdi.\n\n30.5.2024" -> "karar verdi.\n\n30.5.". Satır başı
+       * (ya da sayfa sonu) aramak "2024"ü koruyor, çünkü onun öncesinde nokta
+       * var.
+       */
+      out = etiketsiz.replace(/(?:\f|\r?\n)[ \t]*\d{1,5}[ \t]*$/, '').trimEnd();
+    }
+    out = out.replace(/\s*\f\s*$/, '').trimEnd();
+    if (out === before) return out;
+  }
+}
+
 export function extractBody(
   pdfText: string,
   refLabel: string | null,
@@ -488,7 +532,7 @@ export function extractBody(
     if (at !== -1 && at < end) end = at;
   }
 
-  const body = pdfText.slice(start, end).trim();
+  const body = trimTrailingHeader(pdfText.slice(start, end).trim());
 
   // pdftotext emits a form feed as the page separator; that is how we count
   // which page we are on.

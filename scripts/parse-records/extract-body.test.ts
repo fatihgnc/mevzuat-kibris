@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bodyAnchor, extractBody } from './parser';
+import { bodyAnchor, extractBody, trimTrailingHeader } from './parser';
 
 /**
  * Body boundaries — a regression guard for a bug measured on real data.
@@ -225,5 +225,46 @@ describe('extractBody — bozuk seri öneki', () => {
     ).body;
     expect(body).toContain('DOĞRU KARAR');
     expect(body).not.toContain('ALAKASIZ');
+  });
+});
+
+/*
+ * Kuyruk temizligi — hepsi gercek govdelerden alinmis desenler.
+ * Olculdu: 17.349 govdenin 9.136'si (%53) "KARAR SAYISI:" ile bitiyordu.
+ */
+describe('trimTrailingHeader', () => {
+  it('sonraki kaydın KARAR SAYISI etiketini atar', () => {
+    expect(trimTrailingHeader('karar verdi.\n\n30.5.2024\n\nKARAR SAYISI:'))
+      .toBe('karar verdi.\n\n30.5.2024');
+  });
+
+  it('sayfa sonu + sayfa numarası + etiketi birlikte atar', () => {
+    expect(trimTrailingHeader('karar verdi. \n\n30.5.2024 \n\n\f642\n\nKARAR SAYISI:'))
+      .toBe('karar verdi. \n\n30.5.2024');
+  });
+
+  it('boşluklu yazımı da yakalar (KARAR  SAYISI :)', () => {
+    expect(trimTrailingHeader('alınmasına karar verdi. \n\n5.6.2025 \n\nKARAR SAYISI :'))
+      .toBe('alınmasına karar verdi. \n\n5.6.2025');
+  });
+
+  it('CRLF ve hizalama boşluklarıyla çalışır', () => {
+    expect(trimTrailingHeader('erdi.\r\n\r\n7.9.2021\r\n\r\n          KARAR SAYISI:'))
+      .toBe('erdi.\r\n\r\n7.9.2021');
+  });
+
+  it('KARARIN METNİNİ yemez: tutarla biten gövdeye dokunmaz', () => {
+    const body = 'ödenek aktarılmasına karar verdi.\n\nTOPLAM: 460,922.6 TL';
+    expect(trimTrailingHeader(body)).toBe(body);
+  });
+
+  it('çıplak sayıyı ETİKET YOKKEN kırpmaz', () => {
+    const body = 'kadro sayısı 842';
+    expect(trimTrailingHeader(body)).toBe(body);
+  });
+
+  it('temiz gövdeyi değiştirmez', () => {
+    const body = 'Bakanlar Kurulu, önergede belirtilenler ışığında karar verdi.';
+    expect(trimTrailingHeader(body)).toBe(body);
   });
 });
