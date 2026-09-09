@@ -39,7 +39,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     name: 'Münhal',
     blurb: 'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları',
     description:
-      'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları. Kamu Hizmeti Komisyonu ile kurumların kendi ilanları, gazetede yayımlandığı gün buraya düşer. Başvuru bitiş tarihini her kaydın satırında görürsünüz.',
+      'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları. Kamu Hizmeti Komisyonu ile kurumların kendi ilanları, gazetede yayımlandığı gün buraya düşer. Başvuru bitiş tarihi, ilanın metni okunabildiğinde kaydın satırında görünür.',
     sortOrder: 1,
   },
   ihale: {

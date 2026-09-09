@@ -235,40 +235,70 @@ export async function TopicPage({
             </div>
 
             {/*
-              Showing a filter button with a count of zero is pointless: clicking it
-              returns an empty list. A deadline can only be extracted from the BODY of
-              a vacancy/tender record (extractDeadline); it cannot be extracted from a
-              record with no body, and right now the archive holds exactly one record
-              with a date — so the button said "0" almost every time.
+              THE TOGGLE STAYS UP AT A COUNT OF ZERO — and the reason it once did
+              not is worth keeping, because the measurement behind it has changed.
 
-              The openOnly condition keeps the button from disappearing WHILE the
-              filter is on — otherwise the user is stranded on an empty list with no
-              button to go back.
+              It used to hide itself below one open record. That was written when
+              the whole archive held a single extracted deadline, and hiding a
+              button that returns nothing is the right call for a number that is
+              about to start climbing. It has not climbed. Measured 9 Eylül 2026:
+              münhal holds 1.527 records and 19 of them have body text at all, so
+              zero have a deadline and zero ever will until the text does; ihale
+              has 145, every one of them expired. A structural zero is not a
+              transient one.
+
+              What the hiding cost was worse than an empty list. With the row gone
+              the topic looks like it has no deadline filter at all, and a visitor
+              cannot tell "no vacancy is open" from "we cannot read the vacancies"
+              — the second being the true answer and the one that sends them to
+              the PDF instead of away. So the row is always up for the two topics
+              that carry deadlines, the count is stated honestly, and the note
+              below says which of the two situations they are looking at.
             */}
-            {supportsDeadline && (openCount > 0 || openOnly) ? (
-              <div className="mb-1 mt-[26px] flex flex-wrap items-center gap-2 border-b border-line pb-3.5">
-                <Link
-                  href={topicHref(konu, { openOnly: true })}
-                  className={cn(
-                    'rounded-pill px-3.5 py-1.5 text-base no-underline hover:no-underline',
-                    openOnly
-                      ? 'bg-ink font-semibold text-surface hover:text-surface'
-                      : 'border border-line text-ink-body hover:border-accent hover:text-accent',
-                  )}
-                >
-                  Başvurusu açık, {openCount}
-                </Link>
-                <Link
-                  href={topicHref(konu, { openOnly: false })}
-                  className={cn(
-                    'rounded-pill px-3.5 py-1.5 text-base no-underline hover:no-underline',
-                    !openOnly
-                      ? 'bg-ink font-semibold text-surface hover:text-surface'
-                      : 'border border-line text-ink-body hover:border-accent hover:text-accent',
-                  )}
-                >
-                  Tüm kayıtlar
-                </Link>
+            {supportsDeadline ? (
+              <div className="mb-1 mt-[26px] border-b border-line pb-3.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={topicHref(konu, { openOnly: true })}
+                    className={cn(
+                      'rounded-pill px-3.5 py-1.5 text-base no-underline hover:no-underline',
+                      openOnly
+                        ? 'bg-ink font-semibold text-surface hover:text-surface'
+                        : 'border border-line text-ink-body hover:border-accent hover:text-accent',
+                    )}
+                  >
+                    Başvurusu açık, {openCount}
+                  </Link>
+                  <Link
+                    href={topicHref(konu, { openOnly: false })}
+                    className={cn(
+                      'rounded-pill px-3.5 py-1.5 text-base no-underline hover:no-underline',
+                      !openOnly
+                        ? 'bg-ink font-semibold text-surface hover:text-surface'
+                        : 'border border-line text-ink-body hover:border-accent hover:text-accent',
+                    )}
+                  >
+                    Tüm kayıtlar
+                  </Link>
+                </div>
+
+                {/*
+                  Only when the count is zero, and worded to hold for both topics:
+                  münhal's dates are unreadable, ihale's have simply passed, and
+                  the sentence claims only the mechanism, which is true of each.
+                  Anything more specific would need a query for "has any deadline
+                  ever" and would still be a guess about which case a given empty
+                  list is.
+                */}
+                {openCount === 0 ? (
+                  <p className="m-0 mt-3 max-w-lede text-sm leading-[1.6] text-ink-muted">
+                    Başvuru tarihini kaydın gövde metninden okuyoruz; metni taranmış görüntü
+                    olarak yayımlanan ilanlarda bu tarih çıkmıyor. Bu liste boş diye süresi
+                    açık ilan yok demek değil — ilanın kendisi ve orijinal{' '}
+                    <Link href="/sayilar">gazete PDF&apos;i</Link> her kaydın sayfasında
+                    duruyor.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 

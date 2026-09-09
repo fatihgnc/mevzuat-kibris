@@ -42,7 +42,7 @@ export const TOPIC_FAQ: Record<TopicSlug, FaqItem[]> = {
     {
       question: 'Başvurusu hâlâ açık olan ilanları nasıl görürüm?',
       answer:
-        'Münhal akışındaki “Başvurusu açık” bağlantısı yalnızca başvuru bitiş tarihi geçmemiş kayıtları listeler. Bitiş tarihi her kaydın satırında yazar; geçmişse “Başvuru süresi doldu” diye görünür. Bağlayıcı tarih için kaydın orijinal PDF sayfasına bakın.',
+        'Münhal akışındaki “Başvurusu açık” bağlantısı yalnızca başvuru bitiş tarihi geçmemiş kayıtları listeler. Bu tarihi ilanın gövde metninden okuyoruz; münhal ilanlarının çoğu gazetede taranmış görüntü olarak yayımlandığı için şu anda çoğunda tarih çıkmıyor ve liste boş görünüyor. Bitiş tarihi için ilanın orijinal PDF sayfasına bakın — bağlayıcı olan da odur.',
     },
     {
       question: 'Sınav sonuçları neden münhal akışında?',
