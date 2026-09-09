@@ -7,6 +7,7 @@ import { MaskedText } from '@/components/masked-text';
 import { RawTitle } from '@/components/raw-title';
 import { FollowDialog } from '@/components/follow-dialog';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 import { SourceNotice, OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
@@ -272,6 +273,7 @@ function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType
  * backed by code (spec 7.2's retry queue).
  */
 /** Gövdeyi basar; sınırı aşarsa keser ve kalanı PDF'e yönlendirir. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 function BodyText({ record }: { record: RecordDetailType }) {
   const paragraphs = splitParagraphs(record.bodyText!);
   const { shown, hiddenParagraphs, hiddenChars } = clampParagraphs(
@@ -324,6 +326,7 @@ function BodyText({ record }: { record: RecordDetailType }) {
  * metni olan bir kayıtta bu doğru olmaz. Burada olan şey farklı — metin var
  * ama yayımlanacak kalitede değil, ve okuyucuya bunu olduğu gibi söylüyoruz.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 function BodyHiddenCard({ record }: { record: RecordDetailType }) {
   const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
 
@@ -361,6 +364,7 @@ function BodyHiddenCard({ record }: { record: RecordDetailType }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 function MissingTextCard({ record }: { record: RecordDetailType }) {
   const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
 
@@ -400,6 +404,7 @@ function MissingTextCard({ record }: { record: RecordDetailType }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 function PersonalDataNotice({ pdfUrl }: { pdfUrl: string }) {
   return (
     <div className="rounded-md border border-notice-border bg-notice px-5 py-4 text-base leading-[1.6] text-notice-ink">
