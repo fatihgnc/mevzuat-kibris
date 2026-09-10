@@ -14,6 +14,16 @@
  *    tesadüfen işçi kesintisinin toplamı ikisinde de %9 çıkıyor. Bileşenler
  *    farklı olduğu için tek bir tabloyla göstermek yanlış olurdu.
  *
+ * NATIONALITY CHANGES THE RATES TOO. YGK 83/2026 (Ü(K-I)1609-2026, RG 143),
+ * in force from 29 July 2026, splits the insured under 73/2007 in two. For
+ * TRNC citizens and citizens of a country with an equal-treatment social
+ * security agreement (e.g. Turkey) the article 78 rates stand. For everyone
+ * else the employee share rises to 4.25% for sickness and 8.25% for
+ * invalidity-old age-death, and the Social Insurance Department processes
+ * them on the "D3" payroll, which applies no unemployment branch. The
+ * published D3 totals (employee 13%, employer 9.75% + work accident, state
+ * 1.25%) match the table below exactly.
+ *
  * Bir de İhtiyat Sandığı var; o ayrı bir yasa (34/1993, 74/2007 ile değişik
  * madde 8) ve oranı da aynı ayrıma göre değişiyor: eski sistemde %5, Sosyal
  * Güvenlik Yasası'ndan sonra ilk kez girenlerde %4.
@@ -61,6 +71,32 @@ export const SGK_CONTRIBUTIONS: readonly ContributionLine[] = [
   { branch: 'İşsizlik', total: 1.5, employee: 0.75, employer: 0.75, state: 0 },
 ];
 
+/**
+ * YGK 83/2026 — insured under 73/2007 who are NOT TRNC citizens or citizens of
+ * an equal-treatment agreement country (the D3 payroll). No unemployment
+ * branch.
+ */
+export const SGK_FOREIGN_CONTRIBUTIONS: readonly ContributionLine[] = [
+  SGK_CONTRIBUTIONS[0]!,
+  { branch: 'Hastalık', total: 6.5, employee: 4.25, employer: 2.25, state: 0 },
+  { branch: 'Analık', total: 1, employee: 0.5, employer: 0.5, state: 0 },
+  { branch: 'Malullük, yaşlılık ve ölüm', total: 16.5, employee: 8.25, employer: 7, state: 1.25 },
+  {
+    branch: 'İşsizlik',
+    total: 0,
+    employee: 0,
+    employer: 0,
+    state: 0,
+    note: 'Bu sigortalılar için uygulanmıyor (D3 bordrosu).',
+  },
+];
+
+/**
+ * `equal`: a TRNC citizen, or a citizen of a country with an equal-treatment
+ * social security agreement (e.g. Turkey). `other`: any other nationality.
+ */
+export type Nationality = 'equal' | 'other';
+
 /** 16/1976 madde 83 (2/2012 ile değişik) — 2008 öncesi sigortalılar. */
 export const LEGACY_CONTRIBUTIONS: readonly ContributionLine[] = [
   {
@@ -98,6 +134,8 @@ export const SGK_CEILING_MULTIPLIER = 7;
 export interface PayrollInput {
   grossMonthlyWage: number;
   scheme: InsuranceScheme;
+  /** Changes the rates only under 73/2007 (YGK 83/2026). Defaults to `equal`. */
+  nationality?: Nationality;
   /** İş kazası prim oranı, yüzde. Yalnızca işveren maliyetini etkiliyor. */
   accidentRate?: number;
   /** Yürürlükteki aylık brüt asgari ücret — taban ve tavanın kaynağı. */
@@ -109,6 +147,8 @@ export interface PayrollInput {
 
 export interface PayrollResult {
   scheme: InsuranceScheme;
+  /** The distinction actually applied to the rates — always `equal` under the old scheme. */
+  nationality: Nationality;
   grossMonthlyWage: number;
   /** Prime esas kazanç — taban ve tavan uygulandıktan sonra. */
   contributionBase: number;
@@ -140,7 +180,12 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
     input.minimumWage && input.minimumWage > 0 ? input.minimumWage : MINIMUM_WAGE.grossMonthly;
 
   const isSgk = input.scheme === 'sgk';
-  const baseLines = isSgk ? SGK_CONTRIBUTIONS : LEGACY_CONTRIBUTIONS;
+  const nationality: Nationality = isSgk && input.nationality === 'other' ? 'other' : 'equal';
+  const baseLines = !isSgk
+    ? LEGACY_CONTRIBUTIONS
+    : nationality === 'other'
+      ? SGK_FOREIGN_CONTRIBUTIONS
+      : SGK_CONTRIBUTIONS;
 
   const accidentRate = Math.min(
     ACCIDENT_RATE_RANGE.max,
@@ -181,6 +226,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 
   return {
     scheme: input.scheme,
+    nationality,
     grossMonthlyWage: gross,
     contributionBase,
     ceiling,

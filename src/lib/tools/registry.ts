@@ -29,8 +29,32 @@ export interface ToolFaq {
   answer: string;
 }
 
+/** An internal link to a Resmî Gazete record in the archive. */
+export interface ToolRecordLink {
+  label: string;
+  /** A site path such as `/karar/...`. */
+  href: string;
+  note?: string;
+}
+
+export interface RelatedTool {
+  slug: string;
+  /** Why someone using this tool should look there too — one sentence. */
+  reason: string;
+}
+
 export interface Tool {
   slug: string;
+  /**
+   * The day the rates, articles or text last ACTUALLY changed (`YYYY-MM-DD`).
+   * Shown as "Son güncelleme" on the page and used as the sitemap's
+   * `lastModified`; do not bump it for a typo fix, or both lose their meaning.
+   */
+  updatedAt: string;
+  /** Tools used alongside this one, each with its reason. */
+  related: readonly RelatedTool[];
+  /** Archive records that set the rates or amounts the tool relies on. */
+  records?: readonly ToolRecordLink[];
   /** Menüde ve kartta görünen kısa ad. */
   name: string;
   /** Sayfanın h1'i. */
@@ -75,6 +99,17 @@ const EMU_LAW_LIST: ToolSource = {
 export const TOOLS: readonly Tool[] = [
   {
     slug: 'yillik-izin-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'toplu-isten-cikarma-hesaplayici',
+        reason: 'İş akdi sona eriyorsa: kullanılmayan iznin ücreti tazminat ve ihbar süresinden ayrı ödenir.',
+      },
+      {
+        slug: 'dogum-ve-mazeret-izni-hesaplayici',
+        reason: 'Doğum ve mazeret izinleri yıllık izin hesabında çalışılmış süre sayılır.',
+      },
+    ],
     name: 'Yıllık izin hesaplayıcı',
     heading: 'Yıllık izin hesaplayıcı',
     title: 'KKTC Yıllık İzin Hesaplama',
@@ -144,10 +179,31 @@ export const TOOLS: readonly Tool[] = [
         answer:
           'Evet. Madde 50(1): hizmet akdi her ne şekilde sona ererse ersin, hak kazanılıp kullanılmayan yıllık izin süresinin ücreti akdin sona erdiği tarihteki ücret üzerinden ödenir. Madde 50(2) uyarınca ihbar süreleri ile yıllık izin süreleri iç içe giremez.',
       },
+      {
+        question: 'Yıllık izin bölünerek kullanılabilir mi?',
+        answer:
+          'Kural olarak hayır. Madde 46(1) yıllık ücretli iznin bölünemeyeceğini söylüyor; ancak tarafların rızasıyla, bir bölümü sekiz günden az olmamak üzere bölünerek kullanılabiliyor.',
+      },
+      {
+        question: 'İznimi yurt dışında geçireceksem yol izni var mı?',
+        answer:
+          'Madde 46(3): yıllık iznini işyerinin bulunduğu yerden başka bir yerde, yurt dışında geçirecek işçiye, talep etmesi ve bunu belgelemesi koşuluyla gidiş ve dönüşte yolda geçecek süreler için toplam yedi güne kadar ücretsiz izin verilir.',
+      },
     ],
   },
   {
     slug: 'fazla-mesai-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'net-brut-maas-hesaplayici',
+        reason: 'Brüt ücretinizden hangi kesintilerin yapıldığını ve ele geçen tutarı görün.',
+      },
+      {
+        slug: 'yillik-izin-hesaplayici',
+        reason: 'İzne rastlayan resmî tatiller izinden sayılmaz; yıllık izin hakkınızı hesaplayın.',
+      },
+    ],
     name: 'Fazla mesai hesaplayıcı',
     heading: 'Fazla mesai ve resmî tatil ücreti hesaplayıcı',
     title: 'KKTC Fazla Mesai ve Resmî Tatil Ücreti Hesaplama',
@@ -212,10 +268,26 @@ export const TOOLS: readonly Tool[] = [
         answer:
           'Madde 27(5) fazla çalışma için işçinin olurunun alınmasını şart koşuyor; bu olur toplu iş sözleşmesi veya hizmet akdiyle önceden de alınabiliyor. Madde 27(6) ise sağlık, ölüm ve doğum gibi nedenlerle, önceden oluru alınmış olsa bile işçiye istemediği hallerde fazla çalışma yaptırılamayacağını söylüyor.',
       },
+      {
+        question: 'Düzensiz mesai ödeneği nedir?',
+        answer:
+          'Madde 29A, işin niteliği gereği düzensiz saatlerde çalışan işçiye ücretinin %15’i oranında düzensiz mesai ödeneği öngörüyor; oran toplu iş sözleşmesi veya hizmet akdiyle artırılabiliyor. Bu ödenek fazla mesai zammından ayrı bir kalem ve bu araç onu hesaplamıyor.',
+      },
     ],
   },
   {
     slug: 'toplu-isten-cikarma-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'yillik-izin-hesaplayici',
+        reason: 'Madde 50: kullanılmayan yıllık iznin ücreti ayrıca ödenir — kaç gün hak ettiğinizi hesaplayın.',
+      },
+      {
+        slug: 'ihtiyat-sandigi-hesaplayici',
+        reason: 'İhtiyat Sandığı birikiminizi ve çekebileceğiniz avansı görün.',
+      },
+    ],
     name: 'Toplu işten çıkarma tazminatı',
     heading: 'Toplu işten çıkarma tazminatı ve ihbar hesaplayıcı',
     title: 'KKTC Toplu İşten Çıkarma Tazminatı Hesaplama',
@@ -280,10 +352,32 @@ export const TOOLS: readonly Tool[] = [
         answer:
           'Madde 19(3): işveren, çıkardığı işçilerin yerine üç ay içinde başka işçi alamaz. Bu süre içinde aynı işkolunda faaliyete başlaması veya yeniden işçi istihdamı gerekmesi halinde Daire aracılığıyla çıkardığı işçilere duyuruda bulunur; duyurudan başlayarak on beş gün içinde Daire’ye başvurmayanların yeniden istihdam edilme hakkı düşer.',
       },
+      {
+        question: 'İhbar süresi ne kadar?',
+        answer:
+          'Madde 12: hizmet süresi altı aya kadar olan işçi için bir hafta, altı aydan bir yıla kadar üç hafta, bir yıldan iki yıla kadar dört hafta, iki yıldan beş yıla kadar beş hafta, beş yıldan fazla olan için altı hafta. Bildirim yapmayan taraf bu sürelerin ücreti tutarında tazminat öder.',
+      },
+      {
+        question: 'Deneme süresinde işten çıkarılırsam tazminat alır mıyım?',
+        answer:
+          'Hayır. Madde 11: deneme süresi en çok üç ay olabilir ve bu süre içinde taraflar hizmet akdini bildirim süresine gerek olmadan ve tazminatsız feshedebilir. İşçinin çalıştığı günlerin ücreti ve diğer hakları saklıdır.',
+      },
+      {
+        question: 'Toplu işten çıkarmada önce kim çıkarılır?',
+        answer:
+          'Madde 19(6), toplu işten çıkarmada “ilk giren son çıkar” ilkesini öngörüyor: işe en son giren işçi ilk çıkarılır.',
+      },
     ],
   },
   {
     slug: 'dogum-ve-mazeret-izni-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'yillik-izin-hesaplayici',
+        reason: 'Doğum izni yıllık izin hakkınızı azaltmaz; yıllık izninizi ayrıca hesaplayın.',
+      },
+    ],
     name: 'Doğum ve mazeret izni',
     heading: 'Doğum, emzirme ve mazeret izni hesaplayıcı',
     title: 'KKTC Doğum İzni ve Mazeret İzni Hesaplama',
@@ -350,6 +444,28 @@ export const TOOLS: readonly Tool[] = [
   },
   {
     slug: 'yabanci-calisma-izni-cezasi-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'net-brut-maas-hesaplayici',
+        reason: 'Anlaşmalı ülke vatandaşı olmayan yabancı işçinin sigorta kesintisi %13 — maaş hesabı bu oranı uyguluyor.',
+      },
+    ],
+    records: [
+      {
+        label: 'Yabancıların Çalışma İzinleri (Değişiklik) Tüzüğü — Ü(K-I) 1243-2025',
+        href: '/karar/2025-uki-1243-2025-yabancilarin-calisma-izinleri-degisiklik-tuzugu',
+      },
+      {
+        label: 'Yabancıların Çalışma İzinleri Tüzüğü — A.E. 41 (2026)',
+        href: '/karar/2026-ae-41-yabancilarin-calisma-izinleri-yasasi-yabancilarin-calisma-izinleri',
+      },
+      {
+        label: 'Kesinleşen asgari ücret — Ü(K-I) 1588-2026',
+        href: '/karar/2026-uki-1588-2026-kesinlesen-asgari-ucret',
+        note: 'Cezanın katı alındığı tutar',
+      },
+    ],
     name: 'Çalışma izni ceza riski',
     heading: 'Yabancı çalışma izni ceza riski hesaplayıcı',
     title: 'KKTC İzinsiz Yabancı Çalıştırma Cezası Hesaplama',
@@ -417,10 +533,33 @@ export const TOOLS: readonly Tool[] = [
         answer:
           'Madde 25(2): madde 7’nin (1)’inci ve (2)’nci fıkralarına aykırı hareket edenler bir suç işlemiş olur ve mahkûmiyetleri halinde, izinsiz çalıştırılan her kişi için aylık brüt asgari ücretin on iki katına kadar para cezasına veya iki yıla kadar hapis cezasına veya her ikisine birden çarptırılabilir. Suçu işleyen tüzel kişiyse direktörü de aynı suçu işlemiş sayılır.',
       },
+      {
+        question: 'Çalışma izinli yabancı işçinin sigorta primi ne kadar?',
+        answer:
+          '29 Temmuz 2026’dan itibaren YGK 83/2026 uyarınca, KKTC ile işlem eşitliği sağlayan sosyal güvenlik anlaşması bulunan ülke vatandaşı olmayan sigortalıların sigortalı hissesi %13, işveren hissesi %9,75 artı iş kazası primi; işsizlik primi uygulanmıyor. TC vatandaşları KKTC vatandaşlarıyla aynı oranlara (%9) tabi. Net–brüt maaş aracı bu ayrımı hesaba katıyor.',
+      },
     ],
   },
   {
     slug: 'ihtiyat-sandigi-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'net-brut-maas-hesaplayici',
+        reason: 'Aylık İhtiyat Sandığı kesintisinin maaş bordronuzdaki yerini görün.',
+      },
+      {
+        slug: 'toplu-isten-cikarma-hesaplayici',
+        reason: 'İşten çıkarılıyorsanız tazminat ve ihbar sürenizi hesaplayın.',
+      },
+    ],
+    records: [
+      {
+        label: 'İhtiyat Sandığı faiz oranları (1 Nisan 2026) — Ü(K-I) 597-2026',
+        href: '/karar/2026-uki-597-2026-1-nisan-2026-tarihi-itibariyla-ihtiyat-sandigi-dairesi-istirakci',
+        note: 'Yıllık faiz %37, cari faiz %30',
+      },
+    ],
     name: 'İhtiyat Sandığı birikimi',
     heading: 'İhtiyat Sandığı birikim ve avans hesaplayıcı',
     title: 'KKTC İhtiyat Sandığı Birikim ve Avans Hesaplama',
@@ -488,21 +627,53 @@ export const TOOLS: readonly Tool[] = [
       {
         question: 'Faiz oranı ne kadar?',
         answer:
-          'Sabit değil. Faiz oranı Bakanlar Kurulu kararıyla belirleniyor ve yıldan yıla değişiyor, bu yüzden araçta sabit kodlanmadı — güncel oranı İhtiyat Sandığı Dairesi’nden öğrenip kendiniz giriyorsunuz. Tek bir oranla yapılan projeksiyon gerçek bakiyeyi tutturmaz; kesin tutar için Daire’den hesap dökümü isteyin.',
+          'Sabit değil, Bakanlar Kurulu kararıyla belirleniyor. Ü(K-I) 597-2026 sayılı karara göre 1 Nisan 2026’dan itibaren iştirakçi hesaplarına yıllık %37 faiz, cari hesaplara %30 faiz uygulanıyor. Oran yıldan yıla değiştiği için araçta sabit kodlanmadı; projeksiyon için oranı kendiniz giriyorsunuz. Tek bir oranla yapılan projeksiyon geçmiş yılların farklı oranlarını tutturmaz; kesin tutar için Daire’den hesap dökümü isteyin.',
       },
     ],
   },
   {
     slug: 'net-brut-maas-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'fazla-mesai-hesaplayici',
+        reason: 'Saat başı ücretinizi ve fazla mesai alacağınızı hesaplayın.',
+      },
+      {
+        slug: 'ihtiyat-sandigi-hesaplayici',
+        reason: 'Her ay kesilen İhtiyat Sandığı priminin yıllar içinde ne kadar biriktiğini görün.',
+      },
+      {
+        slug: 'yabanci-calisma-izni-cezasi-hesaplayici',
+        reason: 'Yabancı işçi çalıştırıyorsanız çalışma izni yükümlülüklerini ve ceza riskini görün.',
+      },
+    ],
+    records: [
+      {
+        label: 'Sosyal Güvenlik Yasası kapsamındaki prim oranları — Ü(K-I) 1609-2026',
+        href: '/karar/2026-uki-1609-2026-sosyal-guvenlik-yasasi-kapsaminda-sigortali-olanlara-uygulanacak-prim',
+        note: 'YGK 83/2026, yabancı sigortalılar için oranlar',
+      },
+      {
+        label: 'Temmuz–Eylül 2026 prim desteği — Ü(K-I) 1608-2026',
+        href: '/karar/2026-uki-1608-2026-temmuz-2026-eylul-2026-donemi-sosyal-guvenlik-yasasi-kapsaminda',
+        note: 'YGK 82/2026',
+      },
+      {
+        label: 'Kesinleşen asgari ücret — Ü(K-I) 1588-2026',
+        href: '/karar/2026-uki-1588-2026-kesinlesen-asgari-ucret',
+        note: 'Prim taban ve tavanının dayanağı',
+      },
+    ],
     name: 'Net–brüt maaş',
     heading: 'Net–brüt maaş ve işveren maliyeti hesaplayıcı',
     title: 'KKTC Net Maaş ve İşveren Maliyeti Hesaplama',
     summary:
       'Sosyal sigorta ve İhtiyat Sandığı kesintilerini, ele geçen tutarı ve işveren maliyetini hesaplar.',
     description:
-      'KKTC’de maaş kesintileri: 73/2007 Sosyal Güvenlik Yasası madde 78 ile 16/1976 madde 83 prim oranlarına ve İhtiyat Sandığı primine göre brütten nete geçişi ve işverene toplam maliyeti hesaplayın.',
+      'KKTC’de maaş kesintileri: 73/2007 Sosyal Güvenlik Yasası madde 78 ile 16/1976 madde 83 prim oranlarına, yabancı sigortalılar için YGK 83/2026 oranlarına ve İhtiyat Sandığı primine göre brütten nete geçişi ve işverene toplam maliyeti hesaplayın.',
     intro:
-      'Hangi prim oranlarına tabi olduğunuzu ilk sigortalılık tarihiniz belirliyor: 1 Ocak 2008’den sonra ilk kez sigortalı olanlar 73/2007’ye, daha önce sigortalı olanlar 16/1976’ya tabi. Araç iki rejimi ayrı ayrı hesaplıyor.',
+      'Hangi prim oranlarına tabi olduğunuzu ilk sigortalılık tarihiniz belirliyor: 1 Ocak 2008’den sonra ilk kez sigortalı olanlar 73/2007’ye, daha önce sigortalı olanlar 16/1976’ya tabi. 73/2007 kapsamında vatandaşlık da oranı değiştiriyor. Araç her durumu ayrı hesaplıyor.',
     legal: [
       {
         law: '73/2007 Sosyal Güvenlik Yasası',
@@ -515,6 +686,12 @@ export const TOOLS: readonly Tool[] = [
         article: 'Madde 83',
         summary:
           'Prime esas günlük kazancın alt sınırı yürürlükteki brüt asgari ücretin otuzda biri, üst sınırı bu alt sınırın yedi katıdır. Kazancı sınırların dışında kalanların primi sınır üzerinden hesaplanır.',
+      },
+      {
+        law: 'Bakanlar Kurulu Kararı (YGK 83/2026)',
+        article: 'Prim oranları',
+        summary:
+          '29 Temmuz 2026’dan itibaren KKTC vatandaşı veya işlem eşitliği sağlayan sosyal güvenlik anlaşması bulunan ülke vatandaşı olmayan sigortalılarda sigortalı hissesi hastalık %4,25, malullük-yaşlılık-ölüm %8,25; işsizlik primi uygulanmaz. Sigortalı hissesi toplam %13, işveren hissesi %9,75 + iş kazası.',
       },
       {
         law: '16/1976 Kıbrıs Türk Sosyal Sigortalar Yasası',
@@ -557,7 +734,17 @@ export const TOOLS: readonly Tool[] = [
       {
         question: 'Maaşımdan hangi kesintiler yapılıyor?',
         answer:
-          'Sosyal sigorta priminin sigortalı hissesi %9 ve İhtiyat Sandığı işçi primi %4 (eski sistemde %5) — toplam %13. Bu oran Çalışma Dairesi’nin ilan ettiği asgari ücret rakamlarıyla doğrulanabiliyor: 70.893 TL brütün %13’ü 9.216,09 TL, kalan 61.676,91 TL de Dairenin açıkladığı net asgari ücret.',
+          'KKTC ve TC vatandaşları için sosyal sigorta priminin sigortalı hissesi %9 ve İhtiyat Sandığı işçi primi %4 (eski sistemde %5) — toplam %13. Bu oran Çalışma Dairesi’nin ilan ettiği asgari ücret rakamlarıyla doğrulanabiliyor: 70.893 TL brütün %13’ü 9.216,09 TL, kalan 61.676,91 TL de Dairenin açıkladığı net asgari ücret. Anlaşmalı ülke vatandaşı olmayan yabancı işçilerde sigortalı hissesi %13’tür.',
+      },
+      {
+        question: 'Yabancı işçinin sigorta kesintisi farklı mı?',
+        answer:
+          'Evet, 29 Temmuz 2026’dan itibaren. YGK 83/2026 sayılı Bakanlar Kurulu kararıyla, KKTC vatandaşı veya KKTC ile işlem eşitliği içeren sosyal güvenlik anlaşması bulunan ülke (ör. Türkiye) vatandaşı olmayan sigortalılarda sigortalı hissesi hastalık kolunda %4,25’e, malullük-yaşlılık-ölüm kolunda %8,25’e çıktı ve işsizlik primi uygulanmıyor. Sigortalı hissesi toplamı %13, işveren hissesi %9,75 artı iş kazası primi. Asgari ücretle çalışan böyle bir işçinin vergi öncesi ele geçeni yaklaşık 58.841 TL.',
+      },
+      {
+        question: 'Temmuz–Eylül 2026 prim desteği maaşımı etkiler mi?',
+        answer:
+          'Hayır, işçinin kesintisini değiştirmiyor. YGK 82/2026 ile Temmuz–Eylül 2026 döneminde işveren hissesinin bir bölümü Devlet tarafından karşılanıyor; oran sigortalının cinsiyetine, vatandaşlığına ve sektöre göre değişiyor ve koşullara bağlı. Bu yüzden araç işveren maliyetini desteksiz gösteriyor; ayrıntılar sayfadaki ilgili Resmî Gazete kaydında.',
       },
       {
         question: 'Hangi sosyal güvenlik yasasına tabiyim?',

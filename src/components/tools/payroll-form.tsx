@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { z } from 'zod';
 
@@ -22,12 +23,14 @@ import {
   calculatePayroll,
   SGK_CEILING_MULTIPLIER,
   type InsuranceScheme,
+  type Nationality,
 } from '@/lib/tools/payroll';
 import { requiredAmount } from '@/lib/tools/validation';
 
 const schema = z.object({
   wage: requiredAmount('Aylık brüt ücreti girin.'),
   scheme: z.enum(['sgk', 'legacy']),
+  nationality: z.enum(['equal', 'other']),
   accidentRate: requiredAmount('İş kazası prim oranını girin.'),
   minimumWage: requiredAmount('Yürürlükteki brüt asgari ücreti girin.'),
 });
@@ -35,16 +38,18 @@ const schema = z.object({
 export function PayrollForm() {
   const [wage, setWage] = useState('');
   const [scheme, setScheme] = useState<InsuranceScheme>('sgk');
+  const [nationality, setNationality] = useState<Nationality>('equal');
   const [accidentRate, setAccidentRate] = useState(String(ACCIDENT_RATE_RANGE.min));
   const [minimumWage, setMinimumWage] = useState(String(MINIMUM_WAGE.grossMonthly));
 
   const { errors, result, stale, onSubmit, resultRef } = useCalculator({
-    values: { wage, scheme, accidentRate, minimumWage },
+    values: { wage, scheme, nationality, accidentRate, minimumWage },
     schema,
     calculate: (input) =>
       calculatePayroll({
         grossMonthlyWage: input.wage,
         scheme: input.scheme,
+        nationality: input.nationality,
         accidentRate: input.accidentRate,
         minimumWage: input.minimumWage,
       }),
@@ -72,6 +77,23 @@ export function PayrollForm() {
               { value: 'legacy', label: '1 Ocak 2008 öncesi — 16/1976 Sosyal Sigortalar Yasası' },
             ]}
           />
+          {/*
+            * Asked only under 73/2007: the YGK 83/2026 split does not touch
+            * the old scheme, and asking there would suggest the answer
+            * changes something.
+            */}
+          {scheme === 'sgk' ? (
+            <SelectField
+              label="Vatandaşlık"
+              hint="YGK 83/2026 (29 Temmuz 2026’dan itibaren): KKTC ile işlem eşitliği sağlayan sosyal güvenlik anlaşması olmayan ülke vatandaşlarının sigortalı hissesi %13’tür ve işsizlik primi uygulanmaz."
+              value={nationality}
+              onChange={setNationality}
+              options={[
+                { value: 'equal', label: 'KKTC veya anlaşmalı ülke (ör. TC) vatandaşı' },
+                { value: 'other', label: 'Diğer ülke vatandaşı' },
+              ]}
+            />
+          ) : null}
         </Fieldset>
 
         <Fieldset legend="İşveren tarafı">
@@ -104,6 +126,16 @@ export function PayrollForm() {
             Yasası&apos;nın dilim ve şahsi indirim kurallarına bağlıdır. Asgari ücret düzeyinde
             vergi çıkmadığı için Çalışma Dairesi&apos;nin ilan ettiği net bu hesapla birebir tutar;
             daha yüksek ücretlerde ele geçen tutar aşağıdakinden düşük olur.
+          </ToolNotice>
+
+          <ToolNotice tone="info">
+            Temmuz–Eylül 2026 döneminde YGK 82/2026 ile işveren hissesine koşullu, geçici bir
+            prim desteği uygulanıyor; desteğin oranı sigortalının cinsiyetine, vatandaşlığına ve
+            sektöre göre değiştiği için işveren maliyetine yansıtılmadı. Ayrıntılar{' '}
+            <Link href="/karar/2026-uki-1608-2026-temmuz-2026-eylul-2026-donemi-sosyal-guvenlik-yasasi-kapsaminda">
+              Resmî Gazete kaydında
+            </Link>
+            .
           </ToolNotice>
 
           {result.ceilingApplied ? (

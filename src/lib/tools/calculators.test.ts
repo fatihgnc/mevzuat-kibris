@@ -338,4 +338,39 @@ describe('payroll — 73/2007 madde 78/83, 16/1976 madde 83, İhtiyat Sandığı
     expect(low.netBeforeTax).toBe(high.netBeforeTax);
     expect(high.employerCost).toBeGreaterThan(low.employerCost);
   });
+
+  /*
+   * YGK 83/2026: citizens of non-agreement countries go on the D3 payroll. The
+   * Department's published D3 totals: employee 13%, employer 9.75% + work
+   * accident, state 1.25%.
+   */
+  it('YGK 83/2026: diğer ülke vatandaşında D3 oranları', () => {
+    const result = calculatePayroll({
+      grossMonthlyWage: MINIMUM_WAGE.grossMonthly,
+      scheme: 'sgk',
+      nationality: 'other',
+      accidentRate: 0.5,
+    });
+    const state = result.lines.reduce((sum, line) => sum + line.state, 0);
+    expect(result.socialSecurity.employeeRate).toBeCloseTo(13, 5);
+    expect(result.socialSecurity.employerRate).toBeCloseTo(9.75 + 0.5, 5);
+    expect(state).toBeCloseTo(1.25, 5);
+    expect(result.netBeforeTax).toBeCloseTo(58841.19, 2);
+  });
+
+  it('TC vatandaşı KKTC vatandaşıyla aynı oranlara tabi', () => {
+    const equal = calculatePayroll({ grossMonthlyWage: 90000, scheme: 'sgk', nationality: 'equal' });
+    const none = calculatePayroll({ grossMonthlyWage: 90000, scheme: 'sgk' });
+    expect(equal.netBeforeTax).toBe(none.netBeforeTax);
+  });
+
+  it('vatandaşlık ayrımı eski rejimi etkilemiyor', () => {
+    const result = calculatePayroll({
+      grossMonthlyWage: 90000,
+      scheme: 'legacy',
+      nationality: 'other',
+    });
+    expect(result.nationality).toBe('equal');
+    expect(result.socialSecurity.employeeRate).toBeCloseTo(9, 5);
+  });
 });

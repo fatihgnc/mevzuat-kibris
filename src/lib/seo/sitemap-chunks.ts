@@ -79,7 +79,13 @@ export function staticEntries(): MetadataRoute.Sitemap {
      * landing pages that answer a query outright rather than listing records.
      */
     entry('/arac', { priority: 0.7, changeFrequency: 'monthly' }),
-    ...TOOLS.map((tool) => entry(toolPath(tool.slug), { priority: 0.7, changeFrequency: 'monthly' })),
+    ...TOOLS.map((tool) =>
+      entry(toolPath(tool.slug), {
+        lastModified: new Date(tool.updatedAt),
+        priority: 0.7,
+        changeFrequency: 'monthly',
+      }),
+    ),
     entry('/hakkinda', { priority: 0.5, changeFrequency: 'yearly' }),
     entry('/iletisim', { priority: 0.4, changeFrequency: 'yearly' }),
     entry('/gizlilik', { priority: 0.3, changeFrequency: 'yearly' }),

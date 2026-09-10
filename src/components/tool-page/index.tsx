@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { articleAnchorId, linkifyArticles } from '@/components/tool-page/linkify-articles';
+import { articleAnchorId } from '@/components/tool-page/linkify-articles';
 import { breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/json-ld';
-import { TOOLS, TOOLS_PATH, toolPath, type Tool } from '@/lib/tools/registry';
+import { formatDate, parseDate } from '@/lib/tools/duration';
+import { toolExample, type ToolExample } from '@/lib/tools/examples';
+import { findTool, TOOLS, TOOLS_PATH, toolPath, type Tool } from '@/lib/tools/registry';
 
 /**
  * Her hesaplayıcının iskeleti.
@@ -15,7 +17,19 @@ import { TOOLS, TOOLS_PATH, toolPath, type Tool } from '@/lib/tools/registry';
  * değiştiği gün yedi dosyadan kaçının güncellendiğini kimse bilemezdi.
  */
 export function ToolPage({ tool, children }: { tool: Tool; children: React.ReactNode }) {
-  const others = TOOLS.filter((entry) => entry.slug !== tool.slug);
+  /*
+   * Tools linked with a reason first, then the rest. The reason is what sets a
+   * link apart from an "other tools" list: the reader sees why to go there,
+   * and a search engine sees why the two pages are related.
+   */
+  const related = tool.related.flatMap((link) => {
+    const target = findTool(link.slug);
+    return target ? [{ tool: target, reason: link.reason }] : [];
+  });
+  const relatedSlugs = new Set(related.map((entry) => entry.tool.slug));
+  const others = TOOLS.filter((entry) => entry.slug !== tool.slug && !relatedSlugs.has(entry.slug));
+  const example = toolExample(tool.slug);
+  const updatedAt = parseDate(tool.updatedAt);
 
   /*
    * Görünen sayfa yolu ile JSON-LD'deki AYNI listeden üretiliyor. Ayrı ayrı
@@ -39,25 +53,54 @@ export function ToolPage({ tool, children }: { tool: Tool; children: React.React
           {tool.heading}
         </h1>
         <p className="mt-3 max-w-[60em] text-xl leading-[1.6] text-ink-body">
-          {linkifyArticles(tool.intro, tool)}
+          {tool.intro}
         </p>
+        {updatedAt ? (
+          <p className="mt-2 text-sm text-ink-faint">
+            Son güncelleme: <time dateTime={tool.updatedAt}>{formatDate(updatedAt)}</time>
+          </p>
+        ) : null}
 
         <div className="mt-8">{children}</div>
+
+        {example ? <ExampleSection example={example} /> : null}
 
         <LegalBasisCard tool={tool} />
         <LimitationsFooter tool={tool} />
 
         <nav aria-labelledby="diger-araclar" className="mt-12 border-t border-line pt-6">
-          <h2 id="diger-araclar" className="m-0 text-xs text-ink-faint">
-            Diğer araçlar
-          </h2>
-          <ul className="mt-3 grid gap-x-6 gap-y-2 text-base sm:grid-cols-2">
-            {others.map((entry) => (
-              <li key={entry.slug}>
-                <Link href={toolPath(entry.slug)}>{entry.name}</Link>
-              </li>
-            ))}
-          </ul>
+          {related.length ? (
+            <>
+              <h2 id="diger-araclar" className="m-0 text-xs text-ink-faint">
+                Bunlara da bakın
+              </h2>
+              <ul className="mt-3 flex flex-col gap-3 text-base">
+                {related.map((entry) => (
+                  <li key={entry.tool.slug}>
+                    <Link href={toolPath(entry.tool.slug)}>{entry.tool.name}</Link>
+                    <span className="text-ink-muted"> — {entry.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {others.length ? (
+            <>
+              <h2
+                id={related.length ? undefined : 'diger-araclar'}
+                className={`m-0 text-xs text-ink-faint ${related.length ? 'mt-6' : ''}`}
+              >
+                Diğer araçlar
+              </h2>
+              <ul className="mt-3 flex flex-col gap-2 text-base">
+                {others.map((entry) => (
+                  <li key={entry.slug}>
+                    <Link href={toolPath(entry.slug)}>{entry.name}</Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </nav>
 
         <ToolFaqSection tool={tool} />
@@ -153,6 +196,22 @@ export function LegalBasisCard({ tool }: { tool: Tool }) {
         ))}
       </dl>
 
+      {tool.records?.length ? (
+        <>
+          <h3 className="mb-2 mt-6 text-xs text-ink-faint">Arşivdeki ilgili kayıtlar</h3>
+          <ul className="flex flex-col gap-2 text-base">
+            {tool.records.map((record) => (
+              <li key={record.href}>
+                <Link href={record.href}>{record.label}</Link>
+                {record.note ? (
+                  <span className="text-ink-muted"> — {record.note}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
       <h3 className="mb-2 mt-6 text-xs text-ink-faint">Kaynak metinler</h3>
       <ul className="flex flex-col gap-2 text-base">
         {tool.sources.map((source) => (
@@ -172,6 +231,34 @@ export function LegalBasisCard({ tool }: { tool: Tool }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+/**
+ * A fixed-input example computed on the server. The form's result is
+ * computed in the browser and never appears in the crawled HTML; this section
+ * writes the same calculation into the page as readable text.
+ */
+function ExampleSection({ example }: { example: ToolExample }) {
+  return (
+    <section
+      aria-labelledby="ornek-hesaplama"
+      className="mt-12 rounded-lg border border-line bg-surface p-5 sm:p-6"
+    >
+      <h2 id="ornek-hesaplama" className="m-0 text-3xl font-semibold tracking-tighter text-ink">
+        Örnek hesaplama
+      </h2>
+      <ul className="mt-4 flex list-disc flex-col gap-1.5 pl-5 text-base leading-[1.55] text-ink-body">
+        {example.inputs.map((input) => (
+          <li key={input}>{input}</li>
+        ))}
+      </ul>
+      {example.outcome.map((sentence) => (
+        <p key={sentence} className="mt-3 text-base leading-[1.65] text-ink-body">
+          {sentence}
+        </p>
+      ))}
     </section>
   );
 }
