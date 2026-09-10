@@ -52,7 +52,13 @@ export function SearchDialog({ defaultValue = '' }: { defaultValue?: string }) {
             input.current?.select();
           }}
           aria-label="Ara"
-          className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded text-ink-muted transition-colors hover:text-ink"
+          /*
+           * 42px, tema düğmesiyle AYNI. İkisi başlıkta yan yana duran tek bir
+           * grup ve biri 30px kalınca dokunma alanları eşit değildi: aynı
+           * görünen iki simgeden birine basmak diğerine basmaktan daha zordu.
+           * Simgenin kendisi 18px; büyüyen yalnızca tıklanabilir alan.
+           */
+          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded text-ink-muted transition-colors hover:text-ink"
         >
           <SearchIcon />
         </button>

@@ -1,9 +1,11 @@
 import Link from 'next/link';
 
+import { NavDropdown } from '@/components/nav-dropdown';
 import { NavMenu } from '@/components/nav-menu';
 import { SearchDialog } from '@/components/search-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
+import { TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
 import { cn } from '@/lib/utils';
 
 /**
@@ -41,6 +43,22 @@ const NAV: Array<{ href: string; label: string }> = [
    * pushed the inline list to collapse into the menu earlier than it needed to.
    */
 ];
+
+/**
+ * The calculators get ONE MENU, and it is built from the registry.
+ *
+ * They are seven pages that only make sense together, and a flat eighth link
+ * would have sent a reader to a hub to choose again. The narrow layout still
+ * gets them as a plain entry in NavMenu — a hover menu inside a tap menu is not
+ * a thing — so `NAV_WITH_TOOLS` is what the small screen sees.
+ */
+const TOOL_ITEMS = TOOLS.map((tool) => ({
+  href: toolPath(tool.slug),
+  label: tool.name,
+  description: tool.summary,
+}));
+
+const NAV_WITH_TOOLS = [...NAV, { href: TOOLS_PATH, label: 'Araçlar' }];
 
 interface SiteHeaderProps {
   /**
@@ -101,34 +119,54 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
           <span className="mt-1 text-xs text-ink-muted">{SITE_KICKER}</span>
         </Link>
 
-        <div className="flex items-center gap-4 sm:gap-[22px]">
-          <nav className="flex items-center gap-4 text-base text-ink-muted sm:gap-[22px]">
-            {/*
-             * Every link, on every screen — the narrow layout MOVES them into a
-             * menu rather than dropping them. Three of them used to vanish below
-             * `lg`, which quietly made the entity indexes unreachable on a phone;
-             * a link you cannot reach is worse than a menu you have to open.
-             */}
-            <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-ink-muted no-underline hover:text-ink hover:no-underline"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+        {/*
+         * THREE ZONES, not two: brand left, links CENTRED, controls right.
+         *
+         * The links used to sit in the same right-hand group as search and the
+         * theme switch, so the row read as "brand ... everything else" and the
+         * two icons were just two more items at the end of a list of ten. Giving
+         * the nav the free space between the fixed ends centres it on the row
+         * and leaves the controls as their own cluster.
+         *
+         * `min-w-0` on the middle zone so a long link list shrinks rather than
+         * pushing the controls off the row.
+         */}
+        <nav className="flex min-w-0 flex-1 items-center justify-center text-base text-ink-muted">
+          {/*
+           * Every link, on every screen — the narrow layout MOVES them into a
+           * menu rather than dropping them. Three of them used to vanish below
+           * `lg`, which quietly made the entity indexes unreachable on a phone;
+           * a link you cannot reach is worse than a menu you have to open.
+           */}
+          <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-ink-muted no-underline hover:text-ink hover:no-underline"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <NavDropdown label="Araçlar" href={TOOLS_PATH} items={TOOL_ITEMS} />
+          </div>
 
-            {/*
-             * Below 1060px the same list, in a menu. Ara is NOT in it — it is the
-             * icon beside it, on every screen, so the one control that is always
-             * in the same place is the one people reach for most.
-             */}
-            <NavMenu items={NAV} />
-          </nav>
+          {/*
+           * Below 1060px the same list, in a menu. It sits at the RIGHT end of
+           * the centre zone (`ml-auto`) so on a phone the row is brand, then the
+           * three controls together — the menu button reads as one of them.
+           */}
+          <div className="ml-auto min-[1060px]:hidden">
+            <NavMenu items={NAV_WITH_TOOLS} />
+          </div>
+        </nav>
 
+        {/*
+         * The two controls are ONE GROUP, tighter than the gap to the links.
+         * Ara is not in the menu — it is the icon here, on every screen, so the
+         * one control people reach for most is always in the same place.
+         */}
+        <div className="flex shrink-0 items-center gap-3 pl-4">
           <SearchDialog defaultValue={query} />
           <ThemeToggle />
         </div>

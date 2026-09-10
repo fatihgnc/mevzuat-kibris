@@ -8,6 +8,7 @@ import { type Row } from '@/lib/db/queries/shared';
 import { topicYearCounts } from '@/lib/db/queries/records';
 import { TOPIC_SLUGS, isTopicSlug } from '@/lib/constants/topics';
 import { GUIDES } from '@/lib/content/guides';
+import { TOOLS, toolPath } from '@/lib/tools/registry';
 
 import { ARCHIVE_START_YEAR, RECENT_MONTHS, absoluteUrl } from './config';
 
@@ -73,6 +74,12 @@ export function staticEntries(): MetadataRoute.Sitemap {
     entry('/sirket', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
     entry('/yer', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
     entry('/rehber', { priority: 0.7, changeFrequency: 'monthly' }),
+    /*
+     * The calculators. Same priority as the guides: both are hand-written
+     * landing pages that answer a query outright rather than listing records.
+     */
+    entry('/arac', { priority: 0.7, changeFrequency: 'monthly' }),
+    ...TOOLS.map((tool) => entry(toolPath(tool.slug), { priority: 0.7, changeFrequency: 'monthly' })),
     entry('/hakkinda', { priority: 0.5, changeFrequency: 'yearly' }),
     entry('/iletisim', { priority: 0.4, changeFrequency: 'yearly' }),
     entry('/gizlilik', { priority: 0.3, changeFrequency: 'yearly' }),

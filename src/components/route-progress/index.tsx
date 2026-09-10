@@ -65,12 +65,27 @@ export function RouteProgress() {
      * does; the rail submits natively and gets the browser's own indicator, but
      * starting the bar there too costs nothing and stops the two feeling
      * different.
+     *
+     * THE TEST IS THE ATTRIBUTE, NOT THE PROPERTY. `form.action` is an IDL
+     * attribute that falls back to the DOCUMENT'S OWN URL when the markup has no
+     * `action`, so `!form.action` is never true and every submit on the site
+     * looked like a navigation. The calculators submit to nothing — they compute
+     * in place — and each press of Hesapla started a bar that then ran for its
+     * full fifteen seconds, because no route ever committed to stop it.
+     *
+     * Reading `defaultPrevented` cannot do this job: the listener is on the
+     * capture phase, so it runs BEFORE the form's own handler gets to call
+     * preventDefault. A form that declares where it is going is the thing that
+     * might navigate; one that does not, does not.
      */
     const onSubmit = (event: SubmitEvent) => {
       if (event.defaultPrevented) return;
+
       const form = event.target as HTMLFormElement;
-      if (!form?.action) return;
-      const url = new URL(form.action, location.href);
+      const action = form?.getAttribute('action');
+      if (!action) return;
+
+      const url = new URL(action, location.href);
       if (url.origin !== location.origin) return;
       setActive(true);
     };

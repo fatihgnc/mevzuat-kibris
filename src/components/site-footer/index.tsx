@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { TOPIC_LIST } from '@/lib/constants/topics';
+import { TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
 import { SITE_NAME } from '@/lib/seo/config';
 import type { EntityRow } from '@/types/entity';
 
@@ -79,6 +80,34 @@ export function SiteFooter({
               </ul>
             </nav>
           ) : null}
+
+          {/*
+            * The calculators, listed one by one rather than behind a single
+            * "Araçlar" link. In the header they live in a hover menu, which a
+            * crawler follows but a reader only opens on purpose; here each page
+            * is a link on every page of the site, which is how the topic and
+            * institution blocks above already work.
+            */}
+          <nav aria-labelledby="footer-araclar">
+            <h2 id="footer-araclar" className="mb-3 text-xs text-ink-faint">
+              Araçlar
+            </h2>
+            <ul className="flex flex-col gap-2 text-base">
+              {TOOLS.map((tool) => (
+                <li key={tool.slug}>
+                  <Link
+                    href={toolPath(tool.slug)}
+                    className="text-ink-body no-underline hover:text-accent hover:no-underline"
+                  >
+                    {tool.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href={TOOLS_PATH}>Tüm araçlar</Link>
+              </li>
+            </ul>
+          </nav>
 
           <nav aria-labelledby="footer-site">
             <h2 id="footer-site" className="mb-3 text-xs text-ink-faint">

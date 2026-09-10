@@ -24,7 +24,13 @@ export function KnownIssueNotice({ className }: { className?: string }) {
       <p className="m-0 text-base font-semibold leading-[1.5]">
         Bazı kayıtların metni bozuk veya eksik görünüyor.
       </p>
-      <p className="m-0 mt-1.5 max-w-lede text-sm leading-[1.6]">
+      {/*
+        * `max-w-lede` YOK. Ölçü, uzun düz yazı için doğru bir satır uzunluğu
+        * ama bu dört cümlelik bir duyuru: kutunun içinde dar bir sütun olarak
+        * kalınca sağda geniş bir boşluk bırakıyor ve metin kutuya ait değilmiş
+        * gibi duruyordu. Genişliği kutunun kendisi belirliyor.
+        */}
+      <p className="m-0 mt-1.5 text-sm leading-[1.6]">
         Gazete sayılarının bir bölümü taranmış görüntü olarak yayımlandığı için otomatik
         okuma her sayfada temiz sonuç vermiyor; bazı kayıtlarda da metin yarıda kesiliyor.
         Farkındayız ve üzerinde çalışıyoruz. Bağlayıcı olan her zaman gazetedeki resmî
