@@ -13,6 +13,7 @@ import { MINIMUM_WAGE } from './constants';
 import { formatDate, parseDate } from './duration';
 import { formatCurrency, formatDays, formatNumber } from './format';
 import { calculateAnnualLeave } from './annual-leave';
+import { calculateIncomeTax } from './income-tax';
 import { calculateOvertime } from './overtime';
 import { maternityTimeline } from './parental-leave';
 import { calculatePayroll } from './payroll';
@@ -40,6 +41,19 @@ const EXAMPLES: Record<string, () => ToolExample> = {
   'net-brut-maas-hesaplayici': () => {
     const local = calculatePayroll({ grossMonthlyWage: wage, scheme: 'sgk' });
     const foreign = calculatePayroll({ grossMonthlyWage: wage, scheme: 'sgk', nationality: 'other' });
+    const higherGross = 150_000;
+    const higher = calculatePayroll({ grossMonthlyWage: higherGross, scheme: 'sgk' });
+    const higherTax = calculateIncomeTax({
+      grossMonthlyWage: higherGross,
+      socialContributions: higher.totalEmployeeDeduction,
+      salariesPerYear: 12,
+      spouse: false,
+      childrenA: 0,
+      childrenB: 0,
+      childrenC: 0,
+      disability: 'none',
+      over65: false,
+    });
     return {
       inputs: [
         `Aylık brüt ücret: ${formatCurrency(wage)} (${MINIMUM_WAGE.effectiveLabel} asgari ücreti)`,
@@ -47,8 +61,9 @@ const EXAMPLES: Record<string, () => ToolExample> = {
         'İş kazası prim oranı: %0,5',
       ],
       outcome: [
-        `KKTC veya TC vatandaşı bir işçide sosyal sigorta kesintisi ${formatCurrency(local.socialSecurity.employeeAmount)}, İhtiyat Sandığı kesintisi ${formatCurrency(local.provident.employeeAmount)}; vergi öncesi ele geçen ${formatCurrency(local.netBeforeTax)}. İşverene toplam maliyet ${formatCurrency(local.employerCost)}.`,
+        `KKTC veya TC vatandaşı bir işçide sosyal sigorta kesintisi ${formatCurrency(local.socialSecurity.employeeAmount)}, İhtiyat Sandığı kesintisi ${formatCurrency(local.provident.employeeAmount)}. Asgari ücrette kişisel ve özel indirimler matrahı sıfıra yakın bıraktığı için gelir vergisi çıkmaz; net maaş ${formatCurrency(local.netBeforeTax)}. İşverene toplam maliyet ${formatCurrency(local.employerCost)}.`,
         `Aynı ücretle çalışan ve anlaşmalı ülke vatandaşı olmayan bir işçide YGK 83/2026 uyarınca sigortalı hissesi %13’e çıktığı için ele geçen ${formatCurrency(foreign.netBeforeTax)}, işverene maliyet ${formatCurrency(foreign.employerCost)}.`,
+        `${formatCurrency(higherGross)} brüt ücret alan, eş ve çocuk indirimi olmayan bir işçide kesintiler ${formatCurrency(higher.totalEmployeeDeduction)}, gelir vergisi ${formatCurrency(higherTax.tax)} (en yüksek dilim %${higherTax.marginalRate}); net maaş ${formatCurrency(higher.netBeforeTax - higherTax.tax)}.`,
       ],
     };
   },

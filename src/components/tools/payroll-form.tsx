@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 
 import {
+  CheckboxField,
   Fieldset,
   NumberField,
   ResultPanel,
@@ -25,7 +26,15 @@ import {
   type InsuranceScheme,
   type Nationality,
 } from '@/lib/tools/payroll';
-import { requiredAmount } from '@/lib/tools/validation';
+import {
+  calculateIncomeTax,
+  INCOME_TAX_YEAR,
+  PERSONAL_ALLOWANCE,
+  SOCIAL_DEDUCTION_CAP_RATE,
+  SPECIAL_ALLOWANCE_RATE,
+  type Disability,
+} from '@/lib/tools/income-tax';
+import { optionalWholeCount, requiredAmount } from '@/lib/tools/validation';
 
 const schema = z.object({
   wage: requiredAmount('Aylık brüt ücreti girin.'),
@@ -33,6 +42,13 @@ const schema = z.object({
   nationality: z.enum(['equal', 'other']),
   accidentRate: requiredAmount('İş kazası prim oranını girin.'),
   minimumWage: requiredAmount('Yürürlükteki brüt asgari ücreti girin.'),
+  salaries: z.enum(['12', '13']),
+  spouse: z.enum(['no', 'yes']),
+  childrenA: optionalWholeCount(),
+  childrenB: optionalWholeCount(),
+  childrenC: optionalWholeCount(),
+  disability: z.enum(['none', '50', '100']),
+  over65: z.boolean(),
 });
 
 export function PayrollForm() {
@@ -41,18 +57,51 @@ export function PayrollForm() {
   const [nationality, setNationality] = useState<Nationality>('equal');
   const [accidentRate, setAccidentRate] = useState(String(ACCIDENT_RATE_RANGE.min));
   const [minimumWage, setMinimumWage] = useState(String(MINIMUM_WAGE.grossMonthly));
+  const [salaries, setSalaries] = useState<'12' | '13'>('12');
+  const [spouse, setSpouse] = useState<'no' | 'yes'>('no');
+  const [childrenA, setChildrenA] = useState('');
+  const [childrenB, setChildrenB] = useState('');
+  const [childrenC, setChildrenC] = useState('');
+  const [disability, setDisability] = useState<Disability>('none');
+  const [over65, setOver65] = useState(false);
 
   const { errors, result, stale, onSubmit, resultRef } = useCalculator({
-    values: { wage, scheme, nationality, accidentRate, minimumWage },
+    values: {
+      wage,
+      scheme,
+      nationality,
+      accidentRate,
+      minimumWage,
+      salaries,
+      spouse,
+      childrenA,
+      childrenB,
+      childrenC,
+      disability,
+      over65,
+    },
     schema,
-    calculate: (input) =>
-      calculatePayroll({
+    calculate: (input) => {
+      const payroll = calculatePayroll({
         grossMonthlyWage: input.wage,
         scheme: input.scheme,
         nationality: input.nationality,
         accidentRate: input.accidentRate,
         minimumWage: input.minimumWage,
-      }),
+      });
+      const tax = calculateIncomeTax({
+        grossMonthlyWage: input.wage,
+        socialContributions: payroll.totalEmployeeDeduction,
+        salariesPerYear: input.salaries === '13' ? 13 : 12,
+        spouse: input.spouse === 'yes',
+        childrenA: input.childrenA,
+        childrenB: input.childrenB,
+        childrenC: input.childrenC,
+        disability: input.disability,
+        over65: input.over65,
+      });
+      return { ...payroll, tax, net: payroll.netBeforeTax - tax.tax };
+    },
   });
 
   return (
@@ -96,6 +145,86 @@ export function PayrollForm() {
           ) : null}
         </Fieldset>
 
+        <Fieldset legend="Gelir vergisi">
+          <SelectField
+            label="Yıllık maaş sayısı"
+            hint="Vergi Dairesi aylık dilimleri ve indirimleri yıllık tutarların maaş sayısına bölümüyle uygular."
+            value={salaries}
+            onChange={setSalaries}
+            options={[
+              { value: '12', label: '12 maaş' },
+              { value: '13', label: '13 maaş (ikramiyeli)' },
+            ]}
+          />
+          <SelectField
+            label="Eş indirimi"
+            hint="Madde 12(2): KKTC’de sürekli olarak sizinle birlikte yaşayan eş için kişisel indirimin %8’i."
+            value={spouse}
+            onChange={setSpouse}
+            options={[
+              { value: 'no', label: 'Yok' },
+              { value: 'yes', label: 'Birlikte yaşadığım eşim var' },
+            ]}
+          />
+          {/*
+            * The three child fields sit in one bordered group so the warning
+            * visibly belongs to them rather than floating between fields.
+            */}
+          <div className="rounded-lg border border-line p-4 sm:col-span-2">
+            <p className="m-0 text-base font-medium text-ink">Çocuk indirimi</p>
+            <p
+              role="note"
+              className="m-0 mt-2 rounded border border-notice-border bg-notice px-3 py-2 text-sm leading-[1.5] text-notice-ink"
+            >
+              <strong className="font-semibold">Dikkat:</strong> Her çocuk yalnızca bir gruba
+              girer. Aynı çocuğu birden fazla alana yazmayın; okul durumuna uyan alana yazın.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <NumberField
+                label="Okula gitmeyen (16 yaş ve altı) veya ilkokuldaki çocuk sayısı"
+                hint="Madde 13(1)(A): çocuk başı kişisel indirimin %6’sı."
+                error={errors.childrenA}
+                value={childrenA}
+                onChange={setChildrenA}
+                suffix="çocuk"
+              />
+              <NumberField
+                label="Ortaöğretimdeki (20 yaş ve altı), askerdeki veya sürekli sakat çocuk sayısı"
+                hint="Madde 13(1)(B): çocuk başı kişisel indirimin %8’i. Ortaokuldaki çocuklar da buraya girer."
+                error={errors.childrenB}
+                value={childrenB}
+                onChange={setChildrenB}
+                suffix="çocuk"
+              />
+              <NumberField
+                label="Yükseköğretimde çocuk sayısı"
+                hint="Madde 13(1)(C): çocuk başı kişisel indirimin %11’ine kadar, harcanan eğitim gideri kadar. Üst sınır varsayıldı."
+                error={errors.childrenC}
+                value={childrenC}
+                onChange={setChildrenC}
+                suffix="çocuk"
+              />
+            </div>
+          </div>
+          <SelectField
+            label="Sakatlık"
+            hint="Madde 15(1): Sağlık Kurulu raporuyla belgelenen çalışma gücü kaybı."
+            value={disability}
+            onChange={setDisability}
+            options={[
+              { value: 'none', label: 'Yok' },
+              { value: '50', label: 'En az %50 çalışma gücü kaybı' },
+              { value: '100', label: '%100 çalışma gücü kaybı' },
+            ]}
+          />
+          <CheckboxField
+            label="65 yaşını doldurdum"
+            hint="Madde 15(2): sakatlık indirimi alınmıyorsa kişisel indirimin %5’i."
+            checked={over65}
+            onChange={setOver65}
+          />
+        </Fieldset>
+
         <Fieldset legend="İşveren tarafı">
           <NumberField
             label="İş kazası ve meslek hastalığı prim oranı"
@@ -122,11 +251,20 @@ export function PayrollForm() {
         {result ? (
         <>
           <ToolNotice tone="info">
-            Gelir vergisi (stopaj) bu hesaba dahil değildir. Vergi, 24/1982 Gelir Vergisi
-            Yasası&apos;nın dilim ve şahsi indirim kurallarına bağlıdır. Asgari ücret düzeyinde
-            vergi çıkmadığı için Çalışma Dairesi&apos;nin ilan ettiği net bu hesapla birebir tutar;
-            daha yüksek ücretlerde ele geçen tutar aşağıdakinden düşük olur.
+            Gelir vergisi, {INCOME_TAX_YEAR} yılı dilimleri ve kişisel indirimi (
+            {formatCurrency(PERSONAL_ALLOWANCE)}) ile aylık stopaj olarak hesaplandı; tek işverenden
+            ücret alındığı ve yıl boyu KKTC&apos;de yerleşik olunduğu varsayıldı. %
+            {SPECIAL_ALLOWANCE_RATE} özel indirim, madde 14(1)&apos;in lafzına uygun olarak brüt
+            ücret üzerinden uygulandı. Yıl sonu beyannamesiyle kesin vergi farklı olabilir.
           </ToolNotice>
+
+          {result.tax.socialDeductionCapped ? (
+            <ToolNotice tone="notice">
+              Sosyal güvence kesintilerinin yalnızca brüt ücretin %{SOCIAL_DEDUCTION_CAP_RATE}’ü
+              kadarı vergi matrahından indirilebiliyor (madde 7(1)(f)); aşan kısım vergiden
+              düşülmedi.
+            </ToolNotice>
+          ) : null}
 
           <ToolNotice tone="info">
             Temmuz–Eylül 2026 döneminde YGK 82/2026 ile işveren hissesine koşullu, geçici bir
@@ -188,8 +326,49 @@ export function PayrollForm() {
             <ResultRow
               label="Vergi öncesi ele geçen"
               value={formatCurrency(result.netBeforeTax)}
-              emphasis
             />
+            <ResultRow
+              label="Gelir vergisi"
+              value={formatCurrency(result.tax.tax)}
+              hint={
+                result.tax.tax > 0
+                  ? `En yüksek dilim %${result.tax.marginalRate}`
+                  : 'Matrah indirimlerin altında kaldı.'
+              }
+            />
+            <ResultRow label="Net maaş" value={formatCurrency(result.net)} emphasis />
+          </ResultPanel>
+
+          <ResultPanel title="Gelir vergisi hesabı">
+            <ResultRow label="Brüt maaş" value={formatCurrency(result.grossMonthlyWage)} />
+            <ResultRow
+              label="Sosyal güvence kesintileri"
+              value={`− ${formatCurrency(result.tax.socialDeduction)}`}
+              hint={`Madde 7(1)(f): en fazla brüt ücretin %${SOCIAL_DEDUCTION_CAP_RATE}’ü`}
+            />
+            <ResultRow
+              label="Özel indirim"
+              value={`− ${formatCurrency(result.tax.specialAllowance)}`}
+              hint={`Madde 14(1): brüt ücretin %${SPECIAL_ALLOWANCE_RATE}’u`}
+            />
+            {result.tax.allowances.map((line) => (
+              <ResultRow key={line.label} label={line.label} value={`− ${formatCurrency(line.amount)}`} />
+            ))}
+            <ResultRow label="Vergi matrahı" value={formatCurrency(result.tax.taxableBase)} />
+            {result.tax.largeFamilyRate > 0 ? (
+              <>
+                <ResultRow
+                  label="Hesaplanan vergi"
+                  value={formatCurrency(result.tax.taxBeforeReduction)}
+                />
+                <ResultRow
+                  label="Çok çocuk indirimi"
+                  value={`− ${formatCurrency(result.tax.largeFamilyReduction)}`}
+                  hint={`Madde 13(1)(D): verginin %${result.tax.largeFamilyRate}’i`}
+                />
+              </>
+            ) : null}
+            <ResultRow label="Gelir vergisi" value={formatCurrency(result.tax.tax)} emphasis />
           </ResultPanel>
 
           <ResultPanel title="İşverene maliyet">

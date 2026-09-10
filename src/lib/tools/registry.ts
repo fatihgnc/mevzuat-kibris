@@ -98,6 +98,202 @@ const EMU_LAW_LIST: ToolSource = {
 
 export const TOOLS: readonly Tool[] = [
   {
+    slug: 'net-brut-maas-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'fazla-mesai-hesaplayici',
+        reason: 'Saat başı ücretinizi ve fazla mesai alacağınızı hesaplayın.',
+      },
+      {
+        slug: 'ihtiyat-sandigi-hesaplayici',
+        reason: 'Her ay kesilen İhtiyat Sandığı priminin yıllar içinde ne kadar biriktiğini görün.',
+      },
+      {
+        slug: 'yabanci-calisma-izni-cezasi-hesaplayici',
+        reason: 'Yabancı işçi çalıştırıyorsanız çalışma izni yükümlülüklerini ve ceza riskini görün.',
+      },
+    ],
+    records: [
+      {
+        label: 'Sosyal Güvenlik Yasası kapsamındaki prim oranları — Ü(K-I) 1609-2026',
+        href: '/karar/2026-uki-1609-2026-sosyal-guvenlik-yasasi-kapsaminda-sigortali-olanlara-uygulanacak-prim',
+        note: 'YGK 83/2026, yabancı sigortalılar için oranlar',
+      },
+      {
+        label: 'Temmuz–Eylül 2026 prim desteği — Ü(K-I) 1608-2026',
+        href: '/karar/2026-uki-1608-2026-temmuz-2026-eylul-2026-donemi-sosyal-guvenlik-yasasi-kapsaminda',
+        note: 'YGK 82/2026',
+      },
+      {
+        label: 'Kesinleşen asgari ücret — Ü(K-I) 1588-2026',
+        href: '/karar/2026-uki-1588-2026-kesinlesen-asgari-ucret',
+        note: 'Prim taban ve tavanının dayanağı',
+      },
+      {
+        label: '2026 kişisel indirim miktarları — Ü(K-I) 132-2026',
+        href: '/karar/2026-uki-132-2026-2026-vergilendirme-donemi-icin-kisisel-indirim-miktarlarinin',
+        note: 'Kişisel indirim 655.000 TL',
+      },
+    ],
+    name: 'Net–brüt maaş hesaplayıcı',
+    heading: 'Net–brüt maaş ve işveren maliyeti hesaplayıcı',
+    title: 'KKTC Net Maaş ve İşveren Maliyeti Hesaplama',
+    summary:
+      'Sosyal sigorta ve İhtiyat Sandığı kesintilerini, ele geçen tutarı ve işveren maliyetini hesaplar.',
+    description:
+      'KKTC’de brütten nete maaş: sosyal sigorta ve İhtiyat Sandığı kesintilerini, 2026 gelir vergisi dilimleri ile kişisel, eş ve çocuk indirimlerine göre gelir vergisini, net maaşı ve işverene toplam maliyeti hesaplayın.',
+    intro:
+      'Hangi prim oranlarına tabi olduğunuzu ilk sigortalılık tarihiniz belirliyor: 1 Ocak 2008’den sonra ilk kez sigortalı olanlar 73/2007’ye, daha önce sigortalı olanlar 16/1976’ya tabi. 73/2007 kapsamında vatandaşlık da oranı değiştiriyor. Gelir vergisi ise 24/1982 Gelir Vergisi Yasası’nın 2026 dilimleri ve medeni hal ile çocuklara göre değişen indirimlerle hesaplanıyor.',
+    legal: [
+      {
+        law: '73/2007 Sosyal Güvenlik Yasası',
+        article: 'Madde 78',
+        summary:
+          'Sigortalı hissesi: hastalık %2,25, analık %0,5, malullük-yaşlılık-ölüm %5,5, işsizlik %0,75 — toplam %9. İşveren hissesi: iş kazası tarifeye göre %0,5–%6, hastalık %2,25, analık %0,5, malullük-yaşlılık-ölüm %7, işsizlik %0,75.',
+      },
+      {
+        law: '73/2007 Sosyal Güvenlik Yasası',
+        article: 'Madde 83',
+        summary:
+          'Prime esas günlük kazancın alt sınırı yürürlükteki brüt asgari ücretin otuzda biri, üst sınırı bu alt sınırın yedi katıdır. Kazancı sınırların dışında kalanların primi sınır üzerinden hesaplanır.',
+      },
+      {
+        law: 'Bakanlar Kurulu Kararı (YGK 83/2026)',
+        article: 'Prim oranları',
+        summary:
+          '29 Temmuz 2026’dan itibaren KKTC vatandaşı veya işlem eşitliği sağlayan sosyal güvenlik anlaşması bulunan ülke vatandaşı olmayan sigortalılarda sigortalı hissesi hastalık %4,25, malullük-yaşlılık-ölüm %8,25; işsizlik primi uygulanmaz. Sigortalı hissesi toplam %13, işveren hissesi %9,75 + iş kazası.',
+      },
+      {
+        law: '16/1976 Kıbrıs Türk Sosyal Sigortalar Yasası',
+        article: 'Madde 83',
+        summary:
+          '2/2012 ile değişik: hastalık %6 (üçte biri sigortalı), analık %1 (yarısı işveren, yarısı Devlet), malullük-yaşlılık-ölüm %16 (%6 sigortalı, %7 işveren, %3 Devlet), işsizlik %3 (üçte biri sigortalı). İş kazası priminin tamamı işverene ait ve %6’yı geçemez.',
+      },
+      {
+        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
+        article: 'Madde 8',
+        summary:
+          'Sosyal Güvenlik Yasası’ndan sonra ilk defa kapsama girenlerde prim ve depozit brüt ücretin %4’ü; daha önce girenlerde her ikisi de en az %5.',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 52',
+        summary:
+          '25/2026 ile değişik: yıllık matrahın ilk 45.000 TL’si %10, sonraki 45.000 TL %20, sonraki 120.000 TL %25, sonraki 190.000 TL %30, 400.000 TL’yi aşan kısmı %37. Ücretlerde aylık kesinti, dilimlerin yıllık maaş sayısına bölümüyle yapılır.',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 12',
+        summary:
+          'Kişisel indirim Bakanlar Kurulunca her yıl saptanır; 2026 için 655.000 TL (Ü(K-I) 132-2026). Birlikte yaşanan eş için bu tutarın %8’i. Kişisel ve özel indirim toplamı yıllık asgari ücretten az olamaz.',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 13',
+        summary:
+          'Çocuk başına kişisel indirimin %6’sı (16 yaş altı veya ilkokul), %8’i (ortaöğretim, askerlik, sürekli sakatlık) veya en çok %11’i (yükseköğretim, eğitim gideri kadar). Üç ve daha fazla çocukta vergiden üçüncü çocuk için %15, sonraki her çocuk için %5 ek indirim.',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 14',
+        summary:
+          'Ücretlilerin matrahının saptanmasında ücretin brüt miktarı üzerinden %10 özel indirim yapılır.',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 15',
+        summary:
+          'En az %50 çalışma gücü kaybında kişisel indirimin %15’i, %100’de %30’u; sakatlık indirimi almayan 65 yaş üstü yükümlülerde %5’i.',
+      },
+    ],
+    sources: [
+      {
+        label: 'DAÜ İnsan Kaynakları — 73/2007 Sosyal Güvenlik Yasası',
+        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/sosyal-guvenlik-yasasi',
+      },
+      {
+        label: 'DAÜ İnsan Kaynakları — Kıbrıs Türk Sosyal Sigortalar Yasası',
+        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/kibris-turk-sosyal-sigortalar-yasasi',
+      },
+      {
+        label: 'KKTC Çalışma Dairesi — asgari ücret',
+        href: 'http://calisma.gov.ct.tr/Asgari-Ücret',
+        note: 'Prim taban ve tavanının dayandığı tutar',
+      },
+      {
+        label: 'KKTC Vergi Dairesi — 2026 matrah dilimleri ve kişisel indirimler',
+        href: 'https://vergi.gov.ct.tr/?q=content%2F2026-y%C4%B1l%C4%B1-gelir-vergisi-matrah-dilimleri-ile-ki%C5%9Fisel-indirim-miktarlar%C4%B1-yay%C4%B1mland%C4%B1',
+      },
+      {
+        label: 'KKTC Vergi Dairesi — 24/1982 Gelir Vergisi Yasası (birleştirilmiş metin)',
+        href: 'https://www.vergi.gov.ct.tr/?q=content%2Fyasa-ve-t%C3%BCz%C3%BCkler',
+        note: '25/2026 değişikliğiyle',
+      },
+    ],
+    assumptions: [
+      'Gelir vergisi aylık stopaj olarak, tek işverenden ücret alındığı ve yıl boyu KKTC’de yerleşik olunduğu varsayımıyla hesaplanır.',
+      'Özel indirim, madde 14(1)’in lafzına uygun olarak brüt ücret üzerinden uygulanır. Vergi Dairesi’nin tablosu sosyal güvence kesintilerinden sonraki tutarı esas alıyor; bu okuma asgari ücrette Çalışma Dairesi’nin ilan ettiği neti tutturmuyor.',
+      'Yükseköğretimdeki çocuk indirimi eğitim gideri kadar olduğundan üst sınırı (%11) varsayılır.',
+      'Ortaokuldaki çocuk, madde 13(1)’in lafzına uygun olarak ortaöğretim (%8) sayılır: (A) bendi yalnızca okula gitmeyen veya ilkokuldaki çocuğu kapsıyor. Vergi Dairesi’nin tablosu (A) için “ilköğretim” ifadesini kullanıyor; o okumayla ortaokuldaki çocuk %6’ya girerdi.',
+      'İş kazası prim oranı işyerinin tehlike sınıfına göre değişir; varsayılan en düşük orandır (%0,5).',
+      'İhtiyat Sandığı primi brüt ücretin tamamı üzerinden hesaplanır; sosyal sigorta prim tavanı bu prime uygulanmaz.',
+    ],
+    limitations: [
+      'Yıl sonu beyannamesi, birden fazla işverenden ücret (madde 18: indirimler yalnızca en yüksek ücrete uygulanır), KKTC’de yerleşik sayılmayanlar (kişisel indirimler uygulanmaz), çalışan emekliler (kişisel indirim %100 artırılır) ve yıl ortasında işe başlayan yabancı işçilerde indirimlerin aylara orantılanması (madde 19) hesaplanmaz.',
+      'Eşlerin ikisinin de geliri varsa çocuk indirimleri eşler arasında eşit bölüştürülür (madde 13(4)); araç indirimin tamamını size uygular.',
+      '16/1976 rejiminde prime esas kazancın üst sınırı yasada formülle değil Bakanlar Kurulu kararıyla saptanır; bu rejimde tavan uygulanmaz.',
+      'Hayat pahalılığı ödeneği, aile yardımı ve servis ücreti gibi ödemeler 73/2007 madde 82 uyarınca prime esas kazanca dahildir; brüt ücret alanına bunlar dahil edilmelidir.',
+    ],
+    faq: [
+      {
+        question: 'Maaşımdan hangi kesintiler yapılıyor?',
+        answer:
+          'KKTC ve TC vatandaşları için sosyal sigorta priminin sigortalı hissesi %9 ve İhtiyat Sandığı işçi primi %4 (eski sistemde %5) — toplam %13. Bu oran Çalışma Dairesi’nin ilan ettiği asgari ücret rakamlarıyla doğrulanabiliyor: 70.893 TL brütün %13’ü 9.216,09 TL, kalan 61.676,91 TL de Dairenin açıkladığı net asgari ücret. Anlaşmalı ülke vatandaşı olmayan yabancı işçilerde sigortalı hissesi %13’tür.',
+      },
+      {
+        question: 'Yabancı işçinin sigorta kesintisi farklı mı?',
+        answer:
+          'Evet, 29 Temmuz 2026’dan itibaren. YGK 83/2026 sayılı Bakanlar Kurulu kararıyla, KKTC vatandaşı veya KKTC ile işlem eşitliği içeren sosyal güvenlik anlaşması bulunan ülke (ör. Türkiye) vatandaşı olmayan sigortalılarda sigortalı hissesi hastalık kolunda %4,25’e, malullük-yaşlılık-ölüm kolunda %8,25’e çıktı ve işsizlik primi uygulanmıyor. Sigortalı hissesi toplamı %13, işveren hissesi %9,75 artı iş kazası primi. Asgari ücretle çalışan böyle bir işçinin vergi öncesi ele geçeni yaklaşık 58.841 TL.',
+      },
+      {
+        question: 'Temmuz–Eylül 2026 prim desteği maaşımı etkiler mi?',
+        answer:
+          'Hayır, işçinin kesintisini değiştirmiyor. YGK 82/2026 ile Temmuz–Eylül 2026 döneminde işveren hissesinin bir bölümü Devlet tarafından karşılanıyor; oran sigortalının cinsiyetine, vatandaşlığına ve sektöre göre değişiyor ve koşullara bağlı. Bu yüzden araç işveren maliyetini desteksiz gösteriyor; ayrıntılar sayfadaki ilgili Resmî Gazete kaydında.',
+      },
+      {
+        question: 'Hangi sosyal güvenlik yasasına tabiyim?',
+        answer:
+          'İlk sigortalılık tarihiniz belirliyor. 73/2007 Sosyal Güvenlik Yasası 1 Ocak 2008’de yürürlüğe girdi ve geçici kurallar, o tarihte hâlihazırda bir sosyal güvenlik sistemine bağlı olanların eski sistemlerine bağlı kalmaya devam edeceğini söylüyor. 2008 öncesi sigortalılar 16/1976 Kıbrıs Türk Sosyal Sigortalar Yasası’na, sonrakiler 73/2007’ye tabi.',
+      },
+      {
+        question: 'Prim kesintisinin bir üst sınırı var mı?',
+        answer:
+          '73/2007 kapsamındakiler için var. Madde 83(1): prime esas günlük kazancın alt sınırı yürürlükteki brüt asgari ücretin otuzda biri, üst sınırı ise bu alt sınırın yedi katı. Aylığa çevrilince tavan, brüt asgari ücretin yedi katı oluyor. İhtiyat Sandığı primine bu tavan uygulanmıyor; o brüt ücretin tamamı üzerinden kesiliyor.',
+      },
+      {
+        question: 'KKTC’de 2026 gelir vergisi dilimleri nedir?',
+        answer:
+          '25/2026 sayılı Değişiklik Yasası ile madde 52’ye göre yıllık matrahın ilk 45.000 TL’si %10, sonraki 45.000 TL %20, sonraki 120.000 TL %25, sonraki 190.000 TL %30, 400.000 TL’yi aşan kısmı %37 oranında vergilendiriliyor. 12 maaş alan bir ücretlide aylık dilimler bunların on ikide biri: 3.750, 7.500, 17.500 ve 33.333,33 TL.',
+      },
+      {
+        question: 'Kişisel indirim 2026’da ne kadar?',
+        answer:
+          'Ü(K-I) 132-2026 sayılı Bakanlar Kurulu kararıyla 2026 vergilendirme dönemi için 655.000 TL; 12 maaşta aylık 54.583,33 TL. Birlikte yaşanan eş için 52.400 TL, çocuk başına eğitim durumuna göre 39.300, 52.400 veya en çok 72.050 TL ek indirim yapılıyor.',
+      },
+      {
+        question: 'Asgari ücretten gelir vergisi kesilir mi?',
+        answer:
+          'Pratikte hayır. Brüt 70.893 TL’den %13 sosyal güvence kesintisi, %10 özel indirim ve aylık 54.583,33 TL kişisel indirim düşülünce matrah birkaç liraya iniyor. Madde 12(1) de kişisel ve özel indirimin toplamının yıllık asgari ücretten az olamayacağını söylüyor. Çalışma Dairesi’nin ilan ettiği 61.677 TL net de vergisiz hesaba karşılık geliyor.',
+      },
+      {
+        question: 'Bir çalışanın işverene maliyeti ne kadar?',
+        answer:
+          'Brüt ücrete ek olarak sosyal sigorta işveren hissesi ve İhtiyat Sandığı işveren depoziti biniyor. 73/2007 madde 78(1)’e göre işveren hissesi hastalık %2,25, analık %0,5, malullük-yaşlılık-ölüm %7, işsizlik %0,75 ve tehlike sınıfına göre %0,5 ile %6 arasında değişen iş kazası primi. İhtiyat Sandığı depoziti ise %4 (eski sistemde %5).',
+      },
+    ],
+  },
+  {
     slug: 'yillik-izin-hesaplayici',
     updatedAt: '2026-09-10',
     related: [
@@ -288,7 +484,7 @@ export const TOOLS: readonly Tool[] = [
         reason: 'İhtiyat Sandığı birikiminizi ve çekebileceğiniz avansı görün.',
       },
     ],
-    name: 'Toplu işten çıkarma tazminatı',
+    name: 'Toplu işten çıkarma tazminatı hesaplayıcı',
     heading: 'Toplu işten çıkarma tazminatı ve ihbar hesaplayıcı',
     title: 'KKTC Toplu İşten Çıkarma Tazminatı Hesaplama',
     summary:
@@ -378,7 +574,7 @@ export const TOOLS: readonly Tool[] = [
         reason: 'Doğum izni yıllık izin hakkınızı azaltmaz; yıllık izninizi ayrıca hesaplayın.',
       },
     ],
-    name: 'Doğum ve mazeret izni',
+    name: 'Doğum ve mazeret izni hesaplayıcı',
     heading: 'Doğum, emzirme ve mazeret izni hesaplayıcı',
     title: 'KKTC Doğum İzni ve Mazeret İzni Hesaplama',
     summary: 'Doğum tarihinden yasak, ödeneksiz izin ve emzirme izni tarihlerini çıkarır.',
@@ -466,7 +662,7 @@ export const TOOLS: readonly Tool[] = [
         note: 'Cezanın katı alındığı tutar',
       },
     ],
-    name: 'Çalışma izni ceza riski',
+    name: 'Çalışma izni cezası hesaplayıcı',
     heading: 'Yabancı çalışma izni ceza riski hesaplayıcı',
     title: 'KKTC İzinsiz Yabancı Çalıştırma Cezası Hesaplama',
     summary: 'İdari para cezasını ve mahkemeye gitmesi halindeki azami riski hesaplar.',
@@ -560,7 +756,7 @@ export const TOOLS: readonly Tool[] = [
         note: 'Yıllık faiz %37, cari faiz %30',
       },
     ],
-    name: 'İhtiyat Sandığı birikimi',
+    name: 'İhtiyat Sandığı hesaplayıcı',
     heading: 'İhtiyat Sandığı birikim ve avans hesaplayıcı',
     title: 'KKTC İhtiyat Sandığı Birikim ve Avans Hesaplama',
     summary: 'Tahmini birikimi, çekilebilecek azami avansı ve 15 yıl dörtte bir hakkını gösterir.',
@@ -628,143 +824,6 @@ export const TOOLS: readonly Tool[] = [
         question: 'Faiz oranı ne kadar?',
         answer:
           'Sabit değil, Bakanlar Kurulu kararıyla belirleniyor. Ü(K-I) 597-2026 sayılı karara göre 1 Nisan 2026’dan itibaren iştirakçi hesaplarına yıllık %37 faiz, cari hesaplara %30 faiz uygulanıyor. Oran yıldan yıla değiştiği için araçta sabit kodlanmadı; projeksiyon için oranı kendiniz giriyorsunuz. Tek bir oranla yapılan projeksiyon geçmiş yılların farklı oranlarını tutturmaz; kesin tutar için Daire’den hesap dökümü isteyin.',
-      },
-    ],
-  },
-  {
-    slug: 'net-brut-maas-hesaplayici',
-    updatedAt: '2026-09-10',
-    related: [
-      {
-        slug: 'fazla-mesai-hesaplayici',
-        reason: 'Saat başı ücretinizi ve fazla mesai alacağınızı hesaplayın.',
-      },
-      {
-        slug: 'ihtiyat-sandigi-hesaplayici',
-        reason: 'Her ay kesilen İhtiyat Sandığı priminin yıllar içinde ne kadar biriktiğini görün.',
-      },
-      {
-        slug: 'yabanci-calisma-izni-cezasi-hesaplayici',
-        reason: 'Yabancı işçi çalıştırıyorsanız çalışma izni yükümlülüklerini ve ceza riskini görün.',
-      },
-    ],
-    records: [
-      {
-        label: 'Sosyal Güvenlik Yasası kapsamındaki prim oranları — Ü(K-I) 1609-2026',
-        href: '/karar/2026-uki-1609-2026-sosyal-guvenlik-yasasi-kapsaminda-sigortali-olanlara-uygulanacak-prim',
-        note: 'YGK 83/2026, yabancı sigortalılar için oranlar',
-      },
-      {
-        label: 'Temmuz–Eylül 2026 prim desteği — Ü(K-I) 1608-2026',
-        href: '/karar/2026-uki-1608-2026-temmuz-2026-eylul-2026-donemi-sosyal-guvenlik-yasasi-kapsaminda',
-        note: 'YGK 82/2026',
-      },
-      {
-        label: 'Kesinleşen asgari ücret — Ü(K-I) 1588-2026',
-        href: '/karar/2026-uki-1588-2026-kesinlesen-asgari-ucret',
-        note: 'Prim taban ve tavanının dayanağı',
-      },
-    ],
-    name: 'Net–brüt maaş',
-    heading: 'Net–brüt maaş ve işveren maliyeti hesaplayıcı',
-    title: 'KKTC Net Maaş ve İşveren Maliyeti Hesaplama',
-    summary:
-      'Sosyal sigorta ve İhtiyat Sandığı kesintilerini, ele geçen tutarı ve işveren maliyetini hesaplar.',
-    description:
-      'KKTC’de maaş kesintileri: 73/2007 Sosyal Güvenlik Yasası madde 78 ile 16/1976 madde 83 prim oranlarına, yabancı sigortalılar için YGK 83/2026 oranlarına ve İhtiyat Sandığı primine göre brütten nete geçişi ve işverene toplam maliyeti hesaplayın.',
-    intro:
-      'Hangi prim oranlarına tabi olduğunuzu ilk sigortalılık tarihiniz belirliyor: 1 Ocak 2008’den sonra ilk kez sigortalı olanlar 73/2007’ye, daha önce sigortalı olanlar 16/1976’ya tabi. 73/2007 kapsamında vatandaşlık da oranı değiştiriyor. Araç her durumu ayrı hesaplıyor.',
-    legal: [
-      {
-        law: '73/2007 Sosyal Güvenlik Yasası',
-        article: 'Madde 78',
-        summary:
-          'Sigortalı hissesi: hastalık %2,25, analık %0,5, malullük-yaşlılık-ölüm %5,5, işsizlik %0,75 — toplam %9. İşveren hissesi: iş kazası tarifeye göre %0,5–%6, hastalık %2,25, analık %0,5, malullük-yaşlılık-ölüm %7, işsizlik %0,75.',
-      },
-      {
-        law: '73/2007 Sosyal Güvenlik Yasası',
-        article: 'Madde 83',
-        summary:
-          'Prime esas günlük kazancın alt sınırı yürürlükteki brüt asgari ücretin otuzda biri, üst sınırı bu alt sınırın yedi katıdır. Kazancı sınırların dışında kalanların primi sınır üzerinden hesaplanır.',
-      },
-      {
-        law: 'Bakanlar Kurulu Kararı (YGK 83/2026)',
-        article: 'Prim oranları',
-        summary:
-          '29 Temmuz 2026’dan itibaren KKTC vatandaşı veya işlem eşitliği sağlayan sosyal güvenlik anlaşması bulunan ülke vatandaşı olmayan sigortalılarda sigortalı hissesi hastalık %4,25, malullük-yaşlılık-ölüm %8,25; işsizlik primi uygulanmaz. Sigortalı hissesi toplam %13, işveren hissesi %9,75 + iş kazası.',
-      },
-      {
-        law: '16/1976 Kıbrıs Türk Sosyal Sigortalar Yasası',
-        article: 'Madde 83',
-        summary:
-          '2/2012 ile değişik: hastalık %6 (üçte biri sigortalı), analık %1 (yarısı işveren, yarısı Devlet), malullük-yaşlılık-ölüm %16 (%6 sigortalı, %7 işveren, %3 Devlet), işsizlik %3 (üçte biri sigortalı). İş kazası priminin tamamı işverene ait ve %6’yı geçemez.',
-      },
-      {
-        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
-        article: 'Madde 8',
-        summary:
-          'Sosyal Güvenlik Yasası’ndan sonra ilk defa kapsama girenlerde prim ve depozit brüt ücretin %4’ü; daha önce girenlerde her ikisi de en az %5.',
-      },
-    ],
-    sources: [
-      {
-        label: 'DAÜ İnsan Kaynakları — 73/2007 Sosyal Güvenlik Yasası',
-        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/sosyal-guvenlik-yasasi',
-      },
-      {
-        label: 'DAÜ İnsan Kaynakları — Kıbrıs Türk Sosyal Sigortalar Yasası',
-        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/kibris-turk-sosyal-sigortalar-yasasi',
-      },
-      {
-        label: 'KKTC Çalışma Dairesi — asgari ücret',
-        href: 'http://calisma.gov.ct.tr/Asgari-Ücret',
-        note: 'Prim taban ve tavanının dayandığı tutar',
-      },
-    ],
-    assumptions: [
-      'İş kazası prim oranı işyerinin tehlike sınıfına göre değişir; varsayılan en düşük orandır (%0,5).',
-      'İhtiyat Sandığı primi brüt ücretin tamamı üzerinden hesaplanır; sosyal sigorta prim tavanı bu prime uygulanmaz.',
-    ],
-    limitations: [
-      'GELİR VERGİSİ (stopaj) hesaba dahil DEĞİLDİR. Vergi, 24/1982 Gelir Vergisi Yasası’nın dilim ve şahsi indirim kurallarına bağlıdır; asgari ücret düzeyinde vergi çıkmadığı için Çalışma Dairesi’nin ilan ettiği net bu hesapla birebir tutar, daha yüksek ücretlerde tutmaz.',
-      '16/1976 rejiminde prime esas kazancın üst sınırı yasada formülle değil Bakanlar Kurulu kararıyla saptanır; bu rejimde tavan uygulanmaz.',
-      'Hayat pahalılığı ödeneği, aile yardımı ve servis ücreti gibi ödemeler 73/2007 madde 82 uyarınca prime esas kazanca dahildir; brüt ücret alanına bunlar dahil edilmelidir.',
-    ],
-    faq: [
-      {
-        question: 'Maaşımdan hangi kesintiler yapılıyor?',
-        answer:
-          'KKTC ve TC vatandaşları için sosyal sigorta priminin sigortalı hissesi %9 ve İhtiyat Sandığı işçi primi %4 (eski sistemde %5) — toplam %13. Bu oran Çalışma Dairesi’nin ilan ettiği asgari ücret rakamlarıyla doğrulanabiliyor: 70.893 TL brütün %13’ü 9.216,09 TL, kalan 61.676,91 TL de Dairenin açıkladığı net asgari ücret. Anlaşmalı ülke vatandaşı olmayan yabancı işçilerde sigortalı hissesi %13’tür.',
-      },
-      {
-        question: 'Yabancı işçinin sigorta kesintisi farklı mı?',
-        answer:
-          'Evet, 29 Temmuz 2026’dan itibaren. YGK 83/2026 sayılı Bakanlar Kurulu kararıyla, KKTC vatandaşı veya KKTC ile işlem eşitliği içeren sosyal güvenlik anlaşması bulunan ülke (ör. Türkiye) vatandaşı olmayan sigortalılarda sigortalı hissesi hastalık kolunda %4,25’e, malullük-yaşlılık-ölüm kolunda %8,25’e çıktı ve işsizlik primi uygulanmıyor. Sigortalı hissesi toplamı %13, işveren hissesi %9,75 artı iş kazası primi. Asgari ücretle çalışan böyle bir işçinin vergi öncesi ele geçeni yaklaşık 58.841 TL.',
-      },
-      {
-        question: 'Temmuz–Eylül 2026 prim desteği maaşımı etkiler mi?',
-        answer:
-          'Hayır, işçinin kesintisini değiştirmiyor. YGK 82/2026 ile Temmuz–Eylül 2026 döneminde işveren hissesinin bir bölümü Devlet tarafından karşılanıyor; oran sigortalının cinsiyetine, vatandaşlığına ve sektöre göre değişiyor ve koşullara bağlı. Bu yüzden araç işveren maliyetini desteksiz gösteriyor; ayrıntılar sayfadaki ilgili Resmî Gazete kaydında.',
-      },
-      {
-        question: 'Hangi sosyal güvenlik yasasına tabiyim?',
-        answer:
-          'İlk sigortalılık tarihiniz belirliyor. 73/2007 Sosyal Güvenlik Yasası 1 Ocak 2008’de yürürlüğe girdi ve geçici kurallar, o tarihte hâlihazırda bir sosyal güvenlik sistemine bağlı olanların eski sistemlerine bağlı kalmaya devam edeceğini söylüyor. 2008 öncesi sigortalılar 16/1976 Kıbrıs Türk Sosyal Sigortalar Yasası’na, sonrakiler 73/2007’ye tabi.',
-      },
-      {
-        question: 'Prim kesintisinin bir üst sınırı var mı?',
-        answer:
-          '73/2007 kapsamındakiler için var. Madde 83(1): prime esas günlük kazancın alt sınırı yürürlükteki brüt asgari ücretin otuzda biri, üst sınırı ise bu alt sınırın yedi katı. Aylığa çevrilince tavan, brüt asgari ücretin yedi katı oluyor. İhtiyat Sandığı primine bu tavan uygulanmıyor; o brüt ücretin tamamı üzerinden kesiliyor.',
-      },
-      {
-        question: 'Gelir vergisi bu hesaba dahil mi?',
-        answer:
-          'Hayır. Gelir vergisi stopajı 24/1982 Gelir Vergisi Yasası’nın dilim ve şahsi indirim kurallarına bağlı ve medeni hal ile çocuk sayısına göre değişiyor. Asgari ücret düzeyinde vergi çıkmadığı için Dairenin ilan ettiği net bu hesapla birebir tutuyor; daha yüksek ücretlerde ele geçen tutar buradaki sonuçtan düşük olur.',
-      },
-      {
-        question: 'Bir çalışanın işverene maliyeti ne kadar?',
-        answer:
-          'Brüt ücrete ek olarak sosyal sigorta işveren hissesi ve İhtiyat Sandığı işveren depoziti biniyor. 73/2007 madde 78(1)’e göre işveren hissesi hastalık %2,25, analık %0,5, malullük-yaşlılık-ölüm %7, işsizlik %0,75 ve tehlike sınıfına göre %0,5 ile %6 arasında değişen iş kazası primi. İhtiyat Sandığı depoziti ise %4 (eski sistemde %5).',
       },
     ],
   },

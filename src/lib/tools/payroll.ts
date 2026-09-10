@@ -33,12 +33,9 @@
  * 70.893 − 9.216,09 = 61.676,91. Aradaki 9 kuruş yuvarlamadan. Yani Dairenin
  * "net"i tam olarak bu iki kesintiden ibaret.
  *
- * GELİR VERGİSİ BU HESABIN DIŞINDA. Stopaj, 24/1982 Gelir Vergisi Yasası'nın
- * dilim ve indirim kurallarına bağlı; medeni hal, çocuk sayısı ve diğer şahsi
- * indirimlerle değişiyor. Asgari ücret düzeyinde vergi çıkmadığı için Dairenin
- * ilan ettiği net tutuyor, daha yüksek ücretlerde tutmaz. Bu yüzden çıktı
- * "net maaş" değil, "sosyal güvenlik kesintileri sonrası ücret" olarak
- * adlandırılıyor.
+ * INCOME TAX IS NOT HERE. It lives in income-tax.ts and takes this module's
+ * `totalEmployeeDeduction` as its social security deduction; `netBeforeTax`
+ * is the wage after social security only.
  */
 
 import { MINIMUM_WAGE } from './constants';

@@ -100,6 +100,20 @@ export function optionalCount(label = 'sayı') {
     .transform((value) => (value.trim() ? (parseNumberInput(value) as number) : null));
 }
 
+/** Optional whole number that may be zero — child counts. Empty means 0. */
+export function optionalWholeCount() {
+  return z
+    .string()
+    .superRefine((value, ctx) => {
+      if (!value.trim()) return;
+      const parsed = parseNumberInput(value);
+      if (parsed === null || !Number.isInteger(parsed) || parsed < 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Sıfır veya pozitif bir tam sayı girin.' });
+      }
+    })
+    .transform((value) => (value.trim() ? (parseNumberInput(value) as number) : 0));
+}
+
 /** Zod hatasını `{ alan: mesaj }` haritasına çevirir — ilk mesaj kazanır. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const map: Record<string, string> = {};
