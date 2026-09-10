@@ -150,25 +150,20 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
             ))}
             <NavDropdown label="Araçlar" href={TOOLS_PATH} items={TOOL_ITEMS} />
           </div>
-
-          {/*
-           * Below 1060px the same list, in a menu. It sits at the RIGHT end of
-           * the centre zone (`ml-auto`) so on a phone the row is brand, then the
-           * three controls together — the menu button reads as one of them.
-           */}
-          <div className="ml-auto min-[1060px]:hidden">
-            <NavMenu items={NAV_WITH_TOOLS} />
-          </div>
         </nav>
 
         {/*
-         * The two controls are ONE GROUP, tighter than the gap to the links.
-         * Ara is not in the menu — it is the icon here, on every screen, so the
-         * one control people reach for most is always in the same place.
+         * The controls are ONE GROUP: search, theme, then — below 1060px —
+         * the nav menu, in that order, all the same 42px box, close together.
+         * Below 1060px the menu button belongs here rather than in the centre
+         * zone, so the row reads as brand, then the three controls together.
          */}
-        <div className="flex shrink-0 items-center gap-3 pl-4">
+        <div className="flex shrink-0 items-center gap-1 pl-4">
           <SearchDialog defaultValue={query} />
           <ThemeToggle />
+          <div className="min-[1060px]:hidden">
+            <NavMenu items={NAV_WITH_TOOLS} />
+          </div>
         </div>
       </div>
     </header>

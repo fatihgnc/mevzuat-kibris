@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
@@ -54,13 +55,16 @@ export function NavMenu({ items }: { items: readonly NavMenuItem[] }) {
 
   return (
     <details ref={ref} className="group relative min-[1060px]:hidden">
+      {/*
+        * Same 42px box as Ara and the theme switch — the three controls sit
+        * flush together, so a mismatched box here would read as misaligned.
+        */}
       <summary
-        className="flex cursor-pointer list-none items-center gap-1.5 text-ink-muted hover:text-ink [&::-webkit-details-marker]:hidden"
+        aria-label="Menü"
+        title="Menü"
+        className="flex h-[42px] w-[42px] cursor-pointer list-none items-center justify-center rounded text-ink-muted transition-colors hover:text-ink [&::-webkit-details-marker]:hidden"
       >
-        Menü
-        <span aria-hidden className="text-2xs transition-transform group-open:rotate-180">
-          ▾
-        </span>
+        <Menu size={20} aria-hidden />
       </summary>
       {/*
         * `hidden group-open:flex`, NOT a bare `flex`.
