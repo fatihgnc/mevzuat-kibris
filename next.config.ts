@@ -98,6 +98,12 @@ const nextConfig: NextConfig = {
         destination: '/:kind/sayfa/:n',
         permanent: true,
       },
+      /*
+       * "Araçlar" is the natural plural and people type it — analytics showed
+       * visits to /araclar, which was a 404. The tools live under /arac.
+       */
+      { source: '/araclar', destination: '/arac', permanent: true },
+      { source: '/araclar/:slug', destination: '/arac/:slug', permanent: true },
     ];
   },
 
