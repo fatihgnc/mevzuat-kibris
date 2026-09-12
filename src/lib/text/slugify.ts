@@ -41,7 +41,13 @@ export function recordSlug(params: {
   const refPart =
     refType && refNumber ? refType + '-' + slugify(refNumber, 24) : 'x-' + String(fallbackKey ?? '0');
   const titlePart = slugify(title, 70);
-  return [String(year), refPart, titlePart].filter(Boolean).join('-');
+
+  // refNumber often already ends in "-{year}" (uki, ukii, skii, teki, ...);
+  // skip the leading year when it would just repeat that.
+  const refNumberYear = refNumber?.match(/-(\d{4})$/)?.[1];
+  const yearPart = refNumberYear === String(year) ? null : String(year);
+
+  return [yearPart, refPart, titlePart].filter(Boolean).join('-');
 }
 
 /** The entity slug — for institution, company and place pages. */

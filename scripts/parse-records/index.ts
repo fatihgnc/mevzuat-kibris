@@ -149,7 +149,7 @@ export async function processIssue(issue: {
       year: issue.year,
       refType: record.refType,
       refNumber: record.refNumber,
-      title: summaryResult?.summary ?? record.title,
+      title: record.title,
       fallbackKey: issue.number + '-' + record.ordinal,
     });
 
