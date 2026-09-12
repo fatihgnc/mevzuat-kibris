@@ -129,32 +129,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         ) : null}
         {/*
-         * Vercel Web Analytics — page counts only, no cookie and no per-visitor
-         * trail. The privacy page has promised this since it was written; until
-         * now nothing implemented it, so the promise was simply untrue.
+         * Cloudflare Web Analytics — page counts only, no cookie and no
+         * per-visitor trail. The privacy page has promised this since it was
+         * written. Replaces the Vercel Web Analytics tag, which 404'd once the
+         * app moved off Vercel's edge (that route only ever existed there).
          *
-         * WHY THE SCRIPT AND NOT `@vercel/analytics`. The package will not
-         * install here. npm follows its OPTIONAL `@sveltejs/kit` peer, that pulls
-         * @sveltejs/vite-plugin-svelte, and that demands vite 8 while vitest 2
-         * holds vite 5 — an ERESOLVE over a framework this project does not use.
-         * The escape is `legacy-peer-deps`, but it only works project-wide (a
-         * .npmrc, or Vercel's own install would fail), and from then on EVERY
-         * install silently accepts broken peer resolutions. That is a large,
-         * permanent hole to open for one script tag; the package's whole job in a
-         * Next app is to emit this tag and let it hook history.pushState, which
-         * it does on its own.
-         *
-         * If a future npm resolves optional peers properly, swapping this for the
-         * package is a fair trade. Check by running `npm install @vercel/analytics`
-         * on a clean tree — the failure above is the thing to look for.
-         *
-         * Production only: the path is served by Vercel's edge, so anywhere else
-         * it is a 404 in the console. Requires Web Analytics to be switched on for
-         * the project in the Vercel dashboard; without that the route does not
-         * exist and nothing is collected.
+         * The beacon token identifies the site, not the visitor — it is meant
+         * to sit in the page source, same as GA's measurement id.
          */}
         {IS_PRODUCTION_DEPLOY ? (
-          <Script id="vercel-analytics" strategy="lazyOnload" src="/_vercel/insights/script.js" />
+          <Script
+            id="cloudflare-analytics"
+            strategy="lazyOnload"
+            type="module"
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon='{"token": "7e71efa4bc7148f4afa5306475316383"}'
+          />
         ) : null}
       </body>
     </html>
