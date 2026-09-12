@@ -91,7 +91,7 @@ async function main() {
         year,
         refType: record.refType,
         refNumber: record.refNumber,
-        title: summary?.summary ?? record.title,
+        title: record.title,
         fallbackKey: number + '-' + record.ordinal,
       });
 
