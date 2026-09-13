@@ -56,6 +56,7 @@ async function main() {
 
   const topics = new Set<string>();
   const entities = new Set<string>();
+  const correctedRecords = new Set<string>();
   const issues: Array<{ year: number; number: number }> = [];
 
   try {
@@ -99,6 +100,7 @@ async function main() {
         recordsNew += result.recordsWritten;
         for (const topic of result.topics) topics.add(topic);
         for (const entity of result.entities) entities.add(entity);
+        for (const slug of result.correctedSlugs) correctedRecords.add(slug);
         issues.push({ year: issue.year, number: issue.number });
       } catch (error) {
         /*
@@ -122,7 +124,12 @@ async function main() {
       }
     }
 
-    await triggerRevalidate({ topics: [...topics], entities: [...entities], issues });
+    await triggerRevalidate({
+      topics: [...topics],
+      entities: [...entities],
+      issues,
+      records: [...correctedRecords],
+    });
 
     await finishRun(runId, errors.length ? 'failed' : 'ok', { issuesSeen, issuesNew, recordsNew }, errors);
     log.info('backfill bitti', { year, issuesSeen, issuesNew, recordsNew, errors: errors.length });

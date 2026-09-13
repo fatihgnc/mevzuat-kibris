@@ -27,6 +27,7 @@ export interface ProcessResult {
   topics: Set<string>;
   entities: Set<string>;
   textStatus: string;
+  correctedSlugs: string[];
 }
 
 export async function processIssue(issue: {
@@ -210,10 +211,10 @@ export async function processIssue(issue: {
     }
   }
 
-  await linkRelatedRecords(issue.id);
+  const correctedSlugs = await linkRelatedRecords(issue.id);
   await sql`select refresh_entity_counts(null)`;
 
-  return { recordsWritten: written, topics: touchedTopics, entities: touchedEntities, textStatus };
+  return { recordsWritten: written, topics: touchedTopics, entities: touchedEntities, textStatus, correctedSlugs };
 }
 
 /**
@@ -223,7 +224,7 @@ export async function processIssue(issue: {
  * same title under two different reference types in practice always means this
  * pairing.
  */
-async function linkRelatedRecords(issueId: number): Promise<void> {
+async function linkRelatedRecords(issueId: number): Promise<string[]> {
   await sql`
     update records a
        set related_record_id = b.id
@@ -237,8 +238,13 @@ async function linkRelatedRecords(issueId: number): Promise<void> {
        and a.related_record_id is null
   `;
 
-  // Link DÜZELTME (correction) records to the record they correct (spec 3.3).
-  await sql`
+  /*
+   * Link DÜZELTME (correction) records to the record they correct (spec 3.3).
+   * `src` is the ORIGINAL record, already published (and likely already ISR/edge
+   * cached) before the correction arrived — its slug is returned so the caller
+   * can revalidate that page too, not just the new correction's own page.
+   */
+  const corrected = await sql<Array<{ slug: string }>>`
     update records d
        set corrects_id = src.id
       from records src
@@ -249,7 +255,10 @@ async function linkRelatedRecords(issueId: number): Promise<void> {
        and src.ref_number = d.ref_number
        and src.published_at < d.published_at
        and d.corrects_id is null
+    returning src.slug
   `;
+
+  return corrected.map((row) => row.slug);
 }
 
 /** The İÇERİK cell may be HTML; we turn its tags into line breaks. */

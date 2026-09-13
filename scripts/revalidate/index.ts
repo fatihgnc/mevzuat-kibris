@@ -37,6 +37,7 @@ export async function triggerRevalidate(payload: {
   topics: string[];
   entities: string[];
   issues: Array<{ year: number; number: number }>;
+  records?: string[];
 }): Promise<void> {
   const secret = process.env.REVALIDATE_SECRET;
   if (!secret) {
