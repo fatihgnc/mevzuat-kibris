@@ -134,8 +134,18 @@ export function extractEntities(input: {
   const title = input.title;
   const body = input.bodyText ?? '';
   const haystack = title + '\n' + body;
-  const upperTitle = turkishUpper(title);
-  const upperAll = turkishUpper(haystack);
+  /*
+   * Collapsed to single spaces for the fixed-string INSTITUTIONS check below.
+   * pdftotext's legacy extraction sometimes prints extra spaces inside a name
+   * ("Bakanlar  Kurulu", double space, a font-mapping artifact -- see HANDOFF
+   * §3.6/§4.7-adjacent notes) -- a literal .includes() against a single-spaced
+   * "Bakanlar Kurulu" then misses it entirely, silently, with no error. PLACES
+   * and COMPANY_PATTERN already tolerate this (single-word names have no
+   * internal space to break; the company regex uses \s+ between tokens), so
+   * only this collapsed copy is new.
+   */
+  const upperTitle = turkishUpper(title).replace(/\s+/g, ' ');
+  const upperAll = turkishUpper(haystack).replace(/\s+/g, ' ');
 
   const add = (entity: ExtractedEntity) => {
     const existing = found.get(entity.slug);
