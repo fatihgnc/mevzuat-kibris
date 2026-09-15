@@ -27,12 +27,17 @@
     "alerts:dispatch": "tsx scripts/dispatch-alerts/index.ts",
     "revalidate": "tsx scripts/revalidate/index.ts",
     "db:migrate": "tsx scripts/migrate/index.ts",
+    "deepseek:run": "tsx scripts/extract-text/deepseek-run.ts",
+    "mistral:run": "tsx scripts/extract-text/mistral-run.ts",
+    "mistral:batch": "tsx scripts/extract-text/mistral-batch-run.ts",
+    "mistral:oversized": "tsx scripts/extract-text/mistral-oversized-run.ts",
     "reclassify": "tsx scripts/reclassify/index.ts",
     "summarize": "tsx scripts/summarize/index.ts",
     "db:seed": "tsx scripts/seed/index.ts",
     "db:reset": "tsx scripts/migrate/index.ts --reset && tsx scripts/seed/index.ts"
   },
   "dependencies": {
+    "@mistralai/mistralai": "^2.7.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
     "clsx": "^2.1.1",
@@ -42,6 +47,10 @@
     "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.6.0",
     "zod": "^3.24.1"
   },
