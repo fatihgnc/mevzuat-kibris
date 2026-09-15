@@ -24,12 +24,13 @@ export function IssueCard({
   return (
     <div className={cn('rounded-md border border-line bg-surface-muted p-[18px]', className)}>
       <div className="mb-2 text-xs text-ink-faint">Son yayımlanan sayı</div>
-      <div className="text-3xl font-semibold text-ink">Sayı {number}</div>
+      <div className="text-3xl font-semibold text-ink">
+        Sayı {number} <span className="text-lg font-normal text-ink-muted">— {recordCount} kayıt işlendi</span>
+      </div>
       <div className="mt-0.5 text-md text-ink-body">
         <time dateTime={publishedAt}>{formatDateLong(publishedAt)}</time>
       </div>
-      <div className="mt-2.5 text-base text-ink-muted">{recordCount} kayıt işlendi</div>
-      <div className="mt-3.5 flex flex-col gap-2">
+      <div className="mt-3.5 flex flex-col gap-1">
         <Link href={'/sayilar/' + year + '/' + number} className="text-base font-semibold">
           Sayıdaki kayıtlar
         </Link>
@@ -38,7 +39,7 @@ export function IssueCard({
          * (spec 3.6). rel="noopener" because it is an external link.
          */}
         <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-base">
-          Resmî PDF
+          Resmî kaynak
         </a>
       </div>
     </div>

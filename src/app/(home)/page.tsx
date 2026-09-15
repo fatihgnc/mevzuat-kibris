@@ -21,13 +21,9 @@ import {
   topicCounts,
 } from "@/lib/db/queries/records";
 import { topEntities } from "@/lib/db/queries/entities";
-import {
-  archiveCoverage,
-  coverageSentence,
-  coverageShort,
-} from "@/lib/db/queries/coverage";
+import { archiveCoverage, coverageShort } from "@/lib/db/queries/coverage";
 import { RSS_ALTERNATE } from "@/lib/seo/metadata";
-import { SITE_NAME } from "@/lib/seo/config";
+import { ARCHIVE_START_YEAR, SITE_NAME } from "@/lib/seo/config";
 import { formatCount } from "@/lib/db/queries/shared";
 
 /**
@@ -108,13 +104,17 @@ export default async function HomePage() {
         className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-8 sm:pt-12 lg:px-10"
       >
         <h1 className="m-0 mb-2.5 max-w-[22em] text-4xl font-semibold leading-[1.25] tracking-tightest text-ink sm:text-5xl">
-          Resmî Gazete&apos;de ne yayımlandığını arayın
+          Resmî Gazete&apos;de aradığınız bilgiye hızlıca ulaşın
         </h1>
         <p className="mb-[22px] max-w-lede text-xl leading-[1.55] text-ink-muted">
-          KKTC Resmî Gazete&apos;si &mdash; yaygın yazımıyla Resmi Gazete &mdash;
-          yalnızca PDF olarak yayımlanıyor. Biz her
-          sayıyı indirip metne çeviriyor, kararlara ayırıyor ve aranabilir hale
-          getiriyoruz. {coverageSentence(coverage)}
+          KKTC&apos;de Resmî Gazete, yalnızca PDF olarak yayımlanıyor ve hiçbir
+          filtreleme, sınıflandırma veya arama gibi sizi aradığınız bilgiye
+          hızlıca ulaştıracak özellikleri barındırmıyor. Biz her sayıyı indirip
+          metne çeviriyor, yer, tür, kurum gibi bir çok başlığa göre
+          sınıflandırıyor, aranabilir hale getiriyoruz.{' '}
+          {coverage.earliestYear ?? ARCHIVE_START_YEAR}&apos;den bugüne kadar
+          yayımlanan sayıların yanı sıra, eklenen her yeni sayı sitemizde anlık
+          olarak listeleniyor.
         </p>
 
         <SearchBox />
