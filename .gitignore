@@ -5,6 +5,7 @@ build/
 .env
 .env*.local
 .vercel
+__pycache__/
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 next-env.d.ts.bak

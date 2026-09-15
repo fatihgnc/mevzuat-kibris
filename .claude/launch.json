@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3061"],
       "port": 3061
+    },
+    {
+      "name": "mevzuat-kibris-3065",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3065"],
+      "port": 3065
     }
   ]
 }
