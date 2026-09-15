@@ -32,6 +32,7 @@ jobs:
     # aynı adımda tanımlanan env'i göremiyor.
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,6 +64,18 @@ jobs:
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+
+      # Karar metni (body_markdown) — spec 7.2'nin devamı. ingest:daily yalnızca
+      # eski pdftotext/pdfminer gövdesini (body_text) yazar; Mistral OCR ayrı
+      # bir sütun (mistral_ocr_at) ile izleniyor ve HANDOFF §8'deki karara göre
+      # asıl kaynak artık bu. Aynı job'ta, ingest'in hemen ardından çalıştırmak
+      # yeni sayının hem meta verisini hem karar metnini tek koşumda tamamlıyor.
+      # Limit düşük: 3 saatlik pencerede normalde 0-1 yeni sayı çıkar, işlenmemiş
+      # birikinti varsa da job'ı süresiz uzatmasın diye sınırlı tutuluyor.
+      - run: npm run mistral:run -- 3
+        if: ${{ env.MISTRAL_API_KEY != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       # LLM ÖZET KATMANI ARTIK BURADA DEĞİL -> summarize.yml
       #
