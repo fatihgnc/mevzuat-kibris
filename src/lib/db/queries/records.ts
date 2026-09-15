@@ -664,12 +664,24 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
  */
 export const getRecordBySlug = cache(loadRecordBySlug);
 
+/**
+ * A record this big is a real gazette document (e.g. the Gelir ve Vergi
+ * Dairesi's yearly corporate-tax-declaration list, ~7,500 table rows) -- not a
+ * parsing bug -- but rendering it through react-markdown/remark-gfm/rehype at
+ * BUILD TIME routinely blows past Next's 60s static-generation timeout and
+ * fails the whole deploy. `dynamicParams = true` on the record page still
+ * serves it fine on first request, just not eagerly at build.
+ */
+const PRERENDER_BODY_SIZE_LIMIT = 200_000;
+
 /** For ISR generateStaticParams: the last 12 months only (spec 11.1). */
 export async function recentRecordSlugs(months = 12): Promise<string[]> {
   const rows = await db.execute<Row<{ slug: string }>>(sql`
     select slug from records
      where has_own_page
        and published_at > current_date - (${months} || ' months')::interval
+       and coalesce(length(body_markdown), 0) < ${PRERENDER_BODY_SIZE_LIMIT}
+       and coalesce(length(body_text), 0) < ${PRERENDER_BODY_SIZE_LIMIT}
      order by published_at desc
   `);
   return rows.map((row) => row.slug);
