@@ -31,9 +31,9 @@ export default function ToolsPage() {
           Araçlar
         </h1>
         <p className="mt-3 max-w-[60em] text-xl leading-[1.6] text-ink-body">
-          İş mevzuatı hakkı sayıyla tarif ediyor: kaç iş günü izin, kaç haftalık ücret, hangi zam
-          oranı. Bu hesaplayıcılar o sayıları çıkarıyor ve her birinin altına dayandığı maddeyi
-          yazıyor — sonuca güvenmeden önce kaynağını okuyabilirsiniz.
+          İş mevzuatı, haklarınızı sayılarla belirler: kaç gün izniniz var, kaç haftalık ücret
+          alacaksınız, hangi zam oranı gibi. Bu araçlar bu sayıları hesaplar ve her birinin
+          dayandığı maddeyi/yasayı da gösterir — sonuca bakmadan önce kaynağını okuyabilirsiniz.
         </p>
 
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">

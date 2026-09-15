@@ -24,8 +24,9 @@ export default function GuidesPage() {
 
         <h1 className="m-0 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">Rehber</h1>
         <p className="mt-3 text-xl leading-[1.6] text-ink-body">
-          Resmî Gazete kendi kullanım kılavuzunu yayımlamıyor. Bu sayfalar, gazeteyi ilk kez açan
-          birinin takıldığı yerleri anlatıyor.
+          Resmî Gazeteyi okumak, daha önce bu gazeteyi okuma tecrübesi olmayan birisi için biraz
+          karmaşık gelebilir. Bu rehber yazılarını, gazeteyi ilk kez okuyan insanların kafasında
+          canlanan soru işaretlerini az da olsa giderebilmek için yazdık.
         </p>
 
         <ul className="mt-8 flex flex-col">
