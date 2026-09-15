@@ -1,20 +1,19 @@
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm';
 
 import { AdSlot } from '@/components/ad-slot';
-import { CopyLink } from '@/components/copy-link';
 import { EntityChip } from '@/components/entity-chip';
 import { MaskedText } from '@/components/masked-text';
-import { RawTitle } from '@/components/raw-title';
 import { FollowDialog } from '@/components/follow-dialog';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
-import { SourceNotice, OcrNotice } from '@/components/source-notice';
+import { OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
 import { recordHref } from '@/lib/db/queries/shared';
-import { recordLede } from '@/lib/seo/lede';
-import { maskTitle } from '@/lib/search/mask-title';
-import { absoluteUrl } from '@/lib/seo/config';
 import { formatDateLong, formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
 import type { RecordDetail as RecordDetailType } from '@/types/record';
 
@@ -29,11 +28,8 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
   const institution = record.entities.find((entity) => entity.kind === 'institution') ?? null;
   const refLabel = formatRef(record.refType, record.refNumber);
   const aliases = refAliases(record.refType, record.refNumber);
-  const titleTokens = maskTitle(record.title);
   const heading = record.summary ?? record.title;
-  const url = absoluteUrl('/karar/' + record.slug);
   const hasBody = Boolean(record.bodyText && record.bodyText.trim().length > 0);
-  const pageLabel = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
 
   return (
     <article>
@@ -51,32 +47,37 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         <span>{docTypeLabel(record.docType)}</span>
         <Divider />
         <time dateTime={record.publishedAt}>{formatDateLong(record.publishedAt)}</time>
+        <Divider />
+        <span>Sayı {record.issue.number}</span>
       </div>
 
-      <h1 className="m-0 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink sm:text-6xl">
+      {/*
+        * "Takip et" sits above the title rather than beside or below it — the
+        * title is the first thing to read, not something to click past.
+        */}
+      <div className="flex flex-wrap gap-2.5">
+        <FollowDialog
+          label="Bu kaydı takip et"
+          className="px-1 py-2.5 text-md"
+          title="Bu kaydı takip et"
+          description={
+            institution
+              ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
+              : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
+          }
+          subject={{
+            label: primaryTopic?.name ?? 'Bu kayıt',
+            topic: primaryTopic?.slug,
+            entityId: institution?.id,
+          }}
+          showFrequency={false}
+          rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
+        />
+      </div>
+
+      <h1 className="mt-3 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink sm:text-6xl">
         {heading}
       </h1>
-
-      {/*
-       * We say plainly that the summary was generated (spec 3.8). The user must
-       * know the sentence they see in the h1 is not what the gazette says; the box
-       * immediately below carries the gazette's own title.
-       */}
-      {record.summary ? (
-        <p className="mt-3 flex items-center gap-2 text-xs text-ink-faint">
-          <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-accent" />
-          Bu özeti kayıttaki alanlardan biz oluşturduk
-        </p>
-      ) : null}
-
-      {/*
-       * The facts of the record as one sentence — see lib/seo/lede.ts. It is
-       * built from stored fields only, so it goes ABOVE the generated-summary
-       * note without needing a disclaimer of its own.
-       */}
-      <p className="mt-4 max-w-prose text-md leading-[1.6] text-ink-body">{recordLede(record)}</p>
-
-      <RawTitle tokens={titleTokens} plainTitle={record.title} />
 
       <RecordMetaBar
         className="mt-7"
@@ -89,6 +90,8 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           primaryTopic: primaryTopic
             ? { slug: primaryTopic.slug, name: primaryTopic.name }
             : null,
+          pdfUrl: record.issue.pdfUrl,
+          pageFrom: record.pageFrom,
         })}
       />
 
@@ -131,41 +134,19 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         </p>
       ) : null}
 
-      <div className="mt-[22px] flex flex-wrap gap-2.5">
-        <a
-          href={record.issue.pdfUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded border border-ink bg-surface px-[18px] py-2.5 text-md font-semibold text-ink no-underline transition-colors hover:bg-ink hover:text-surface hover:no-underline"
-        >
-          Resmî PDF{pageLabel}
-        </a>
-        <CopyLink url={url} />
-        {/*
-          * "Takip et" belongs with the other two actions rather than in a card
-          * of its own at the end of the page — see components/follow-dialog.
-          */}
-        <FollowDialog
-          label="Bu kaydı takip et"
-          className="px-1 py-2.5 text-md"
-          title="Bu kaydı takip et"
-          description={
-            institution
-              ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
-              : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
-          }
-          subject={{
-            label: primaryTopic?.name ?? 'Bu kayıt',
-            topic: primaryTopic?.slug,
-            entityId: institution?.id,
-          }}
-          showFrequency={false}
-          rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
-        />
-      </div>
-
-      <div className="mt-9">
+      <div className="mt-4 border-t border-line pt-[26px]">
         <div className="min-w-0">
+          {/*
+           * A LABEL, so the document has a visible start. Everything above this
+           * point is metadata about the record; nothing said "the actual text
+           * starts here" — the body just ran on from the meta bar in the same
+           * weight, same measure, same everything, so it read as more chrome
+           * rather than as the gazette's own words.
+           */}
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            Karar metni
+          </h2>
+
           {/*
            * GEÇİCİ: gövde hiçbir kayıtta gösterilmiyor, hepsinde aynı tek
            * mesaj basılıyor. hasBody/OCR/hasPersonalData dallanması ve
@@ -173,7 +154,11 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
            * fonksiyonları kasıtlı olarak SİLİNMEDİ — sorun çözülünce bu blok
            * eski dallanmaya geri döner.
            */}
-          <BodyTemporarilyUnavailableNotice record={record} />
+          {record.bodyMarkdown ? (
+            <BodyMarkdown markdown={record.bodyMarkdown} />
+          ) : (
+            <BodyTemporarilyUnavailableNotice record={record} />
+          )}
 
           {record.entities.length ? (
             <section className="mt-[30px] border-t border-line pt-[22px]">
@@ -202,21 +187,75 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
               records={record.sameIssue}
               moreHref={'/sayilar/' + record.issue.year + '/' + record.issue.number}
             />
-          ) : null}
+          ) : (
+            <section className="mt-[30px] border-t border-line pt-[22px]">
+              <h2 className="mb-3.5 text-md font-semibold text-ink">Arşivde gezin</h2>
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-base">
+                <Link href={'/sayilar/' + record.issue.year + '/' + record.issue.number}>
+                  Sayı {record.issue.number}&apos;in tamamı
+                </Link>
+                <Link href={'/sayilar/' + record.issue.year}>{record.issue.year} sayıları</Link>
+                <Link href="/sayilar">Tüm sayılar</Link>
+              </div>
+            </section>
+          )}
 
           {/* Ads only after the content has ended (spec 14.4). */}
           <AdSlot kind="in-article" slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE} className="mt-8" />
         </div>
 
       </div>
-
-      {/*
-        * The binding-text notice stands alone now. Spec 16 item 6 wants it on
-        * the page, and after the reading is where "the original is what binds"
-        * lands.
-        */}
-      <SourceNotice className="mt-9" />
     </article>
+  );
+}
+
+/**
+ * Pilot renderer for the DeepSeek-OCR replacement path (migration 0011).
+ * Independent of BodyText/BodyHiddenCard/etc. below — those stay untouched
+ * for the ~21k records still on the legacy pipeline; this only fires when
+ * body_markdown has actually been populated for a record.
+ *
+ * rehypeRaw + rehypeSanitize (default schema, which allows table/tr/td):
+ * DeepSeek-OCR emits raw <table> HTML inside its markdown for dense tables
+ * (see table-repair.ts), not GFM pipe syntax, so the raw-HTML pass is
+ * required — sanitize afterwards since this HTML comes from a model, not
+ * from our own code.
+ */
+function BodyMarkdown({ markdown }: { markdown: string }) {
+  return (
+    <div
+      className={[
+        // A card, not a run of plain paragraphs: the border and tint are what
+        // say "this is the document" rather than more page around it. Full
+        // width (no max-w-prose) — a plain content box, sans font kept as
+        // everywhere else on the page.
+        'w-full rounded-md border border-line bg-surface-muted px-6 py-6 shadow-sm sm:px-10 sm:py-8',
+        'text-xl leading-[1.72] text-ink-body',
+        // Paragraphs and lists: unchanged from the pre-styling pass.
+        '[&_p]:m-0 [&_p+p]:mt-[18px] [&_p+ol]:mt-[18px] [&_ol+p]:mt-[18px] [&_li+li]:mt-[18px]',
+        '[&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6',
+        // Headings: the OCR text carries the gazette's own running header/section
+        // titles as markdown headings (e.g. "Bölüm I") — styled as section breaks
+        // rather than left at browser-default heading sizes.
+        '[&_h1]:mb-3 [&_h1]:mt-10 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h1]:text-ink',
+        '[&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:border-b [&_h2]:border-line [&_h2]:pb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-ink',
+        '[&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-ink',
+        '[&_strong]:font-semibold [&_strong]:text-ink [&_em]:italic',
+        '[&_hr]:my-8 [&_hr]:border-line',
+        '[&_blockquote]:border-l-2 [&_blockquote]:border-line [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-ink-muted',
+        // Tables: header row set apart with a tint, zebra body rows so a dense
+        // register table (records-per-issue lists, amendment histories) stays
+        // readable instead of a wall of identical bordered cells.
+        '[&_table]:mt-[18px] [&_table]:w-full [&_table]:border-collapse [&_table]:text-base',
+        '[&_th]:border [&_th]:border-line [&_th]:bg-surface [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-ink',
+        '[&_td]:border [&_td]:border-line [&_td]:px-3 [&_td]:py-2 [&_td]:align-top',
+        '[&_tr:nth-child(even)_td]:bg-surface',
+      ].join(' ')}
+    >
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]}>
+        {markdown}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -233,6 +272,80 @@ function Divider() {
  */
 function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType }) {
   const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
+
+  // 2025/170 and any future case like it: the source's OWN archive page links to a
+  // PDF that 404s on their server (issues.pdf_broken, migration 0014) -- permanent,
+  // not something a re-crawl or a better OCR pass ever fixes. The generic "we're
+  // working on it" copy below would be actively misleading here.
+  if (record.issue.pdfBroken) {
+    return (
+      <div className="overflow-hidden rounded-md border border-line">
+        <div className="px-6 pb-6 pt-[22px]">
+          <h2 className="text-3xl font-semibold text-ink">Kararın metnine şu an ulaşılamıyor</h2>
+          <p className="mt-2 max-w-[36em] text-lg leading-[1.6] text-ink-body">
+            Bu, bizim çıkarma sürecimizden kaynaklanmıyor — kaynağın kendi arşiv sayfası
+            bu sayının PDF&apos;ine bozuk bir bağlantı veriyor, bağlantı kaynağın kendi
+            sunucusunda erişilemiyor (404). Kaynak bunu düzeltirse biz de otomatik
+            olarak yakalayıp güncelleyeceğiz.
+          </p>
+          <div className="mt-[18px] flex flex-wrap gap-2.5">
+            <a
+              href={record.issue.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded bg-accent px-5 py-3 text-lg font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:text-accent-ink hover:no-underline"
+            >
+              Kaynaktaki bağlantı{page}
+            </a>
+            <Link
+              href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
+              className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
+            >
+              Sayı {record.issue.number}&apos;in tamamı
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * Kaynak dosyanın kendi yapısından kaynaklanan, kalıcı bir sınır: bu kaydın
+   * gazetedeki/indeksteki basılı bir referans numarası yok, ve gövde çıkarma
+   * yöntemi bir kaydı OCR metninde bulmak için önce bilinen bir referans
+   * etiketine ihtiyaç duyuyor (bkz. parser.ts bodyAnchor). Etiket yoksa hiçbir
+   * OCR motoru veya yeniden deneme bunu çözmez -- "üzerinde çalışıyoruz"
+   * demek yanıltıcı olur, bu yüzden kaynağa yönlendiren ayrı bir mesaj var.
+   */
+  if (!record.refType || !record.refNumber) {
+    return (
+      <div className="overflow-hidden rounded-md border border-line">
+        <div className="px-6 pb-6 pt-[22px]">
+          <h2 className="text-3xl font-semibold text-ink">Kararın metni burada gösterilemiyor</h2>
+          <p className="mt-2 text-lg leading-[1.6] text-ink-body">
+            Bu kaydın kaynak dosyadaki yapısından dolayı içeriği otomatik olarak
+            çıkaramıyoruz, bu yüzden sizi doğrudan kaynağa yönlendiriyoruz.
+          </p>
+          <div className="mt-[18px] flex flex-wrap gap-2.5">
+            <a
+              href={record.issue.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded bg-accent px-5 py-3 text-lg font-semibold text-accent-ink no-underline transition-colors hover:bg-accent-hover hover:text-accent-ink hover:no-underline"
+            >
+              Kaynağa git{page}
+            </a>
+            <Link
+              href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
+              className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
+            >
+              Sayı {record.issue.number}&apos;in tamamı
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden rounded-md border border-line">
@@ -430,7 +543,7 @@ function RelatedBlock({
   moreHref?: string;
 }) {
   return (
-    <section className="mt-8">
+    <section className="mt-[30px] border-t border-line pt-[22px]">
       <div className="mb-3.5 flex items-baseline justify-between gap-4">
         <h2 className="text-md font-semibold text-ink">{title}</h2>
         {moreHref ? (

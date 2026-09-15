@@ -41,6 +41,8 @@ export function buildRecordMetaFields(input: {
   section: string;
   institution?: { slug: string; name: string } | null;
   primaryTopic?: { slug: string; name: string } | null;
+  pdfUrl: string;
+  pageFrom?: number | null;
 }): MetaField[] {
   const fields: MetaField[] = [];
 
@@ -67,6 +69,15 @@ export function buildRecordMetaFields(input: {
       value: <Link href={'/konu/' + input.primaryTopic.slug}>{input.primaryTopic.name}</Link>,
     });
   }
+
+  fields.push({
+    label: 'Resmî Kaynak',
+    value: (
+      <a href={input.pdfUrl} target="_blank" rel="noopener noreferrer">
+        {input.pageFrom ? 'Sayfa ' + input.pageFrom : "PDF'i aç"}
+      </a>
+    ),
+  });
 
   return fields;
 }
