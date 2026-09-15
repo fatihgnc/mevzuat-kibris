@@ -66,20 +66,18 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section heading="Reklam ve ölçüm">
+      <Section heading="Ölçüm">
         <p className="m-0">
-          Site Google AdSense reklamı gösterir. Google, reklam kişiselleştirmesi için çerez
-          kullanabilir; tarayıcınızın reklam ayarlarından bunu kapatabilirsiniz. Sayfa görüntüleme
-          sayısını ölçmek için Vercel Analytics kullanıyoruz; bu araç çerez kullanmıyor ve ziyaretçi
-          bazında iz tutmuyor.
+          Sayfa görüntüleme sayısını ölçmek için Vercel Analytics kullanıyoruz; bu araç çerez
+          kullanmıyor ve ziyaretçi bazında iz tutmuyor.
         </p>
       </Section>
 
       <Section heading="Kayıtlardaki kişi adları">
         <p className="m-0">
           Resmî Gazete atama kararnameleri ve sınav sonuç listeleri gibi kişi adı içeren kayıtlar
-          barındırıyor. Kişi adına özel sayfa üretmiyoruz ve bu listelerdeki adları sayfada
-          göstermiyoruz. Kaldırma talebi için{' '}
+          barındırıyor. Bu kayıtlar gazetede yayımlandığı şekliyle kayıt sayfasında görünebilir.
+          Adınızın geçtiği bir kayıt hakkında kaldırma talebi için{' '}
           <a href={'mailto:' + CONTACT_EMAIL}>{CONTACT_EMAIL}</a> adresine yazın; yedi gün içinde
           yanıtlıyoruz. Ayrıntı için <Link href="/iletisim">iletişim sayfasına</Link> bakın.
         </p>
