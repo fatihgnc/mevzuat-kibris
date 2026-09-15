@@ -27,6 +27,9 @@ export interface RecordRow {
   titleNormalized: string;
   subject: string | null;
   bodyText: string | null;
+  /** Pilot for the DeepSeek-OCR replacement path (migration 0011). NULL = not migrated yet. */
+  bodyMarkdown: string | null;
+  textSource: 'legacy_pdfminer' | 'deepseek_ocr' | null;
   /** The generated summary sentence; list, detail, email, RSS and og:title all use the same text. */
   summary: string | null;
   summarySource: SummarySource | null;
@@ -77,6 +80,8 @@ export interface RecordDetail extends RecordRow {
     number: number;
     publishedAt: string;
     pdfUrl: string;
+    /** True if the source's own archive page links to a PDF that 404s on their server -- permanent, not ours to fix. */
+    pdfBroken: boolean;
     textStatus: TextStatus;
     textQuality: number | null;
     /**

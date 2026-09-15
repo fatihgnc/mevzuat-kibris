@@ -52,6 +52,7 @@ export const issues = pgTable(
     textQuality: real('text_quality'),
     retryCount: smallint('retry_count').notNull().default(0),
     rawIndexHtml: text('raw_index_html'),
+    pdfBroken: boolean('pdf_broken').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -75,6 +76,11 @@ export const records = pgTable(
     titleNormalized: text('title_normalized').notNull(),
     subject: text('subject'),
     bodyText: text('body_text'),
+    // Pilot for the DeepSeek-OCR replacement path (migration 0011). NULL = not
+    // migrated yet -- see the column comment in that migration for why this
+    // needs to coexist with bodyText rather than replace it outright.
+    bodyMarkdown: text('body_markdown'),
+    textSource: text('text_source'),
     summary: text('summary'),
     summarySource: text('summary_source'),
     // Filled in + summary null = the LLM layer tried and produced no safe summary

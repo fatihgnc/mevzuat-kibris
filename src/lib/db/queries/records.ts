@@ -497,6 +497,8 @@ interface RawDetailRow extends RawListRow {
   section: string;
   subject: string | null;
   body_text: string | null;
+  body_markdown: string | null;
+  text_source: string | null;
   summary_source: string | null;
   deadline_note: string | null;
   page_from: number | null;
@@ -511,6 +513,7 @@ interface RawDetailRow extends RawListRow {
   text_status: string;
   text_quality: number | null;
   issue_updated_at: string | Date;
+  pdf_broken: boolean;
 }
 
 /**
@@ -523,6 +526,8 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
            r.section,
            r.subject,
            r.body_text,
+           r.body_markdown,
+           r.text_source,
            r.title_normalized,
            r.summary_source,
            r.deadline_note,
@@ -536,7 +541,8 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
            i.pdf_url,
            i.text_status,
            i.text_quality,
-           i.updated_at as issue_updated_at
+           i.updated_at as issue_updated_at,
+           i.pdf_broken
       from records r
       ${sql.raw(LIST_JOINS)}
      where r.slug = ${slug}
@@ -600,6 +606,8 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
     titleNormalized: row.title_normalized,
     subject: row.subject,
     bodyText: row.body_text,
+    bodyMarkdown: row.body_markdown,
+    textSource: row.text_source as RecordDetail['textSource'],
     summary: row.summary,
     summarySource: row.summary_source as RecordDetail['summarySource'],
     deadlineAt: base.deadlineAt,
@@ -620,6 +628,7 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
           ? row.issue_published_at.toISOString().slice(0, 10)
           : String(row.issue_published_at).slice(0, 10),
       pdfUrl: row.pdf_url,
+      pdfBroken: row.pdf_broken,
       textStatus: row.text_status as RecordDetail['issue']['textStatus'],
       textQuality: row.text_quality,
       updatedAt:
