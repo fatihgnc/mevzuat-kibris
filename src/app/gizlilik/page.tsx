@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         {/*
           * WORDED TO MATCH WHAT THE CODE ACTUALLY DOES — measured, not assumed.
           *
-          * /api/abonelik-iptal deletes the alerts and, once none are left, the
+          * /api/unsubscribe deletes the alerts and, once none are left, the
           * `profiles` row. It does NOT touch `auth.users`, which belongs to
           * Supabase Auth and still holds the address; removing that needs the
           * Admin API and a service-role key at run time, which the app

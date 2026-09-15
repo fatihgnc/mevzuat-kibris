@@ -33,7 +33,7 @@ export function ContactForm() {
     setError(null);
     setStatus('sending');
     try {
-      const response = await fetch('/api/iletisim', {
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed.data),

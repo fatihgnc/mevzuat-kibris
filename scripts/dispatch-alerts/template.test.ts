@@ -5,7 +5,7 @@ import { unsubscribeToken, userUnsubscribeToken } from './template';
 /**
  * The unsubscribe token is an HMAC, and the two sides that use it live in
  * different environments: GitHub Actions signs it (dispatch-alerts) and Vercel
- * verifies it (/api/abonelik-iptal). If they resolve the key differently, every
+ * verifies it (/api/unsubscribe). If they resolve the key differently, every
  * unsubscribe link reads as invalid — silently, and only once a user clicks one.
  *
  * These tests pin the two properties that keep the sides in agreement.

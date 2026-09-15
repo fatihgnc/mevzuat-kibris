@@ -50,7 +50,7 @@ export function unsubscribeToken(alertId: number): string {
 }
 
 export function unsubscribeUrl(alertId: number): string {
-  return SITE_URL + '/api/abonelik-iptal?id=' + alertId + '&t=' + unsubscribeToken(alertId);
+  return SITE_URL + '/api/unsubscribe?id=' + alertId + '&t=' + unsubscribeToken(alertId);
 }
 
 /**
@@ -76,7 +76,7 @@ export function userUnsubscribeToken(userId: string): string {
 }
 
 export function userUnsubscribeUrl(userId: string): string {
-  return SITE_URL + '/api/abonelik-iptal?u=' + encodeURIComponent(userId) +
+  return SITE_URL + '/api/unsubscribe?u=' + encodeURIComponent(userId) +
     '&t=' + userUnsubscribeToken(userId);
 }
 
