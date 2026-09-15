@@ -7,7 +7,9 @@ import remarkGfm from 'remark-gfm';
 import { AdSlot } from '@/components/ad-slot';
 import { EntityChip } from '@/components/entity-chip';
 import { MaskedText } from '@/components/masked-text';
-import { FollowDialog } from '@/components/follow-dialog';
+// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
+// kaldırıldı, kod silinmedi. Geri eklerken bu satırı ve aşağıdaki <FollowDialog> bloğunu aç.
+// import { FollowDialog } from '@/components/follow-dialog';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 import { OcrNotice } from '@/components/source-notice';
@@ -52,28 +54,32 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
       </div>
 
       {/*
+        * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
+        * kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
+        *
         * "Takip et" sits above the title rather than beside or below it — the
         * title is the first thing to read, not something to click past.
+        *
+        * <div className="flex flex-wrap gap-2.5">
+        *   <FollowDialog
+        *     label="Bu kaydı takip et"
+        *     className="px-1 py-2.5 text-md"
+        *     title="Bu kaydı takip et"
+        *     description={
+        *       institution
+        *         ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
+        *         : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
+        *     }
+        *     subject={{
+        *       label: primaryTopic?.name ?? 'Bu kayıt',
+        *       topic: primaryTopic?.slug,
+        *       entityId: institution?.id,
+        *     }}
+        *     showFrequency={false}
+        *     rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
+        *   />
+        * </div>
         */}
-      <div className="flex flex-wrap gap-2.5">
-        <FollowDialog
-          label="Bu kaydı takip et"
-          className="px-1 py-2.5 text-md"
-          title="Bu kaydı takip et"
-          description={
-            institution
-              ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
-              : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
-          }
-          subject={{
-            label: primaryTopic?.name ?? 'Bu kayıt',
-            topic: primaryTopic?.slug,
-            entityId: institution?.id,
-          }}
-          showFrequency={false}
-          rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
-        />
-      </div>
 
       <h1 className="mt-3 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink sm:text-6xl">
         {heading}

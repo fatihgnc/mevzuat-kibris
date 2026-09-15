@@ -1,3 +1,14 @@
+import { notFound } from 'next/navigation';
+
+// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- bu sayfa
+// tamamen ona bağlı olduğu için görünürden kaldırıldı, kod silinmedi.
+// Geri eklerken bu dosyayı eski haline döndür (aşağıdaki yorum bloğunu
+// aç, notFound() stub'ını kaldır).
+export default function AccountPage() {
+  notFound();
+}
+
+/*
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -63,3 +74,4 @@ export default async function AccountPage() {
     </ProsePage>
   );
 }
+*/

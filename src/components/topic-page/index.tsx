@@ -1,7 +1,9 @@
 import Link from 'next/link';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { FollowDialog } from '@/components/follow-dialog';
+// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
+// kaldırıldı, kod silinmedi. Geri eklerken bu satırı ve aşağıdaki <FollowDialog> bloğunu aç.
+// import { FollowDialog } from '@/components/follow-dialog';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -244,23 +246,27 @@ export async function TopicPage({
                 ) : null}
               </div>
               {/*
+                * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor --
+                * görünürden kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
+                *
                 * "Takip et" joins the count line rather than getting a block of
                 * its own. It is one line at the top of the feed instead of a card
                 * at the bottom nobody scrolls to, or a column pinned beside the
                 * reading — see components/follow-dialog for how it got here.
+                *
+                * <FollowDialog
+                *   label="Bu konuyu takip et"
+                *   title="Bu konuyu takip et"
+                *   description={
+                *     'Yeni ' +
+                *     topic.name.toLocaleLowerCase('tr') +
+                *     ' kaydı yayımlandığı gün haber veririz.'
+                *   }
+                *   subject={{ label: topic.name, topic: konu }}
+                *   rssHref={'/konu/' + konu + '/rss.xml'}
+                * />
                 */}
               <div className="flex items-baseline gap-x-[18px]">
-                <FollowDialog
-                  label="Bu konuyu takip et"
-                  title="Bu konuyu takip et"
-                  description={
-                    'Yeni ' +
-                    topic.name.toLocaleLowerCase('tr') +
-                    ' kaydı yayımlandığı gün haber veririz.'
-                  }
-                  subject={{ label: topic.name, topic: konu }}
-                  rssHref={'/konu/' + konu + '/rss.xml'}
-                />
                 <SortLinks active={sirala} hrefFor={sortHref} />
               </div>
             </div>

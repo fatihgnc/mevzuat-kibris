@@ -1,3 +1,13 @@
+import { notFound } from 'next/navigation';
+
+// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
+// kaldırıldı, kod silinmedi. Geri eklerken bu dosyayı eski haline döndür
+// (aşağıdaki yorum bloğunu aç, notFound() stub'ını kaldır).
+export default function FollowPage() {
+  notFound();
+}
+
+/*
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -15,7 +25,7 @@ import { TR_WEEKDAYS, formatDateWithWeekday, nextWeekday } from '@/lib/text/date
 
 export const dynamic = 'force-dynamic';
 
-/** The follow and account pages are not indexed (spec 8.1). */
+// The follow and account pages are not indexed (spec 8.1).
 export const metadata: Metadata = {
   title: 'Takiplerim',
   robots: { index: false, follow: false },
@@ -43,7 +53,7 @@ export default async function FollowPage({ searchParams }: Props) {
           Takiplerim
         </h1>
 
-        {/* The confirmation screen — artboard 1h step 3. */}
+        {/* The confirmation screen — artboard 1h step 3. }
         {status === 'onay' ? (
           <div className="mt-6 rounded-md border border-line bg-surface-muted p-5">
             <div className="flex items-center gap-2.5">
@@ -72,7 +82,7 @@ export default async function FollowPage({ searchParams }: Props) {
               * Kept in step with the privacy page — see the note there. The
               * endpoint deletes the alerts and the `profiles` row, not the
               * Supabase Auth user, so we do not claim the address is gone.
-              */}
+              }
             <p className="mt-2 text-base leading-[1.55] text-ink-muted">
               Bu konuda başka e-posta gitmeyecek. Başka takibiniz kalmadıysa e-posta adresinizi
               takip kayıtlarımızdan sildik; giriş kaydınız, yeniden giriş yapabilmeniz için
@@ -92,7 +102,7 @@ export default async function FollowPage({ searchParams }: Props) {
           * Filling the form on a laptop and opening the mail on a phone therefore fails,
           * which is the ordinary way people read email. Without this sentence the user
           * sees only "invalid", retries in the same split way, and fails again.
-          */}
+          }
         {status === 'limit' ? (
           <div className="mt-6 rounded-md border border-notice-border bg-notice p-5 text-base text-notice-ink">
             <p className="m-0 font-semibold">Takip sınırına ulaştınız.</p>
@@ -176,3 +186,4 @@ export default async function FollowPage({ searchParams }: Props) {
     </>
   );
 }
+*/

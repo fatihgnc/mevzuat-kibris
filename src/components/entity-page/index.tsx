@@ -5,7 +5,10 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { FilterSheet } from '@/components/filter-sheet';
 import { SearchFilters } from '@/components/search-filters';
-import { FollowDialog } from '@/components/follow-dialog';
+// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
+// kaldırıldı, kod silinmedi. Geri eklerken bu satırı, FOLLOW_LABEL'ı ve
+// aşağıdaki <FollowDialog> bloğunu aç.
+// import { FollowDialog } from '@/components/follow-dialog';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
@@ -22,12 +25,14 @@ import { breadcrumbJsonLd, institutionJsonLd } from '@/lib/seo/json-ld';
 import { ENTITY_LABEL, ENTITY_LABEL_PLURAL, ENTITY_PATH } from '@/types/entity';
 import type { EntityKind } from '@/types/record';
 
-/** The trigger's words, per kind — a bare "Takip et" would not say what of. */
-const FOLLOW_LABEL: Record<EntityKind, string> = {
-  institution: 'Bu kurumu takip et',
-  company: 'Bu şirketi takip et',
-  place: 'Bu yeri takip et',
-};
+// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
+// kaldırıldı, kod silinmedi. Geri eklerken açılacak.
+// /** The trigger's words, per kind — a bare "Takip et" would not say what of. */
+// const FOLLOW_LABEL: Record<EntityKind, string> = {
+//   institution: 'Bu kurumu takip et',
+//   company: 'Bu şirketi takip et',
+//   place: 'Bu yeri takip et',
+// };
 
 /** Which /ara parameter pins this kind of entity — see searchParamsSchema. */
 const PIN_PARAM: Record<EntityKind, 'kurum' | 'sirket' | 'yer'> = {
@@ -186,26 +191,30 @@ export async function EntityPage({
               * and it is absent only on a page past the last one.
               */}
             {/*
+              * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor --
+              * görünürden kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
+              *
               * The count sentence and the follow link share a line — one row at
               * the top of the feed rather than a card at the bottom of it.
+              *
+              * <FollowDialog
+              *   label={FOLLOW_LABEL[kind]}
+              *   title={entity.name + ' takibi'}
+              *   description={
+              *     kind === 'place'
+              *       ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
+              *       : 'Bu ' +
+              *         ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
+              *         ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
+              *   }
+              *   subject={{ label: entity.name, entityId: entity.id }}
+              *   rssHref={basePath + '/rss.xml'}
+              * />
               */}
             <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-[18px] gap-y-2">
               <p className="m-0 text-base text-ink-muted">
                 {entityLede(entity.name, total, records[0]?.publishedAt)}
               </p>
-              <FollowDialog
-                label={FOLLOW_LABEL[kind]}
-                title={entity.name + ' takibi'}
-                description={
-                  kind === 'place'
-                    ? 'Bu yerle ilgili yeni kayıt yayımlanırsa haber veririz.'
-                    : 'Bu ' +
-                      ENTITY_LABEL[kind].toLocaleLowerCase('tr') +
-                      ' ile ilgili yeni kayıt yayımlanırsa haber veririz.'
-                }
-                subject={{ label: entity.name, entityId: entity.id }}
-                rssHref={basePath + '/rss.xml'}
-              />
             </div>
 
             {/*

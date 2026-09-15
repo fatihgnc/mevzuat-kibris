@@ -638,10 +638,9 @@ export const GUIDES: Guide[] = [
         paragraphs: [
           'Belirli bir kurumun atamalarını izlemek istiyorsanız kurum sayfasından takip kurabilirsiniz. Yeni bir kayıt yayımlandığında e-posta gelir; e-posta vermek istemiyorsanız aynı akışın RSS’i var.',
         ],
-        links: [
-          { label: 'Kurumlar dizini', href: '/kurum' },
-          { label: 'Takip kurmak', href: '/takip' },
-        ],
+        // Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor, /takip
+        // görünürden kaldırıldı -- o bağlantı buradan da çıkarıldı.
+        links: [{ label: 'Kurumlar dizini', href: '/kurum' }],
       },
     ],
   },
@@ -799,50 +798,56 @@ export const GUIDES: Guide[] = [
       },
     ],
   },
-  {
-    slug: 'takip-kurmak-eposta-ve-rss',
-    title: 'Takip kurmak — e-posta ve RSS',
-    summary: 'Bir konuda ya da kelimede yeni kayıt çıktığında nasıl haber alırsınız.',
-    description:
-      'Mevzuat Kıbrıs’ta konu, kurum ve arama takibi nasıl kurulur; e-posta sıklığı ve RSS akışları nasıl çalışır.',
-    sections: [
-      {
-        paragraphs: [
-          'Yeni bir kayıt yayımlandığında haber almanın iki yolu var: e-posta ya da RSS. İkisi de aynı kayıtları aynı sırada verir; fark, adresinizi verip vermemenizde.',
-        ],
-        links: [{ label: 'Takiplerim', href: '/takip' }],
-      },
-      {
-        heading: 'Neyi takip edebilirsiniz',
-        paragraphs: [
-          'Bir konuyu (münhal, ihale, şirket gibi), bir kurumu, bir yeri ya da kendi arama kelimenizi takibe alabilirsiniz. Arama takibi, konu listesinde olmayan dar bir ilgi için en kullanışlısı — örneğin belirli bir köyün adı ya da bir şirket unvanı.',
-        ],
-        links: [
-          { label: 'Konular', href: '/konu' },
-          { label: 'Kurumlar', href: '/kurum' },
-        ],
-      },
-      {
-        heading: 'Sıklık',
-        paragraphs: [
-          'Haftalık ya da her gün seçebilirsiniz. Haftalık seçerseniz size sabit bir gün atanır ve özet o sabah gelir; hangi gün olduğunu takip kurulurken görürsünüz. Günlük seçenek sınırlıdır, kota dolduğunda talebiniz haftalığa çevrilir ve bu size söylenir.',
-        ],
-      },
-      {
-        heading: 'Doğrulama bağlantısı',
-        paragraphs: [
-          'Takip, e-postadaki bağlantıya tıklayana kadar başlamaz. Önemli bir ayrıntı: bağlantıyı formu doldurduğunuz tarayıcıda açmanız gerekir. E-postayı telefonunuzda açarsanız doğrulama başarısız olur — bu bir hata değil, doğrulamanın güvenlik biçiminden kaynaklanıyor.',
-        ],
-      },
-      {
-        heading: 'RSS',
-        paragraphs: [
-          'E-posta vermek istemiyorsanız her konunun kendi RSS akışı var, sitenin tamamı için de bir akış. Akış adresini okuyucunuza eklemeniz yeterli; adres kaydı ya da doğrulama gerekmez.',
-        ],
-        links: [{ label: 'Tüm kayıtlar akışı', href: '/rss.xml' }],
-      },
-    ],
-  },
+  /*
+   * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- bu rehber
+   * baştan sona o akışı anlattığı için tamamen yoruma alındı, silinmedi.
+   * Geri eklerken bu bloğu aç.
+   *
+   * {
+   *   slug: 'takip-kurmak-eposta-ve-rss',
+   *   title: 'Takip kurmak — e-posta ve RSS',
+   *   summary: 'Bir konuda ya da kelimede yeni kayıt çıktığında nasıl haber alırsınız.',
+   *   description:
+   *     'Mevzuat Kıbrıs’ta konu, kurum ve arama takibi nasıl kurulur; e-posta sıklığı ve RSS akışları nasıl çalışır.',
+   *   sections: [
+   *     {
+   *       paragraphs: [
+   *         'Yeni bir kayıt yayımlandığında haber almanın iki yolu var: e-posta ya da RSS. İkisi de aynı kayıtları aynı sırada verir; fark, adresinizi verip vermemenizde.',
+   *       ],
+   *       links: [{ label: 'Takiplerim', href: '/takip' }],
+   *     },
+   *     {
+   *       heading: 'Neyi takip edebilirsiniz',
+   *       paragraphs: [
+   *         'Bir konuyu (münhal, ihale, şirket gibi), bir kurumu, bir yeri ya da kendi arama kelimenizi takibe alabilirsiniz. Arama takibi, konu listesinde olmayan dar bir ilgi için en kullanışlısı — örneğin belirli bir köyün adı ya da bir şirket unvanı.',
+   *       ],
+   *       links: [
+   *         { label: 'Konular', href: '/konu' },
+   *         { label: 'Kurumlar', href: '/kurum' },
+   *       ],
+   *     },
+   *     {
+   *       heading: 'Sıklık',
+   *       paragraphs: [
+   *         'Haftalık ya da her gün seçebilirsiniz. Haftalık seçerseniz size sabit bir gün atanır ve özet o sabah gelir; hangi gün olduğunu takip kurulurken görürsünüz. Günlük seçenek sınırlıdır, kota dolduğunda talebiniz haftalığa çevrilir ve bu size söylenir.',
+   *       ],
+   *     },
+   *     {
+   *       heading: 'Doğrulama bağlantısı',
+   *       paragraphs: [
+   *         'Takip, e-postadaki bağlantıya tıklayana kadar başlamaz. Önemli bir ayrıntı: bağlantıyı formu doldurduğunuz tarayıcıda açmanız gerekir. E-postayı telefonunuzda açarsanız doğrulama başarısız olur — bu bir hata değil, doğrulamanın güvenlik biçiminden kaynaklanıyor.',
+   *       ],
+   *     },
+   *     {
+   *       heading: 'RSS',
+   *       paragraphs: [
+   *         'E-posta vermek istemiyorsanız her konunun kendi RSS akışı var, sitenin tamamı için de bir akış. Akış adresini okuyucunuza eklemeniz yeterli; adres kaydı ya da doğrulama gerekmez.',
+   *       ],
+   *       links: [{ label: 'Tüm kayıtlar akışı', href: '/rss.xml' }],
+   *     },
+   *   ],
+   * },
+   */
   {
     slug: 'kaydin-orijinal-pdfini-bulmak',
     title: 'Bir kaydın orijinal PDF’ini bulmak',
