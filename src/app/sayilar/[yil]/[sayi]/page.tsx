@@ -6,7 +6,6 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import { MaskedText } from '@/components/masked-text';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { TextQualityBadge } from '@/components/text-quality-badge';
 import { SECTIONS, SECTION_DESCRIPTION, SECTION_SHORT, isSection } from '@/lib/constants/sections';
 import { adjacentIssues, getIssue, getIssueSections } from '@/lib/db/queries/issues';
 import { recordHref } from '@/lib/db/queries/shared';
@@ -87,7 +86,6 @@ export default async function IssuePage({ params }: Props) {
               <span>{issue.pageCount} sayfa</span>
             </>
           ) : null}
-          <TextQualityBadge status={issue.textStatus} quality={issue.textQuality} />
         </div>
 
         <div className="mt-5">

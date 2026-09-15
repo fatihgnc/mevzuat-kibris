@@ -38,7 +38,7 @@ export function SiteFooter({
 
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <nav aria-labelledby="footer-konular">
-            <h2 id="footer-konular" className="mb-3 text-xs text-ink-faint">
+            <h2 id="footer-konular" className="mb-3 text-lg font-semibold text-ink">
               Konular
             </h2>
             {/*
@@ -63,7 +63,7 @@ export function SiteFooter({
 
           {institutions.length ? (
             <nav aria-labelledby="footer-kurumlar" className="lg:col-span-2">
-              <h2 id="footer-kurumlar" className="mb-3 text-xs text-ink-faint">
+              <h2 id="footer-kurumlar" className="mb-3 text-lg font-semibold text-ink">
                 En çok kayıt yayımlayan kurumlar
               </h2>
               <ul className="grid gap-x-6 gap-y-2 text-base sm:grid-cols-2">
@@ -89,7 +89,7 @@ export function SiteFooter({
             * institution blocks above already work.
             */}
           <nav aria-labelledby="footer-araclar">
-            <h2 id="footer-araclar" className="mb-3 text-xs text-ink-faint">
+            <h2 id="footer-araclar" className="mb-3 text-lg font-semibold text-ink">
               Araçlar
             </h2>
             <ul className="flex flex-col gap-2 text-base">
@@ -110,8 +110,8 @@ export function SiteFooter({
           </nav>
 
           <nav aria-labelledby="footer-site">
-            <h2 id="footer-site" className="mb-3 text-xs text-ink-faint">
-              Site
+            <h2 id="footer-site" className="mb-3 text-lg font-semibold text-ink">
+              Sayfalar
             </h2>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
               <li>
@@ -140,9 +140,6 @@ export function SiteFooter({
                 <Link href="/takip">Takiplerim</Link>
               </li>
               <li>
-                <Link href="/rss.xml">RSS</Link>
-              </li>
-              <li>
                 <Link href="/hakkinda">Hakkında</Link>
               </li>
               <li>
@@ -153,6 +150,28 @@ export function SiteFooter({
               </li>
               <li>
                 <Link href="/kullanim-kosullari">Kullanım koşulları</Link>
+              </li>
+              <li>
+                <Link href="/rss.xml">RSS</Link>
+              </li>
+            </ul>
+          </nav>
+
+          <nav aria-labelledby="footer-diger-hizmetler">
+            <h2 id="footer-diger-hizmetler" className="mb-3 text-lg font-semibold text-ink">
+              Diğer hizmetlerimiz
+            </h2>
+            <ul className="flex flex-col gap-2 text-base">
+              <li>
+                {/* Leaves the site — new tab, noopener (see the Fatih Genç link below). */}
+                <a
+                  href="https://acikeczanevarmi.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink-body no-underline hover:text-accent hover:no-underline"
+                >
+                  KKTC Nöbetçi Eczaneler
+                </a>
               </li>
             </ul>
           </nav>

@@ -284,7 +284,7 @@ export async function TopicPage({
               mechanism, which is true of each.
             */}
             {supportsDeadline && openCount === 0 ? (
-              <p className="m-0 mt-[26px] max-w-lede rounded border border-notice-border bg-notice px-3.5 py-2.5 text-sm leading-[1.6] text-notice-ink">
+              <p className="m-0 mt-[26px] rounded border border-notice-border bg-notice px-3.5 py-2.5 text-sm leading-[1.6] text-notice-ink">
                 Başvuru tarihini kaydın gövde metninden okuyoruz; metni taranmış görüntü
                 olarak yayımlanan ilanlarda bu tarih çıkmıyor. &ldquo;Başvurusu açık&rdquo;
                 boş diye süresi açık ilan yok demek değil — ilanın kendisi ve orijinal{' '}

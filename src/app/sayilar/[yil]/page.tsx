@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { TextQualityBadge } from '@/components/text-quality-badge';
 import { YearNav } from '@/components/year-nav';
 import { listIssuesByYear, listYears, yearTextQuality } from '@/lib/db/queries/issues';
 import { ARCHIVE_START_YEAR } from '@/lib/seo/config';
@@ -63,7 +62,7 @@ export default async function IssueYearPage({ params }: Props) {
         <h1 className="m-0 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">
           {year} yılı sayıları
         </h1>
-        <p className="mt-3 text-base text-ink-muted">{issues.length} sayı</p>
+        <p className="mt-3 text-base text-ink-muted">Toplam {issues.length} sayı</p>
 
         {/*
          * If a year's average text quality is below 0.6 we tell the user (spec 7.2).
@@ -92,7 +91,6 @@ export default async function IssueYearPage({ params }: Props) {
                 </span>
                 <span className="flex items-center gap-3 text-base text-ink-muted">
                   <span>{issue.recordCount} kayıt</span>
-                  <TextQualityBadge status={issue.textStatus} quality={issue.textQuality} />
                 </span>
               </Link>
             </li>

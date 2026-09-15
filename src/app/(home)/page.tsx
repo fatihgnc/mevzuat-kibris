@@ -4,7 +4,6 @@ import Link from "next/link";
 import { AdSlot } from "@/components/ad-slot";
 import { FollowCard } from "@/components/follow-card";
 import { IssueCard } from "@/components/issue-card";
-import { KnownIssueNotice } from "@/components/known-issue-notice";
 import { RecordCard } from "@/components/record-card";
 import { RssCard } from "@/components/rss-card";
 import { SearchBox } from "@/components/search-box";
@@ -128,9 +127,6 @@ export default async function HomePage() {
           </div>
         ) : null}
 
-        {/* GEÇİCİ: gövde metni kalitesi duyurusu. Düzeltme yayına girince bu satır silinir. */}
-        <KnownIssueNotice className="mt-8" />
-
         <div className="mt-11 grid gap-10 lg:grid-cols-page">
           <div className="min-w-0">
             <section>
@@ -212,12 +208,7 @@ export default async function HomePage() {
 
               <div className="flex flex-col gap-2.5 border-t border-line pt-4 text-sm leading-[1.5] text-ink-muted">
                 <span>
-                  Kayıtlar Resmî Gazete PDF&apos;lerinden otomatik çıkarılır.
-                  Eski sayılarda metin taramadan okunur, hata payı vardır.
-                </span>
-                <span>
-                  Mevzuat Kıbrıs resmî bir kurum değildir. Bağlayıcı olan,
-                  gazetede yayımlanan resmî metindir.
+                  Kayıtlar Resmî Gazete kaynaklarından otomatik çıkarılır, hata payı vardır.
                 </span>
                 <span>Tamamen ücretsiz.</span>
               </div>

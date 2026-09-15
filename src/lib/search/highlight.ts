@@ -196,10 +196,17 @@ function findRanges(text: string, terms: string[]): Array<[number, number]> {
  * there is a font-light / font-semibold difference, and both are in a readable
  * tone.
  */
+/*
+ * Levels 0-2 used to differ in weight and colour (boilerplate faint, distinctive
+ * dark, in-between muted) so a title read in two or three tones depending on where
+ * maskTitle drew the boundary — one title split at its comma, the next not, which
+ * read as inconsistent rather than helpful. Titles now render in one uniform tone;
+ * only level 3 (an actual search-query match) still stands out.
+ */
 const MASK_CLASS: Record<TokenLevel, string> = {
-  0: 'font-light text-ink-fainter', // boilerplate — 4.9:1
-  1: 'font-semibold text-ink', //          distinctive
-  2: 'font-normal text-ink-muted', //      ara bilgi
+  0: 'font-normal text-ink',
+  1: 'font-normal text-ink',
+  2: 'font-normal text-ink',
   3: 'rounded-sm bg-mark font-semibold text-ink', // search match
 };
 

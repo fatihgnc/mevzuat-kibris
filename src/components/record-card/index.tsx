@@ -81,23 +81,6 @@ export function RecordCard({
           <span className="text-base leading-[1.55] text-ink-muted">
             <MaskedText tokens={record.snippet} variant="quote" />
           </span>
-        ) : !record.hasBody && heading ? (
-          /*
-           * There REALLY is no body text. The design's decision: rather than leave
-           * the row empty, show the gazette's raw title in its masked form and say
-           * so plainly.
-           *
-           * The condition looks at record.hasBody, not at the snippet: on list
-           * pages ts_headline never runs, the snippet is null, and looking only at
-           * the snippet would print "could not be extracted" on records that do
-           * have a body.
-           */
-          <span className="flex flex-col gap-1 border-l-2 border-line-dashed pl-2.5">
-            <span className="text-2xs text-ink-fainter">
-              Gövde metni çıkarılamadı, gazetedeki başlık:
-            </span>
-            <MaskedText tokens={record.titleTokens} className="text-base leading-[1.5]" />
-          </span>
         ) : null}
 
         {showDeadline && record.deadlineAt ? (
