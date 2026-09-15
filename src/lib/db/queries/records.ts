@@ -141,8 +141,22 @@ export async function searchRecords(
   const rankExpr = tsq
     ? sql`ts_rank_cd(r.search_vector, ${tsq}) * recency_boost(r.published_at)`
     : sql`0::real`;
+  /*
+   * coalesce(body_markdown, body_text), left(..., 30720): mirrors
+   * search_vector (migration 0015) so the snippet highlights the same text
+   * the match actually came from, truncated the same way -- ts_headline
+   * builds its own tsvector internally and hits the same 1MB tsvector limit
+   * on the multi-megabyte records search_vector's comment describes. The
+   * regexp strips markdown syntax (table pipes, heading hashes, emphasis,
+   * separator rows) that would otherwise show up literally in the snippet --
+   * it only affects display, not matching.
+   */
   const snippetExpr = tsq
-    ? sql`ts_headline('tr_rg', coalesce(r.body_text, ''), ${tsq}, ${HEADLINE_OPTIONS})`
+    ? sql`ts_headline(
+        'tr_rg',
+        regexp_replace(left(coalesce(nullif(r.body_markdown, ''), r.body_text, ''), 30720), '[#*\`|]|-{2,}', ' ', 'g'),
+        ${tsq}, ${HEADLINE_OPTIONS}
+      )`
     : sql`null::text`;
 
   const rowsQuery = db.execute<Row<RawListRow & { rank: number }>>(sql`
