@@ -8,6 +8,8 @@ export interface NavDropdownItem {
   label: string;
   /** Menüde adın altındaki tek satır. */
   description?: string;
+  /** Siteden çıkan bağlantılar için: yeni sekmede açılan sade <a>, next/link değil. */
+  external?: boolean;
 }
 
 /**
@@ -26,11 +28,13 @@ export interface NavDropdownItem {
 export function NavDropdown({
   label,
   href,
+  footerLabel,
   items,
 }: {
   label: string;
-  /** Menünün başlığının kendisi de bir sayfa — hub. */
-  href: string;
+  /** Menünün başlığının kendisi de bir sayfa — hub. Yoksa alttaki "tümü" satırı basılmaz. */
+  href?: string;
+  footerLabel?: string;
   items: readonly NavDropdownItem[];
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -124,37 +128,59 @@ export function NavDropdown({
       <div className="absolute right-0 top-full z-30 hidden w-[320px] pt-3 group-open:block">
         <div className="rounded-md border border-line bg-surface py-1.5 shadow-lg">
           <ul className="flex flex-col">
-            {items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => {
-                    if (ref.current) ref.current.open = false;
-                  }}
-                  className="block px-4 py-2 no-underline hover:bg-surface-hover hover:no-underline"
-                >
+            {items.map((item) => {
+              const close = () => {
+                if (ref.current) ref.current.open = false;
+              };
+              const content = (
+                <>
                   <span className="block text-base font-medium text-ink-body">{item.label}</span>
                   {item.description ? (
                     <span className="mt-0.5 block text-sm leading-[1.45] text-ink-muted">
                       {item.description}
                     </span>
                   ) : null}
-                </Link>
-              </li>
-            ))}
+                </>
+              );
+              return (
+                <li key={item.href}>
+                  {item.external ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={close}
+                      className="block px-4 py-2 no-underline hover:bg-surface-hover hover:no-underline"
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      onClick={close}
+                      className="block px-4 py-2 no-underline hover:bg-surface-hover hover:no-underline"
+                    >
+                      {content}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
-          <div className="mt-1.5 border-t border-line-soft pt-1.5">
-            <Link
-              href={href}
-              onClick={() => {
-                if (ref.current) ref.current.open = false;
-              }}
-              className="block px-4 py-2 text-base text-ink-muted no-underline hover:bg-surface-hover hover:text-ink hover:no-underline"
-            >
-              Tüm araçlar →
-            </Link>
-          </div>
+          {href ? (
+            <div className="mt-1.5 border-t border-line-soft pt-1.5">
+              <Link
+                href={href}
+                onClick={() => {
+                  if (ref.current) ref.current.open = false;
+                }}
+                className="block px-4 py-2 text-base text-ink-muted no-underline hover:bg-surface-hover hover:text-ink hover:no-underline"
+              >
+                {footerLabel ?? 'Tümü'} →
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
     </details>

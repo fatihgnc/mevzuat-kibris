@@ -60,6 +60,20 @@ const TOOL_ITEMS = TOOLS.map((tool) => ({
   description: tool.summary,
 }));
 
+/**
+ * "Diğer hizmetler" menüsü — bağımsız kardeş sitelere giden bağlantılar.
+ * Footer'daki "Diğer hizmetlerimiz" bölümüyle aynı liste, başlıkta da erişilebilir olsun diye.
+ */
+const OTHER_SERVICE_ITEMS = [
+  { href: 'https://acikeczanevarmi.com', label: 'KKTC Nöbetçi Eczaneler', external: true },
+];
+
+/*
+ * "Diğer hizmetler" mobil menüye EKLENMEZ -- 1060px altında yalnızca footer'dan
+ * erişilebilir. Başlıktaki dropdown zaten `min-[1060px]:block` ile o eşiğin
+ * altında hiç render edilmiyor (bkz. NavDropdown); mobil menü listesine
+ * eklemek bu davranışı tekrar açardı.
+ */
 const NAV_WITH_TOOLS = [...NAV, { href: TOOLS_PATH, label: 'Araçlar' }];
 
 interface SiteHeaderProps {
@@ -150,7 +164,13 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
                 {item.label}
               </Link>
             ))}
-            <NavDropdown label="Araçlar" href={TOOLS_PATH} items={TOOL_ITEMS} />
+            <NavDropdown
+              label="Araçlar"
+              href={TOOLS_PATH}
+              footerLabel="Tüm araçlar"
+              items={TOOL_ITEMS}
+            />
+            <NavDropdown label="Diğer hizmetler" items={OTHER_SERVICE_ITEMS} />
           </div>
         </nav>
 
