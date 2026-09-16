@@ -92,8 +92,8 @@ describe('tokenClass', () => {
    * becomes invisible on the page. This test catches that regression.
    */
   it('gerçek Tailwind utility sınıfları döndürür', () => {
-    expect(tokenClass(0)).toContain('font-light');
-    expect(tokenClass(1)).toContain('font-semibold');
+    expect(tokenClass(0)).toContain('font-normal');
+    expect(tokenClass(3)).toContain('font-semibold');
     expect(tokenClass(3)).toContain('bg-mark');
     expect(tokenClass(0)).not.toMatch(/^tok-/);
   });

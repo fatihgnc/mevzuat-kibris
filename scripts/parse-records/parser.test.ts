@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { formatRef } from '../../src/lib/constants/doc-types';
 import { CRAWLER_USER_AGENT } from '../../src/lib/seo/config';
 import { classifyDocType, classifyTopics } from '../classify/rules';
-import { parseIssueNumber, parseTurkishDate } from '../crawl-archive';
+import { parseIssueNumber, parseTurkishDate } from '../crawl-archive/parse';
 import { titleCase } from '../shared/turkish-suffix';
 import { summarize } from '../summarize/rules';
 
