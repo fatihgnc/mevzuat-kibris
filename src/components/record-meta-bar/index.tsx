@@ -74,7 +74,7 @@ export function buildRecordMetaFields(input: {
     label: 'Resmî Kaynak',
     value: (
       <a href={input.pdfUrl} target="_blank" rel="noopener noreferrer">
-        {input.pageFrom ? 'Sayfa ' + input.pageFrom : "PDF'i aç"}
+        {input.pageFrom ? 'Sayfa ' + input.pageFrom : 'Kaynağa git'}
       </a>
     ),
   });

@@ -95,7 +95,7 @@ export default async function IssuePage({ params }: Props) {
             rel="noopener noreferrer"
             className="inline-block rounded border border-ink bg-surface px-[18px] py-2.5 text-md font-semibold text-ink no-underline transition-colors hover:bg-ink hover:text-surface hover:no-underline"
           >
-            Resmî PDF&apos;i aç
+            Kaynağa git
           </a>
         </div>
 
