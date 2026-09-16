@@ -334,9 +334,14 @@ export function SearchFilters({
         </button>
         {filtersOpen ? (
           <Link
-            /* The entity pin survives clearing; it is not one of the filters. */
+            /*
+             * The entity pin survives clearing; it is not one of the filters. The
+             * query does NOT survive — it is counted as a filter by
+             * `hasActiveFilters` now, so a control that leaves it in place would
+             * show itself and then visibly do nothing.
+             */
             href={buildSearchHref({
-              q: params.q,
+              q: '',
               kurum: params.kurum,
               sirket: params.sirket,
               yer: params.yer,

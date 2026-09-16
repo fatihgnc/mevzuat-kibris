@@ -179,7 +179,8 @@ export function activeFilterCount(params: SearchParams): number {
 /** Whether any filter is active — drives whether the "clear filters" link is shown. */
 export function hasActiveFilters(params: SearchParams): boolean {
   return Boolean(
-    params.konu.length ||
+    params.q ||
+      params.konu.length ||
       params.tur.length ||
       params.kurum ||
       params.sirket ||
