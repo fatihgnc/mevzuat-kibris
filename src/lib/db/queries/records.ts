@@ -151,13 +151,29 @@ export async function searchRecords(
    * separator rows) that would otherwise show up literally in the snippet --
    * it only affects display, not matching.
    */
+  /*
+   * `[[:space:]]+`, not `\s+` -- the connection strips the backslash escape
+   * before Postgres's regex engine sees it, so `\s` arrived as a bare `s` and
+   * replaced every literal letter "s" in the body with a space ("Yasası" ->
+   * "Ya a ı"). The POSIX bracket class needs no escaping and has the same
+   * meaning.
+   */
+  const cleanedBody = sql`regexp_replace(
+    regexp_replace(left(coalesce(nullif(r.body_markdown, ''), r.body_text, ''), 30720), '[#*\`|]|-{2,}', ' ', 'g'),
+    '[[:space:]]+', ' ', 'g'
+  )`;
+  /*
+   * No search term, no ts_headline -- there is nothing for it to rank fragments
+   * against. Falling back to a plain lead-in (first 200 characters, "…" if the
+   * body runs on) so a filter-only search still shows something of the record
+   * rather than title and badges alone.
+   */
   const snippetExpr = tsq
-    ? sql`ts_headline(
-        'tr_rg',
-        regexp_replace(left(coalesce(nullif(r.body_markdown, ''), r.body_text, ''), 30720), '[#*\`|]|-{2,}', ' ', 'g'),
-        ${tsq}, ${HEADLINE_OPTIONS}
-      )`
-    : sql`null::text`;
+    ? sql`ts_headline('tr_rg', ${cleanedBody}, ${tsq}, ${HEADLINE_OPTIONS})`
+    : sql`case
+        when length(trim(${cleanedBody})) > 200 then left(trim(${cleanedBody}), 200) || '…'
+        else nullif(trim(${cleanedBody}), '')
+      end`;
 
   const rowsQuery = db.execute<Row<RawListRow & { rank: number }>>(sql`
     select ${sql.raw(LIST_COLUMNS)},
