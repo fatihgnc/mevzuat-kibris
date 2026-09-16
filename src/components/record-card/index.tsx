@@ -96,24 +96,28 @@ export function RecordCard({
           </span>
         ) : null}
 
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
+        <span className="flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
           {!hideTopic && record.primaryTopic ? (
-            <span className="inline-flex items-center gap-1.5">
-              {TOPICS[record.primaryTopic].name}
-            </span>
+            <Badge>{TOPICS[record.primaryTopic].name}</Badge>
           ) : null}
           {/*
            * If the document type starts with the topic name we do not print it
            * twice: a line like "Münhal · Münhal ilanı" carries no information. This
            * is the design's showTur rule.
            */}
-          {shouldShowDocType(record) ? <span>{record.docTypeLabel}</span> : null}
-          {record.institution ? (
-            <span className="text-ink-fainter">{record.institution}</span>
-          ) : null}
+          {shouldShowDocType(record) ? <Badge>{record.docTypeLabel}</Badge> : null}
+          {record.institution ? <Badge>{record.institution}</Badge> : null}
         </span>
       </div>
     </Link>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-[6px] border border-line bg-surface-muted px-2 py-0.5 text-sm text-ink-muted">
+      {children}
+    </span>
   );
 }
 
