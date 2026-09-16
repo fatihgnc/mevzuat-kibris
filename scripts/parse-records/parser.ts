@@ -469,6 +469,20 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
 export function bodyAnchor(refType: RefType | null, refNumber: string | null): string | null {
   if (!refType || !refNumber) return null;
   if (refType === 'ae') return `Sayı : ${refNumber}`;
+  /*
+   * `eskieser` and `rekabet` are the one case where `formatRef`'s label
+   * (written for the site's meta bar: "Karar No 107/5", "Karar 405/2026")
+   * is NOT what the gazette prints. It prints "KARAR NO:107/5" and
+   * "KARAR SAYISI:405/2026" -- the very text REF_PATTERNS matched to find
+   * these records in the first place. Using formatRef here searched for a
+   * string that never appears in the source text: measured on the 2020-2026
+   * backfill, 0 of 51 eskieser records and 0 of 1 rekabet record ever
+   * resolved a body, a 100% failure rate that only a wrong anchor explains.
+   * The space before the number tolerates the gazette's "NO: 107" and
+   * "NO:107" both (findLabel turns a literal space into optional whitespace).
+   */
+  if (refType === 'eskieser') return `KARAR NO: ${refNumber}`;
+  if (refType === 'rekabet') return `KARAR SAYISI: ${refNumber}`;
   return formatRef(refType, refNumber);
 }
 
