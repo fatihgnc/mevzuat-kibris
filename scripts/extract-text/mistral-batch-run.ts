@@ -2,6 +2,7 @@ import { Mistral } from '@mistralai/mistralai';
 
 import { closeDb, sql } from '../shared/db';
 import { log } from '../shared/logger';
+import { politeFetch } from '../shared/http';
 
 import { MISTRAL_OCR_MODEL, assembleIssueText, type MistralOcrPage } from './mistral-engine';
 import { getLabeledRecords, writeLabeledBodies, type LabeledRecord } from './mistral-shared';
@@ -10,16 +11,16 @@ import { getLabeledRecords, writeLabeledBodies, type LabeledRecord } from './mis
  * The Mistral OCR 3 Batch API runner -- $1/1000 pages instead of the
  * synchronous mistral-run.ts's $2/1000 (see HANDOFF.md §8.5 and the pricing
  * check that found the 2x gap). One batch job covers every unprocessed issue
- * for a given year: upload a `.jsonl` of {issue id -> pdf_url}, let Mistral
- * queue and run the whole thing, then slice each issue's result into its
- * records exactly like mistral-run.ts does.
+ * for the given year(s): upload a `.jsonl` of {issue id -> pdf_url}, let
+ * Mistral queue and run the whole thing, then slice each issue's result into
+ * its records exactly like mistral-run.ts does.
  *
  * Uses the official SDK (not raw fetch like mistral-engine.ts) -- the
  * multi-step upload/create/poll/download flow is enough surface that the
  * SDK's typed requests are worth the dependency; it comes out once the
  * Mistral pilot is settled.
  *
- * Usage: tsx scripts/extract-text/mistral-batch-run.ts <year> [issueLimit]
+ * Usage: tsx scripts/extract-text/mistral-batch-run.ts <year>[,<year>...] [issueLimit]
  */
 
 const POLL_INTERVAL_MS = 15_000;
@@ -35,10 +36,40 @@ async function readStreamToString(stream: ReadableStream<Uint8Array>): Promise<s
   return await new Response(stream).text();
 }
 
+/*
+ * Mistral's document_url rejects anything not starting with "https" outright
+ * (422: "Document content must be a URL starting with 'https'"). Every 2020
+ * issue and a handful of 2021 ones live on arsiv.basimevi.gov.ct.tr, which
+ * has no TLS certificate at all -- there is no https version to fall back
+ * to. The only way in is to fetch the PDF ourselves (politeFetch already
+ * knows how to talk to the source site, http included) and hand Mistral the
+ * bytes via the Files API instead of a URL -- the same file_id path
+ * mistral-oversized-run.ts uses for the too-many-pages case, applied here
+ * for a different reason.
+ */
+async function documentFor(
+  issue: IssueRow,
+  client: Mistral,
+): Promise<{ type: 'document_url'; document_url: string } | { type: 'file'; file_id: string }> {
+  if (issue.pdf_url.startsWith('https://')) {
+    return { type: 'document_url', document_url: issue.pdf_url };
+  }
+  const response = await politeFetch(issue.pdf_url, { timeoutMs: 180_000 });
+  if (!response.ok) throw new Error(`PDF indirilemedi: HTTP ${response.status}`);
+  const uploaded = await client.files.upload({
+    file: { fileName: `issue-${issue.id}.pdf`, content: Buffer.from(await response.arrayBuffer()) },
+    purpose: 'ocr',
+  });
+  return { type: 'file', file_id: uploaded.id };
+}
+
 async function main() {
-  const year = Number(process.argv[2]);
-  if (!year) {
-    console.error('kullanım: tsx scripts/extract-text/mistral-batch-run.ts <year> [issueLimit]');
+  const years = (process.argv[2] ?? '')
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  if (years.length === 0) {
+    console.error('kullanım: tsx scripts/extract-text/mistral-batch-run.ts <yıl>[,<yıl>...] [sayıLimiti]');
     process.exit(2);
   }
   const issueLimit = Number(process.argv[3]) || undefined;
@@ -49,11 +80,11 @@ async function main() {
 
   const issues = await sql<IssueRow[]>`
     select id, pdf_url, year, number from issues
-     where year = ${year} and mistral_ocr_at is null
-     order by number
+     where year = any(${years}) and mistral_ocr_at is null
+     order by year, number
      ${issueLimit ? sql`limit ${issueLimit}` : sql``}
   `;
-  log.info('mistral-batch-run başlıyor', { year, issueCount: issues.length });
+  log.info('mistral-batch-run başlıyor', { years, issueCount: issues.length });
 
   // Issues with no OCR-able record don't need a page of Mistral's time --
   // mark them done directly, same shortcut as mistral-run.ts's processIssue.
@@ -84,20 +115,20 @@ async function main() {
     return;
   }
 
-  const jsonl = toSubmit
-    .map((issue) =>
+  const jsonlLines: string[] = [];
+  for (const issue of toSubmit) {
+    const document = await documentFor(issue, client);
+    jsonlLines.push(
       JSON.stringify({
         custom_id: String(issue.id),
-        body: {
-          document: { type: 'document_url', document_url: issue.pdf_url },
-          confidence_scores_granularity: 'page',
-        },
+        body: { document, confidence_scores_granularity: 'page' },
       }),
-    )
-    .join('\n');
+    );
+  }
+  const jsonl = jsonlLines.join('\n');
 
   const uploaded = await client.files.upload({
-    file: { fileName: `mistral-batch-${year}.jsonl`, content: Buffer.from(jsonl, 'utf8') },
+    file: { fileName: `mistral-batch-${years.join('-')}.jsonl`, content: Buffer.from(jsonl, 'utf8') },
     purpose: 'batch',
   });
   log.info('batch dosyası yüklendi', { fileId: uploaded.id, bytes: jsonl.length });
@@ -107,7 +138,7 @@ async function main() {
     model: MISTRAL_OCR_MODEL,
     endpoint: '/v1/ocr',
     timeoutHours: 24,
-    metadata: { purpose: 'mevzuat-kibris-ocr-backfill', year: String(year) },
+    metadata: { purpose: 'mevzuat-kibris-ocr-backfill', years: years.join(',') },
   });
   log.info('batch job oluşturuldu', { jobId: job.id, totalRequests: job.totalRequests });
 
@@ -175,7 +206,7 @@ async function main() {
     log.info('sayı yazıldı', { issueId, written, total: labeled.length, minConfidence, avgConfidence });
   }
 
-  log.info('mistral-batch-run tamam', { year, issuesWritten, recordsWritten, submitted: toSubmit.length });
+  log.info('mistral-batch-run tamam', { years, issuesWritten, recordsWritten, submitted: toSubmit.length });
 }
 
 main()
