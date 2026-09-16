@@ -131,6 +131,7 @@ export const REF_TYPES = [
   'mia',
   'rekabet',
   'eskieser',
+  'genelgey',
 ] as const;
 
 export type RefType = (typeof REF_TYPES)[number];
@@ -178,6 +179,8 @@ export function formatRef(refType: string | null, refNumber: string | null): str
       return `Karar ${refNumber}`;
     case 'eskieser':
       return `Karar No ${refNumber}`;
+    case 'genelgey':
+      return `GENELGE Y.${refNumber}`;
     default:
       return refNumber;
   }

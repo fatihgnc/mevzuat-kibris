@@ -66,6 +66,9 @@ const REF_PATTERNS: Array<{ type: RefType; pattern: RegExp }> = [
   { type: 'kii', pattern: /K\(II\)[-\s]?(\d+-\d{4}|\d+)/ },
   { type: 's', pattern: /\bS-(\d{1,5}-\d{4})/ },
   { type: 'mia', pattern: /GENELGE\s+MİA\.(\d+\/\d{4})/i },
+  // A second, unrelated circular series: "GENELGE Y.1/2026" / "GENELGE NO:Y.1/2025".
+  // Tried after `mia` so a MİA circular is never mistaken for this one.
+  { type: 'genelgey', pattern: /GENELGE\s+(?:NO:\s?)?Y\.(\d+\/\d{4})/i },
   { type: 'rekabet', pattern: /KARAR\s+SAYISI:\s?(\d+\/\d{4})/i },
   { type: 'eskieser', pattern: /KARAR\s+NO:\s?(\d+\/\d+)/i },
   { type: 'yt', pattern: /Y\.T\.NO:\s?(\d+\/\d+\/\d{4})/i },
@@ -346,6 +349,28 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
     }
 
     /*
+     * No primary reference anywhere in the row: fall back to a secondary type
+     * (GENELGE MİA/Y, KARAR NO, KARAR SAYISI) found in a cell of its own. This
+     * only runs when the first pass found nothing, so it can never steal a row
+     * that already has its own primary reference — those keep the secondary
+     * number as an internal citation inside the title, exactly as before
+     * (measured: KARAR NO/KARAR SAYISI sit inside 1,805 existing A.E. records).
+     */
+    if (!ref) {
+      for (let i = 0; i < rest.length; i += 1) {
+        const candidate = rest[i]!;
+        if (!candidate || candidate.length > REF_CELL_MAX) continue;
+
+        const any = findRefs(candidate);
+        if (any.length) {
+          refIndex = i;
+          ref = { type: any[0]!.type, number: any[0]!.number };
+          break;
+        }
+      }
+    }
+
+    /*
      * The title is the longest of the remaining cells. A fixed index will not
      * do, because the title is in column 3 in 2018 and column 4 on some 2025
      * rows. "Longest" finds both correctly and filters out leftover columns.
@@ -376,8 +401,13 @@ export function parseIndexTable(html: string): ParsedRecord[] | null {
      * hijack the record's reference.
      */
     if (!ref) {
-      const inTitle = findRefs(title).filter((item) => PRIMARY_REF_TYPES.has(item.type));
-      if (inTitle.length) ref = { type: inTitle[0]!.type, number: inTitle[0]!.number };
+      const inTitle = findRefs(title);
+      const primaryInTitle = inTitle.filter((item) => PRIMARY_REF_TYPES.has(item.type));
+      // Same fallback as above: only reached when no primary ref exists in the
+      // row at all, so a secondary type found here is the record's own number,
+      // not a citation nested inside some other primary record's title.
+      const chosen = primaryInTitle.length ? primaryInTitle : inTitle;
+      if (chosen.length) ref = { type: chosen[0]!.type, number: chosen[0]!.number };
     }
 
     const isCorrection = /^DÜZELTME\b/i.test(title);
