@@ -8,6 +8,7 @@ import { AdSlot } from "@/components/ad-slot";
 // import { FollowCard } from "@/components/follow-card";
 import { IssueCard } from "@/components/issue-card";
 import { RecordCard } from "@/components/record-card";
+import { RecentVacanciesCard } from "@/components/vacancy-card";
 // import { RssCard } from "@/components/rss-card";
 import { SearchBox } from "@/components/search-box";
 import { SiteFooter } from "@/components/site-footer";
@@ -85,7 +86,20 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const [status, recent, counts, institutions, popular, coverage] =
+  /*
+   * Son 1 hafta (home page "son eklenen münhal ilanları" card). Filtered by
+   * TOPIC, not doc_type='munhal_ilani' — a Kamu Hizmeti Komisyonu circular
+   * (doc_type 'genelge', ref type 'mia') announcing a vacancy is exactly as
+   * much a "münhal ilanı" to a reader as the ones filed under that doc type
+   * itself; the topic classifier already groups them together (rules.ts'
+   * TOPIC_KEYWORDS), which is why the topic strip's own "Münhal" count is in
+   * the thousands while the doc-type facet is in the dozens.
+   */
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const [status, recent, counts, institutions, popular, coverage, recentVacancies] =
     await Promise.all([
       siteStatus(),
       listRecords({ limit: 6 }),
@@ -93,6 +107,7 @@ export default async function HomePage() {
       topEntities("institution", 20),
       popularQueries(3),
       archiveCoverage(),
+      listRecords({ topic: "munhal", baslangic: sevenDaysAgo, limit: 10 }),
     ]);
 
   return (
@@ -191,6 +206,8 @@ export default async function HomePage() {
           */}
           <aside>
             <div className="flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
+              <RecentVacanciesCard records={recentVacancies} />
+
               {status.latestIssue ? (
                 <IssueCard
                   year={status.latestIssue.year}
@@ -214,7 +231,7 @@ export default async function HomePage() {
                 <RssCard href="/rss.xml" />
               */}
 
-              <div className="flex flex-col gap-2.5 border-t border-line pt-4 text-sm leading-[1.5] text-ink-muted">
+              <div className="hidden flex-col gap-2.5 border-t border-line pt-4 text-sm leading-[1.5] text-ink-muted lg:flex">
                 <span>
                   Kayıtlar Resmî Gazete kaynaklarından otomatik çıkarılır, hata payı vardır.
                 </span>

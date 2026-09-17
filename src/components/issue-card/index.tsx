@@ -23,7 +23,9 @@ export function IssueCard({
 }: IssueCardProps) {
   return (
     <div className={cn('rounded-md border border-line bg-surface-muted p-[18px]', className)}>
-      <div className="mb-2 text-xs text-ink-faint">Son yayımlanan sayı</div>
+      <div className="mb-2 text-base font-semibold uppercase tracking-wide text-ink">
+        Son yayımlanan sayı
+      </div>
       <div className="text-3xl font-semibold text-ink">
         Sayı {number} <span className="text-lg font-normal text-ink-muted">— {recordCount} kayıt işlendi</span>
       </div>
