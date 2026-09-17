@@ -28,6 +28,7 @@ export interface ProcessResult {
   entities: Set<string>;
   textStatus: string;
   correctedSlugs: string[];
+  writtenSlugs: string[];
 }
 
 export async function processIssue(issue: {
@@ -40,6 +41,7 @@ export async function processIssue(issue: {
 }): Promise<ProcessResult> {
   const touchedTopics = new Set<string>();
   const touchedEntities = new Set<string>();
+  const writtenSlugs: string[] = [];
 
   /*
    * Read from the structure; fall back to text.
@@ -184,6 +186,7 @@ export async function processIssue(issue: {
 
     const recordId = Number(rows[0]!.id);
     written += 1;
+    if (hasOwnPage) writtenSlugs.push(slug);
 
     for (const topic of topics) {
       await sql`
@@ -214,7 +217,7 @@ export async function processIssue(issue: {
   const correctedSlugs = await linkRelatedRecords(issue.id);
   await sql`select refresh_entity_counts(null)`;
 
-  return { recordsWritten: written, topics: touchedTopics, entities: touchedEntities, textStatus, correctedSlugs };
+  return { recordsWritten: written, topics: touchedTopics, entities: touchedEntities, textStatus, correctedSlugs, writtenSlugs };
 }
 
 /**

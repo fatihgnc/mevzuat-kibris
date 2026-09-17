@@ -1,6 +1,6 @@
 ---
 name: verify-issue
-description: Audits one or more Resmi Gazete issues' parsed records against the original source PDF and fixes any gaps by transcribing missing legal text by hand. Use this whenever the user asks to "check", "verify", "compare", "doğrula", or "karşılaştır" a gazette issue (by year + number, by date, or a range/list of numbers) against its PDF, or asks why a record's body looks empty/incomplete/suspicious/contains another decision's text, or wants missing records filled in "like the Tapu Kadastro fix". Always trigger this for requests like "sayı 178'i PDF ile karşılaştır", "176-180 arasını kontrol et", or "bu sayıda eksik var mı bak" even if the user doesn't name the skill.
+description: Audits one or more Resmi Gazete issues' parsed records against the original source PDF and fixes any gaps by transcribing missing legal text by hand. Use this whenever the user asks to "check", "verify", "compare", "doğrula", or "karşılaştır" a gazette issue (by year + number, by date, or a range/list of numbers) against its PDF, or asks why a record's body looks empty/incomplete/suspicious/contains another decision's text, or wants missing records filled in "like the Tapu Kadastro fix". Also trigger this when the user asks to work through the "needs_review" / "review_flags" / "işaretlenen" queue that daily ingest fills automatically — that's the same skill, just picking its own inputs from records.review_flags instead of a named issue. Always trigger this for requests like "sayı 178'i PDF ile karşılaştır", "176-180 arasını kontrol et", "bu sayıda eksik var mı bak", or "işaretlenen kayıtlara bak" even if the user doesn't name the skill.
 ---
 
 # Verify Issue
@@ -45,6 +45,14 @@ known ways, and none of them are fixable by re-running the pipeline:
    the rendered page. **This means "has a non-null body" is not sufficient evidence a
    record is correct — always check category 4 even for records nothing else flagged.**
 
+`scripts/daily/flag-review.ts` now runs a cheap, precise subset of this detection
+automatically after every daily ingest run (categories 1, 2/3 as `no_body`/`no_anchor`,
+and a generic version of category 4 as `neighbor_bleed`, plus a masthead-bleed check as
+`masthead_bleed`) and marks matching records in `review_flags` — see the `needs_review`
+queue under Inputs below. That closes the "nobody happened to run this skill" gap, but
+it only *flags*; the transcription and the "where does this body actually end" judgment
+call below are still yours to do by hand.
+
 None of these are things you can fix by tweaking a regex and re-running extraction —
 the source text needs a human (well, you) to actually look at the PDF pages and
 transcribe them, or in category 4's case, to actually look at where a body's content
@@ -57,11 +65,13 @@ inherently manual.
 
 ## Inputs
 
-The user gives you a year + one or more issue numbers (e.g. "sayı 178, 2026",
-"2026/178", "176-178'i kontrol et", "178, 179 ve 180'e bak"), a date range, or just a
-range of numbers within a year — resolve whatever form they used into a concrete list
-of `(year, number)` pairs up front, in one query, rather than asking them to repeat
-themselves per issue:
+Two ways to get a list of issues to audit:
+
+**Named issues.** The user gives you a year + one or more issue numbers (e.g. "sayı
+178, 2026", "2026/178", "176-178'i kontrol et", "178, 179 ve 180'e bak"), a date range,
+or just a range of numbers within a year — resolve whatever form they used into a
+concrete list of `(year, number)` pairs up front, in one query, rather than asking them
+to repeat themselves per issue:
 
 ```sql
 select id, year, number, published_at, pdf_url, text_status
@@ -71,6 +81,28 @@ where (year, number) in ((2026, 178), (2026, 179), (2026, 180))
 -- or: where year = 2026 and number between 178 and 180
 order by number
 ```
+
+**The `needs_review` queue.** Daily ingest (`scripts/daily/flag-review.ts`) already
+runs the mechanical half of Step 1 automatically after every run — it flags records
+matching a known gap class into `records.review_flags` (a text array: `no_body`,
+`no_anchor`, `neighbor_bleed`, `masthead_bleed`) and `review_flagged_at`, without ever
+touching body content. When the user asks you to work through that queue instead of
+naming an issue, resolve it to the same `(year, number)` list this way:
+
+```sql
+select distinct i.id, i.year, i.number, i.published_at, i.pdf_url, i.text_status
+  from records r join issues i on i.id = r.issue_id
+ where r.review_flags is not null
+ order by i.year, i.number
+```
+
+From here on, treat it exactly like a named-issue list — same Steps 1–7 per issue.
+The one difference: in Step 1, you already have a first-pass flag per record from
+`review_flags`, so you don't need to re-derive `no_body`/`no_anchor` from scratch —
+but still run the full Step 1 read-through (including the category-4 `anchor_hits`
+check) rather than trusting the flags blindly, since the automated pass can't read the
+PDF and may miss or mis-flag an edge case a human read catches. And once you've fixed a
+record, clear its flag (Step 5) so it drops out of the queue for next time.
 
 Don't assume a PDF is already sitting in the scratchpad from a previous session —
 always fetch it fresh per issue (see Step 2).
@@ -139,6 +171,22 @@ a leftover bare page number (the printed page footer, e.g. `\n\n1163` or
 `\n\n(1161)\n\n 1162`) that a plain `KARAR SAYISI:`-boundary cut leaves dangling —
 strip that too.
 
+**Read the whole body before picking a cut point, not just its tail.** A body can
+swallow *more than one* neighbor — e.g. A.E. 853's own content, then A.E. 854's full
+text, then a masthead block, then a third record's full text, all concatenated. Reading
+only the last 500–2000 characters (as a quick tail check naturally tempts you to) shows
+you whichever neighbor happens to be *last*, and it is easy to mistake that neighbor's
+own closing sentence ("...yürürlüğe girer.", "...karar verdi.") for the flagged
+record's real ending — it is not. Confirmed the hard way in this project: a first pass
+at fixing A.E. 853 (2026/177) cut at what looked like its closing sentence, shipped to
+production, and turned out to still contain all of A.E. 854's text, because 854's own
+"Yürürlüğe Giriş" line was sitting right where 853's was expected. The fix that
+actually worked was reading the full body from the start and finding the specific page
+stub (`4344`) marking where 853's content stopped and 854's began. If a flagged body is
+long, read it in full (or at least back far enough to cover more than one plausible
+neighbor) before deciding where the real content ends — and after writing a fix, always
+re-open the live page yourself (Step 6) rather than trusting the trim in isolation.
+
 Group the flagged records by `section` and by "missing everything" vs "missing body
 only" vs "has a body but bled into a neighbor" — this shapes how you read the PDF in
 Step 3 (a whole missing section reads as one long continuous sweep through those
@@ -188,6 +236,18 @@ where id = <a known-good sibling>`) and match its conventions:
 - A leading `Sayı : N` line (or `KARAR SAYISI: ...` for Bakanlar Kurulu items) matching
   how sibling records in the same section start.
 
+Watch also for a bare page-number footer stranded **in the middle** of an otherwise
+correct, long body — not at the tail, so it's not masthead-bleed, and not a duplicated
+neighbor, so it's not category 4 either. It happens to records that genuinely span
+several PDF pages (a long amendment-history table is the recurring case): the page
+break falls mid-table or mid-paragraph, and OCR carries the printed page number
+straight into the body as its own line, e.g. `...tavan satış fiyatları yeniden
+belirlenir.\n\n4310\n\n(2) Bu madde amaçları...` — the `4310` is not content, just
+where page 4310 ended. Confirmed once in this project (2026/176, A.E. 840): the fix was
+simply deleting the stray standalone-number line(s), nothing else needed transcribing.
+Recognize it by the number sitting completely alone on its own line, blank lines on
+both sides, breaking a sentence or table that reads continuously once it's gone.
+
 Watch for the masthead-bleed pattern at the very end of your transcription: if the
 PDF page break lands mid-record, the next page's running header (`Sayfa: N`, `RESMÎ
 GAZETE`, the date, `Sayı: N`, the issuing institution's name) can look like it belongs
@@ -216,7 +276,11 @@ appear live until someone calls `/api/revalidate` — that's Step 6, not automat
 ## Step 5 — Write the fixes
 
 For each flagged record, `UPDATE records SET body_markdown = ..., page_from = ...,
-page_to = ..., has_own_page = true WHERE id = ...`.
+page_to = ..., has_own_page = true, review_flags = null, review_flagged_at = null
+WHERE id = ...` — clearing `review_flags` matters even for issues you got from a named
+year+number rather than the queue, since `flag-review.ts` may have already flagged the
+same record on a prior daily run and it should drop out of the queue once you've
+actually fixed it.
 
 `has_own_page` needs setting explicitly — the pipeline sets it as `hasOwnPage =
 bodyText.length >= 200 || entities.length > 0` at parse time (see

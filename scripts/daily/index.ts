@@ -3,6 +3,7 @@ import { processIssue } from '../parse-records';
 import { triggerRevalidate } from '../revalidate';
 import { closeDb, finishRun, sql, startRun } from '../shared/db';
 import { log, toErrorEntry } from '../shared/logger';
+import { flagForReview } from './flag-review';
 
 /**
  * Daily ingest — runs the nine stages of spec 7.1 in order.
@@ -35,8 +36,9 @@ async function main() {
 
   const topics = new Set<string>();
   const entities = new Set<string>();
-  const correctedRecords = new Set<string>();
+  const touchedRecordSlugs = new Set<string>();
   const issues: Array<{ year: number; number: number }> = [];
+  const processedIssueIds: number[] = [];
 
   try {
     const crawl = await crawlYear(year);
@@ -77,8 +79,10 @@ async function main() {
         recordsNew += result.recordsWritten;
         for (const topic of result.topics) topics.add(topic);
         for (const entity of result.entities) entities.add(entity);
-        for (const slug of result.correctedSlugs) correctedRecords.add(slug);
+        for (const slug of result.correctedSlugs) touchedRecordSlugs.add(slug);
+        for (const slug of result.writtenSlugs) touchedRecordSlugs.add(slug);
         issues.push({ year: issue.year, number: issue.number });
+        processedIssueIds.push(Number(issue.id));
       } catch (error) {
         log.error('sayı işlenemedi', {
           year: issue.year,
@@ -90,15 +94,32 @@ async function main() {
     }
 
     /*
+     * Automated half of the verify-issue skill's Step 1 (see SKILL.md) — flags
+     * records matching a known ingest gap class for a later human pass. Never
+     * writes body content, so it's safe to run unattended on every issue this
+     * run touched.
+     */
+    const flagged = await flagForReview(processedIssueIds);
+    if (flagged > 0) log.info('gözden geçirme için işaretlenen kayıt sayısı', { flagged });
+
+    /*
      * Revalidation — spec 11.2. EVERY affected tag is refreshed, not just the
      * home page. The home page saying "3 new records" while the topic page says
      * "no records" destroys the product's credibility in one go.
+     *
+     * `records` also carries every slug WRITTEN this run, not just corrected
+     * ones. Without this, a brand-new /karar/ page's first generation gets
+     * cached at Cloudflare with `s-maxage=1yr` and nothing ever purges it — if
+     * that first render is ever wrong (e.g. an anchor collision between two
+     * near-identical template records in the same issue), the bad copy sticks
+     * at the edge indefinitely, self-healing only by luck (cache eviction, or a
+     * client reload that happens to bypass the edge cache).
      */
     await triggerRevalidate({
       topics: [...topics],
       entities: [...entities],
       issues,
-      records: [...correctedRecords],
+      records: [...touchedRecordSlugs],
     });
 
     await finishRun(runId, errors.length ? 'failed' : 'ok', { issuesSeen, issuesNew, recordsNew }, errors);

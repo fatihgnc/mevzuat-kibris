@@ -95,6 +95,10 @@ export const records = pgTable(
     correctsId: bigint('corrects_id', { mode: 'number' }),
     hasPersonalData: boolean('has_personal_data').notNull().default(false),
     hasOwnPage: boolean('has_own_page').notNull().default(true),
+    // Daily ingest's automated pass over the verify-issue skill's known gap
+    // classes (migration 0019). NULL = nothing suspicious found.
+    reviewFlags: textArray('review_flags'),
+    reviewFlaggedAt: timestamp('review_flagged_at', { withTimezone: true }),
     searchVector: tsvector('search_vector'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
