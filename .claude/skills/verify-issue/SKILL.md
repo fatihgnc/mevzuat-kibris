@@ -47,9 +47,9 @@ known ways, and none of them are fixable by re-running the pipeline:
 
 `scripts/daily/flag-review.ts` now runs a cheap, precise subset of this detection
 automatically after every daily ingest run (categories 1, 2/3 as `no_body`/`no_anchor`,
-and a generic version of category 4 as `neighbor_bleed`, plus a masthead-bleed check as
-`masthead_bleed`) and marks matching records in `review_flags` — see the `needs_review`
-queue under Inputs below. That closes the "nobody happened to run this skill" gap, but
+and a generic version of category 4 as `neighbor_bleed`) and marks matching records in
+`review_flags` — see the `needs_review` queue under Inputs below. That closes the
+"nobody happened to run this skill" gap, but
 it only *flags*; the transcription and the "where does this body actually end" judgment
 call below are still yours to do by hand.
 
@@ -85,7 +85,7 @@ order by number
 **The `needs_review` queue.** Daily ingest (`scripts/daily/flag-review.ts`) already
 runs the mechanical half of Step 1 automatically after every run — it flags records
 matching a known gap class into `records.review_flags` (a text array: `no_body`,
-`no_anchor`, `neighbor_bleed`, `masthead_bleed`) and `review_flagged_at`, without ever
+`no_anchor`, `neighbor_bleed`) and `review_flagged_at`, without ever
 touching body content. When the user asks you to work through that queue instead of
 naming an issue, resolve it to the same `(year, number)` list this way:
 
