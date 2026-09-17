@@ -50,7 +50,9 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         <Divider />
         <time dateTime={record.publishedAt}>{formatDateLong(record.publishedAt)}</time>
         <Divider />
-        <span>Sayı {record.issue.number}</span>
+        <Link href={'/sayilar/' + record.issue.year + '/' + record.issue.number}>
+          Sayı {record.issue.number}
+        </Link>
       </div>
 
       {/*
@@ -90,6 +92,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         fields={buildRecordMetaFields({
           refLabel,
           publishedAt: record.publishedAt,
+          issueYear: record.issue.year,
           issueNumber: record.issue.number,
           section: record.section,
           institution,

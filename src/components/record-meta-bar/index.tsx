@@ -37,6 +37,7 @@ export function RecordMetaBar({ fields, className }: { fields: MetaField[]; clas
 export function buildRecordMetaFields(input: {
   refLabel: string | null;
   publishedAt: string;
+  issueYear: number;
   issueNumber: number;
   section: string;
   institution?: { slug: string; name: string } | null;
@@ -55,7 +56,14 @@ export function buildRecordMetaFields(input: {
 
   fields.push({
     label: 'Gazete',
-    value: 'Sayı ' + input.issueNumber + ', ' + sectionShort(input.section),
+    value: (
+      <>
+        <Link href={'/sayilar/' + input.issueYear + '/' + input.issueNumber}>
+          Sayı {input.issueNumber}
+        </Link>
+        {', ' + sectionShort(input.section)}
+      </>
+    ),
   });
 
   if (input.institution) {
