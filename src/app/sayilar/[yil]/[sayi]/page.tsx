@@ -120,7 +120,10 @@ export default async function IssuePage({ params }: Props) {
                 >
                   <div className="flex flex-col gap-1.5">
                     {record.hasOwnPage ? (
-                      <Link href={recordHref(record)} className="text-lg font-medium leading-[1.4]">
+                      <Link
+                        href={recordHref(record)}
+                        className="text-lg font-medium leading-[1.4] hover:text-link"
+                      >
                         {record.summary ?? <MaskedText tokens={record.titleTokens} />}
                       </Link>
                     ) : (
