@@ -244,6 +244,22 @@
     background: hsl(var(--mark));
   }
 
+  /*
+   * `InBodySearch`'ün eşleşmeleri — CSS Custom Highlight API, DOM'a hiç
+   * dokunmadan boyuyor (bkz. bileşenin kendi yorumu). Tüm eşleşmeler
+   * search sonuçlarındaki aynı sarıyla (`--mark`) işaretleniyor; O ANKİ
+   * eşleşme aksanla (`--accent`) ayrılıyor, tıpkı tarayıcı Ctrl+F'in
+   * "şu anki" vurgusu gibi.
+   */
+  ::highlight(record-body-search) {
+    background-color: hsl(var(--mark));
+  }
+
+  ::highlight(record-body-search-active) {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-ink));
+  }
+
   a {
     color: hsl(var(--link));
     @apply no-underline;

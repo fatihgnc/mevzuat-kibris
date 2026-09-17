@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 
 import { AdSlot } from '@/components/ad-slot';
 import { EntityChip } from '@/components/entity-chip';
+import { InBodySearch } from '@/components/in-body-search';
 import { MaskedText } from '@/components/masked-text';
 // Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
 // kaldırıldı, kod silinmedi. Geri eklerken bu satırı ve aşağıdaki <FollowDialog> bloğunu aç.
@@ -152,9 +153,12 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
            * weight, same measure, same everything, so it read as more chrome
            * rather than as the gazette's own words.
            */}
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-            Karar metni
-          </h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+              Karar metni
+            </h2>
+            {record.bodyMarkdown ? <InBodySearch targetId={BODY_ELEMENT_ID} /> : null}
+          </div>
 
           {/*
            * GEÇİCİ: gövde hiçbir kayıtta gösterilmiyor, hepsinde aynı tek
@@ -230,9 +234,13 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
  * required — sanitize afterwards since this HTML comes from a model, not
  * from our own code.
  */
+/** Shared between the search box's `targetId` and this element's own `id`. */
+const BODY_ELEMENT_ID = 'record-body-text';
+
 function BodyMarkdown({ markdown }: { markdown: string }) {
   return (
     <div
+      id={BODY_ELEMENT_ID}
       className={[
         // A card, not a run of plain paragraphs: the border and tint are what
         // say "this is the document" rather than more page around it. Full
