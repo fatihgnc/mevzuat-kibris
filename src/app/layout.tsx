@@ -5,7 +5,7 @@ import Script from 'next/script';
 
 import { RouteProgress } from '@/components/route-progress';
 import { DEFAULT_METADATA, RSS_ALTERNATE } from '@/lib/seo/metadata';
-import { ADSENSE_CLIENT, IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
+import { ADSENSE_CLIENT, GA_MEASUREMENT_ID, IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/json-ld';
 
 import '@/styles/globals.css';
@@ -145,6 +145,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             src="https://static.cloudflareinsights.com/beacon.min.js"
             data-cf-beacon='{"token": "7e71efa4bc7148f4afa5306475316383"}'
           />
+        ) : null}
+        {/*
+         * GA4 — loaded with no consent gate. Runs unconditionally on production,
+         * same lazyOnload treatment as AdSense/Cloudflare so it stays out of LCP.
+         * Empty GA_MEASUREMENT_ID means the tag is not emitted at all.
+         */}
+        {IS_PRODUCTION_DEPLOY && GA_MEASUREMENT_ID ? (
+          <>
+            <Script
+              id="ga4-loader"
+              strategy="lazyOnload"
+              src={'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID}
+            />
+            <Script id="ga4-init" strategy="lazyOnload">
+              {`window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');`}
+            </Script>
+          </>
         ) : null}
       </body>
     </html>

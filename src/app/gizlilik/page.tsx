@@ -68,8 +68,8 @@ export default function PrivacyPage() {
 
       <Section heading="Ölçüm">
         <p className="m-0">
-          Sayfa görüntüleme sayısını ölçmek için Vercel Analytics kullanıyoruz; bu araç çerez
-          kullanmıyor ve ziyaretçi bazında iz tutmuyor.
+          Sayfa görüntüleme sayısını ölçmek için Cloudflare Web Analytics kullanıyoruz; bu araç
+          çerez kullanmıyor ve ziyaretçi bazında iz tutmuyor.
         </p>
       </Section>
 
