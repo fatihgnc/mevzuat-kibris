@@ -18,6 +18,7 @@ import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
 import { recordHref } from '@/lib/db/queries/shared';
 import { formatDateLong, formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
+import { cn } from '@/lib/utils';
 import type { RecordDetail as RecordDetailType } from '@/types/record';
 
 /**
@@ -144,7 +145,14 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         </p>
       ) : null}
 
-      <div className="mt-4 border-t border-line pt-[26px]">
+      {/*
+       * The meta bar above already ends in its own hairline (`border-y` on
+       * RecordMetaBar). With no aliases line and no deadline banner between
+       * them, this section's own top border landed 16px under that one —
+       * two hairlines reading as one doubled, purposeless line. Only draw
+       * this one when there is content between the two to actually separate.
+       */}
+      <div className={cn('mt-4 pt-[26px]', (aliases.length > 0 || record.deadlineAt) && 'border-t border-line')}>
         <div className="min-w-0">
           {/*
            * A LABEL, so the document has a visible start. Everything above this
