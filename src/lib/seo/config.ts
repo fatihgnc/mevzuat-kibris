@@ -77,10 +77,6 @@ export const ADSENSE_CLIENT = rawAdsenseClient
     ? rawAdsenseClient
     : 'ca-' + rawAdsenseClient
   : '';
-
-/** GA4 measurement id (`G-…`). Empty means the tag is not emitted at all. */
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '';
-
 /** Records per page on list pages. The design's pagination is built around this value. */
 export const PAGE_SIZE = 20;
 
