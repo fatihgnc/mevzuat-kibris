@@ -328,7 +328,13 @@ async function EmptyResults({
   params: Awaited<ReturnType<typeof searchParamsSchema.parse>>;
   looseExtra: number;
 }) {
-  const suggestion = await suggestSimilar(normalized);
+  /*
+   * A spelling suggestion is for a query that matches NOTHING. When the words only
+   * fail to sit near each other (looseExtra > 0) the records exist behind the hint
+   * above, and suggestSimilar is a trigram scan over every title — about 2 s, far
+   * more cold — that would now run on every such search.
+   */
+  const suggestion = looseExtra > 0 ? null : await suggestSimilar(normalized);
   const suggestionCount = suggestion ? await countForQuery(suggestion.title) : 0;
   const filtersOpen = hasActiveFilters(params);
 
