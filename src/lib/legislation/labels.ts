@@ -16,8 +16,10 @@ export interface KindMeta {
   plural: string;
   /** lower-case singular, e.g. for a count: "820 yasa" */
   noun: string;
-  /** "yasanın" / "tüzüğün" */
+  /** "yasanın" / "tüzüğün", for a bare noun: "yasanın son değiştiği gün" */
   genitive: string;
+  /** "yasasının" / "tüzüğünün", when the noun is the head of a compound: "KKTC yasasının metni" */
+  compoundGenitive: string;
   /** "Yasaların" / "Tüzüklerin" */
   pluralGenitive: string;
   /** what to check for changes, in the dative: "değişiklik yasalarına" / "değişiklik tüzüklerine" */
@@ -33,6 +35,7 @@ export const KIND_META: Record<LegislationKind, KindMeta> = {
     plural: 'Yasalar',
     noun: 'yasa',
     genitive: 'yasanın',
+    compoundGenitive: 'yasasının',
     pluralGenitive: 'Yasaların',
     amendmentsDative: 'değişiklik yasalarına',
     indexHeading: 'KKTC yasaları',
@@ -43,6 +46,7 @@ export const KIND_META: Record<LegislationKind, KindMeta> = {
     plural: 'Tüzükler',
     noun: 'tüzük',
     genitive: 'tüzüğün',
+    compoundGenitive: 'tüzüğünün',
     pluralGenitive: 'Tüzüklerin',
     amendmentsDative: 'değişiklik tüzüklerine',
     indexHeading: 'KKTC tüzükleri',
@@ -59,9 +63,10 @@ export function legislationHref(kind: LegislationKind, slug: string): string {
  *   'F154'    -> 'Fasıl 154'    (chapter law)
  *   'F175A'   -> 'Fasıl 175A'
  *   'C12'     -> 'Cap. 12'      (English collection)
+ *   'T:<slug>' -> null          (a tüzük has no number; the key is only an identity)
  */
 export function lawRef(key: string | null): string | null {
-  if (!key) return null;
+  if (!key || key.startsWith('T:')) return null;
   if (key.includes('/')) return key;
 
   const m = /^([FC])(\d+)([A-Z]?)$/.exec(key);

@@ -17,6 +17,7 @@ import {
 } from '@/lib/legislation/labels';
 import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { buildMetadata } from '@/lib/seo/metadata';
+import { truncateTitle } from '@/lib/text/truncate';
 
 /**
  * The pages of /yasa and /tuzuk are the same page with different words, so the
@@ -24,6 +25,11 @@ import { buildMetadata } from '@/lib/seo/metadata';
  * `revalidate`: Next reads that export statically and will not follow it through an
  * import.
  */
+
+/** Same budget the record pages use for the part of a title that comes before the site name. */
+const TITLE_MAX = 70;
+/** Leaves room for the number and the fixed sentence inside a 155-character description. */
+const DESCRIPTION_TITLE_MAX = 55;
 
 const INDEX_DESCRIPTION: Record<LegislationKind, string> = {
   yasa: 'Kuzey Kıbrıs Türk Cumhuriyeti yasalarının birleştirilmiş güncel metinleri: numaralı yasalar ve Fasıl yasaları, kaynağı ve tarihi ile.',
@@ -44,13 +50,19 @@ export async function legislationDetailMetadata(kind: LegislationKind, slug: str
 
   const ref = lawRef(law.lawKey);
 
+  // Only the law's own title is shortened: the number and "güncel metin" are what a
+  // reader searching for this law looks for, so they must survive the length limit.
+  const suffix = (ref ? ' (' + ref + ')' : '') + ' — güncel metin';
+  // The extra 1 is the ellipsis truncateTitle appends when it cuts.
+  const title = truncateTitle(law.title, Math.max(TITLE_MAX - suffix.length - 1, 24)) + suffix;
+
   return buildMetadata({
-    title: law.title + (ref ? ' (' + ref + ')' : '') + ' — güncel metin',
+    title,
     description:
-      law.title +
+      truncateTitle(law.title, DESCRIPTION_TITLE_MAX) +
       (ref ? ', ' + ref + ' sayılı' : ',') +
       ' KKTC ' +
-      KIND_META[kind].genitive +
+      KIND_META[kind].compoundGenitive +
       ' birleştirilmiş güncel metni, kaynağı ve tarihi ile birlikte.',
     path: KIND_META[kind].path + '/' + law.slug,
   });
