@@ -84,6 +84,15 @@
     --notice-ink: 45 32% 30%;      /* #6B5E33 */
 
     /*
+     * Bilgi bandı — bir şeyi açıklar, uyarmaz. Sarı `notice` "dikkat, metin hatalı
+     * olabilir" der; kaynak/tarih açıklaması (yasa sayfaları) uyarı gibi okunmasın
+     * diye mavi, yani sitenin sarı ve kırmızı tonlarından ayrı bir aile.
+     */
+    --info: 205 70% 96%;           /* #EEF7FC */
+    --info-border: 205 45% 82%;    /* #BFDDEE */
+    --info-ink: 205 55% 24%;       /* #1B4A66 */
+
+    /*
      * Hata — "işlem yapılamadı". notice'ten AYRI olmalı: notice bilgi veriyor
      * ("bu metin otomatik okundu"), bu ise kullanıcının işleminin başarısız
      * olduğunu söylüyor. İkisi aynı sarıyla gösterilince başarısızlık
@@ -184,6 +193,10 @@
     --notice: 46 26% 16%;
     --notice-border: 46 22% 28%;
     --notice-ink: 46 45% 76%;
+
+    --info: 205 32% 15%;
+    --info-border: 205 26% 28%;
+    --info-ink: 205 60% 80%;
 
     --danger: 8 32% 17%;
     --danger-border: 8 30% 30%;

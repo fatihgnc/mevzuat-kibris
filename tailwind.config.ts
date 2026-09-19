@@ -44,6 +44,11 @@ const config: Config = {
           border: 'hsl(var(--notice-border))',
           ink: 'hsl(var(--notice-ink))',
         },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          border: 'hsl(var(--info-border))',
+          ink: 'hsl(var(--info-ink))',
+        },
         danger: {
           DEFAULT: 'hsl(var(--danger))',
           border: 'hsl(var(--danger-border))',
