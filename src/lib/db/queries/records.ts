@@ -33,6 +33,12 @@ export interface SearchResult {
   total: number;
   /** Whether the count hit the cap — so the UI can write "10.000+". */
   capped: boolean;
+  /**
+   * Records that match only when the query's words may be far apart — what the
+   * "uzak" toggle would add. 0 when the toggle is already on, and for queries the
+   * proximity rule does not apply to (one word, quotes, OR, minus).
+   */
+  looseExtra: number;
   facets: {
     topics: Array<{ key: TopicSlug; n: number }>;
     docTypes: Array<{ key: string; label: string; n: number }>;
@@ -133,13 +139,24 @@ export async function searchRecords(
   built: BuiltQuery,
 ): Promise<SearchResult> {
   const filters = filterConditions(params);
-  const tsq = built.tsquery
-    ? sql`mk_tsquery(${built.tsquery})`
-    : null;
+  /*
+   * `(select ...)`, not the bare call: mk_tsquery is STABLE, and Postgres re-runs
+   * a stable function for every candidate row when the condition is rechecked on
+   * the heap. Wrapped in a subselect it is evaluated once. Measured: same results,
+   * "Av yasası" facets 458 ms -> 125 ms.
+   *
+   * `strict` is the search's real match (words near each other, migration 0020);
+   * `loose` is the pre-0020 flat AND. Highlighting and rank always use `loose`:
+   * ts_headline over the phrase-heavy strict query took 19 s for one page of
+   * "Anıl Aras", and the flat form highlights the same words at no extra cost.
+   */
+  const strict = built.tsquery ? sql`(select mk_tsquery(${built.tsquery}))` : null;
+  const loose = built.tsquery ? sql`(select mk_tsquery_expand(${built.tsquery}, 0))` : null;
+  const tsq = params.uzak ? loose : strict;
 
   const matchCondition = tsq ? sql`r.search_vector @@ ${tsq}` : sql`true`;
-  const rankExpr = tsq
-    ? sql`ts_rank_cd(r.search_vector, ${tsq}) * recency_boost(r.published_at)`
+  const rankExpr = loose
+    ? sql`ts_rank_cd(r.search_vector, ${loose}) * recency_boost(r.published_at)`
     : sql`0::real`;
   /*
    * coalesce(body_markdown, body_text), left(..., 30720): mirrors
@@ -168,8 +185,8 @@ export async function searchRecords(
    * body runs on) so a filter-only search still shows something of the record
    * rather than title and badges alone.
    */
-  const snippetExpr = tsq
-    ? sql`ts_headline('tr_rg', ${cleanedBody}, ${tsq}, ${HEADLINE_OPTIONS})`
+  const snippetExpr = loose
+    ? sql`ts_headline('tr_rg', ${cleanedBody}, ${loose}, ${HEADLINE_OPTIONS})`
     : sql`case
         when length(trim(${cleanedBody})) > 200 then left(trim(${cleanedBody}), 200) || '…'
         else nullif(trim(${cleanedBody}), '')
@@ -221,9 +238,31 @@ export async function searchRecords(
      group by r.doc_type
   `);
 
-  const [rows, counted, facetRows] = await Promise.all([rowsQuery, countQuery, facetQuery]);
+  /* What the "uzak" toggle would add. Only worth a query when it is off and there is a query. */
+  const looseCountQuery =
+    loose && !params.uzak
+      ? db.execute<Row<{ n: string }>>(sql`
+          select count(*)::int as n from (
+            select 1
+              from records r
+              join issues i on i.id = r.issue_id
+             where r.search_vector @@ ${loose}
+               and r.has_own_page
+               and ${filters}
+             limit ${COUNT_CAP}
+          ) capped
+        `)
+      : null;
+
+  const [rows, counted, facetRows, looseCounted] = await Promise.all([
+    rowsQuery,
+    countQuery,
+    facetQuery,
+    looseCountQuery,
+  ]);
 
   const total = Number(counted[0]?.n ?? 0);
+  const looseExtra = looseCounted ? Math.max(0, Number(looseCounted[0]?.n ?? 0) - total) : 0;
 
   const topics: SearchResult['facets']['topics'] = [];
   const docTypes: SearchResult['facets']['docTypes'] = [];
@@ -244,6 +283,7 @@ export async function searchRecords(
     items: rows.map((row) => mapListItem(row, built.raw)),
     total,
     capped: total >= COUNT_CAP,
+    looseExtra,
     facets: { topics, docTypes },
   };
 }
@@ -333,7 +373,7 @@ export async function countForQuery(query: string): Promise<number> {
     select count(*)::int as n from (
       select 1 from records r
        where r.has_own_page
-         and r.search_vector @@ mk_tsquery(${query})
+         and r.search_vector @@ (select mk_tsquery(${query}))
        limit ${COUNT_CAP}
     ) capped
   `);

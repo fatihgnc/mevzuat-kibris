@@ -71,6 +71,12 @@ export const searchParamsSchema = z.object({
   bitis: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
   sirala: z.enum(SORT_OPTIONS).catch(DEFAULT_SORT),
   sayfa: z.coerce.number().int().min(1).max(500).catch(1),
+  /*
+   * `uzak=1`: also list records where the query's words are far apart. Off by
+   * default — multi-word searches require the words to be near each other
+   * (migration 0020). Not a filter: it never counts as one and has no chip.
+   */
+  uzak: z.enum(['1']).optional().catch(undefined),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
@@ -158,6 +164,20 @@ export function buildQuery(params: SearchParams): BuiltQuery {
 }
 
 /**
+ * The words of a query that is a plain run of words — the only kind the proximity
+ * rule (migration 0020) applies to — or null for anything else (a single word,
+ * quotes, OR, a minus). The search page uses it to name the words in its
+ * "far apart" hint, and to know when that hint means anything at all.
+ */
+export function plainWords(raw: string): string[] | null {
+  const words = raw.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return null;
+  if (/["]/.test(raw)) return null;
+  if (words.some((word) => word.startsWith('-') || word.toLowerCase() === 'or')) return null;
+  return words;
+}
+
+/**
  * How many filters are applied — the number on the narrow screen's "Filtreler"
  * button, so the sheet does not have to be opened to see that one is on.
  *
@@ -225,6 +245,7 @@ export function buildSearchHref(
   push('yil', merged.yil);
   push('baslangic', merged.baslangic);
   push('bitis', merged.bitis);
+  push('uzak', merged.uzak);
   if (merged.sirala && merged.sirala !== DEFAULT_SORT) push('sirala', merged.sirala);
   if (typeof merged.sayfa === 'number' && merged.sayfa > 1) push('sayfa', merged.sayfa);
 

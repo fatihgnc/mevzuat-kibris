@@ -219,6 +219,7 @@ export function SearchFilters({
        * WITH the entity still applied — otherwise "Bakanlar Kurulu + ihale +
        * 2024" would come back as every ihale in 2024.
        */}
+      {params.uzak ? <input type="hidden" name="uzak" value="1" /> : null}
       {params.kurum ? <input type="hidden" name="kurum" value={params.kurum} /> : null}
       {params.sirket ? <input type="hidden" name="sirket" value={params.sirket} /> : null}
       {params.yer ? <input type="hidden" name="yer" value={params.yer} /> : null}

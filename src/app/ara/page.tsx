@@ -28,6 +28,7 @@ import {
   buildSearchHref,
   hasActiveFilters,
   parseSearchParams,
+  plainWords,
   searchParamsSchema,
   type SearchParams,
 } from '@/lib/search/build-query';
@@ -63,7 +64,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
    * threshold). We do not await it; writing the log must not enter the page's
    * response time.
    */
-  if (built.raw) void logSearch(built.raw, result.total);
+  if (built.raw) void logSearch(built.raw, result.total + result.looseExtra);
 
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
   const empty = built.raw.length > 0 && result.total === 0;
@@ -159,7 +160,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
           <div className="min-w-0">
             {empty ? (
-              <EmptyResults query={built.raw} normalized={built.normalized} params={params} />
+              <EmptyResults
+                query={built.raw}
+                normalized={built.normalized}
+                params={params}
+                looseExtra={result.looseExtra}
+              />
             ) : (
               <>
                 <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-line pb-3.5">
@@ -172,14 +178,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     * what for. The chip above can be removed; this cannot, so it
                     * is the one place the page always states what it answered.
                     */}
-                  <p className="m-0 text-base text-ink-muted">
-                    {built.raw ? <span className="text-ink">“{built.raw}” için </span> : null}
-                    <span className="font-semibold text-ink">
-                      {formatCount(result.total)}
-                      {result.capped ? '+' : ''} kayıt
-                    </span>{' '}
-                    bulundu
-                  </p>
+                  <div>
+                    <p className="m-0 text-base text-ink-muted">
+                      {built.raw ? <span className="text-ink">“{built.raw}” için </span> : null}
+                      <span className="font-semibold text-ink">
+                        {formatCount(result.total)}
+                        {result.capped ? '+' : ''} kayıt
+                      </span>{' '}
+                      bulundu
+                    </p>
+                    <LooseHint raw={built.raw} extra={result.looseExtra} params={params} />
+                  </div>
                   <div className="flex items-baseline gap-x-[18px]">
                     {/*
                       * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor --
@@ -232,6 +241,57 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   );
 }
 
+/** “a” ve “b” / “a”, “b” ve “c” — the query's own words, so the hint says what it means. */
+function joinWords(words: string[]): string {
+  const quoted = words.map((word) => '“' + word + '”');
+  if (quoted.length < 3) return quoted.join(' ve ');
+  return quoted.slice(0, -1).join(', ') + ' ve ' + quoted[quoted.length - 1];
+}
+
+/**
+ * The other half of the proximity rule (migration 0020). A search of plain words
+ * lists only records where the words sit near each other; this line says how many
+ * more exist with the words far apart and turns them on (`uzak=1`), and once on
+ * says so and offers the way back. Renders nothing for a query the rule does not
+ * apply to, and nothing when there is nothing to add.
+ */
+function LooseHint({
+  raw,
+  extra,
+  params,
+  className,
+}: {
+  raw: string;
+  extra: number;
+  params: SearchParams;
+  className?: string;
+}) {
+  const words = plainWords(raw);
+  if (!words) return null;
+  const cls = 'm-0 mt-1 block text-sm text-ink-muted ' + (className ?? '');
+
+  if (params.uzak) {
+    return (
+      <span className={cls}>
+        Kelimeleri ayrı ayrı geçen kayıtlar da gösteriliyor ·{' '}
+        <Link href={buildSearchHref(params, { uzak: undefined, sayfa: 1 })}>
+          Yalnızca yakın geçenleri göster
+        </Link>
+      </span>
+    );
+  }
+
+  if (extra <= 0) return null;
+
+  return (
+    <span className={cls}>
+      {words.length <= 3 ? joinWords(words) + ' ayrı ayrı geçen' : 'Kelimelerin ayrı ayrı geçtiği'}{' '}
+      <span className="font-semibold text-ink">{formatCount(extra)} kayıt</span> daha var ·{' '}
+      <Link href={buildSearchHref(params, { uzak: '1', sayfa: 1 })}>Göster</Link>
+    </span>
+  );
+}
+
 /**
  * Turns the entity slugs in the URL into the names a chip can print.
  *
@@ -261,10 +321,12 @@ async function EmptyResults({
   query,
   normalized,
   params,
+  looseExtra,
 }: {
   query: string;
   normalized: string;
   params: Awaited<ReturnType<typeof searchParamsSchema.parse>>;
+  looseExtra: number;
 }) {
   const suggestion = await suggestSimilar(normalized);
   const suggestionCount = suggestion ? await countForQuery(suggestion.title) : 0;
@@ -274,6 +336,7 @@ async function EmptyResults({
     <div>
       <p className="m-0 border-b border-line pb-[18px] text-md text-ink-muted">
         <span className="font-semibold text-ink">{query}</span> için kayıt yok.
+        <LooseHint raw={query} extra={looseExtra} params={params} className="mt-2 text-md" />
       </p>
 
       {suggestion ? (
