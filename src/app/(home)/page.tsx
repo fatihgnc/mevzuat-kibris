@@ -121,36 +121,36 @@ export default async function HomePage() {
         id="icerik"
         className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-8 sm:pt-12 lg:px-10"
       >
-        <h1 className="m-0 mb-2.5 max-w-[22em] text-4xl font-semibold leading-[1.25] tracking-tightest text-ink sm:text-5xl">
-          Resmî Gazete&apos;de aradığınız bilgiye hızlıca ulaşın
-        </h1>
-        <p className="mb-[22px] max-w-lede text-xl leading-[1.55] text-ink-muted">
-          KKTC&apos;de Resmî Gazete, yalnızca PDF olarak yayımlanıyor ve hiçbir
-          filtreleme, sınıflandırma veya arama gibi sizi aradığınız bilgiye
-          hızlıca ulaştıracak özellikleri barındırmıyor. Biz her sayıyı indirip
-          metne çeviriyor, yer, tür, kurum gibi bir çok başlığa göre
-          sınıflandırıyor, aranabilir hale getiriyoruz.{' '}
-          {coverage.earliestYear ?? ARCHIVE_START_YEAR}&apos;den bugüne kadar
-          yayımlanan sayıların yanı sıra, eklenen her yeni sayı sitemizde anlık
-          olarak listeleniyor.
-        </p>
-
-        <SearchBox />
-
-        {popular.length ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base text-ink-muted">
-            <span>Sık aranan:</span>
-            {popular.map((query) => (
-              <Link key={query} href={"/ara?q=" + encodeURIComponent(query)}>
-                {query}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="mt-11 grid gap-10 lg:grid-cols-page">
+        <div className="grid gap-10 lg:grid-cols-page">
           <div className="min-w-0">
-            <section>
+            <h1 className="m-0 mb-2.5 max-w-[22em] text-4xl font-semibold leading-[1.25] tracking-tightest text-ink sm:text-5xl">
+              Resmî Gazete&apos;de aradığınız bilgiye hızlıca ulaşın
+            </h1>
+            <p className="mb-[22px] max-w-lede text-xl leading-[1.55] text-ink-muted">
+              KKTC&apos;de Resmî Gazete, yalnızca PDF olarak yayımlanıyor ve hiçbir
+              filtreleme, sınıflandırma veya arama gibi sizi aradığınız bilgiye
+              hızlıca ulaştıracak özellikleri barındırmıyor. Biz her sayıyı indirip
+              metne çeviriyor, yer, tür, kurum gibi bir çok başlığa göre
+              sınıflandırıyor, aranabilir hale getiriyoruz.{' '}
+              {coverage.earliestYear ?? ARCHIVE_START_YEAR}&apos;den bugüne kadar
+              yayımlanan sayıların yanı sıra, eklenen her yeni sayı sitemizde anlık
+              olarak listeleniyor.
+            </p>
+
+            <SearchBox />
+
+            {popular.length ? (
+              <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base text-ink-muted">
+                <span>Sık aranan:</span>
+                {popular.map((query) => (
+                  <Link key={query} href={"/ara?q=" + encodeURIComponent(query)}>
+                    {query}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+
+            <section className="mt-11">
               <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
                 <h2 className="m-0">
                   <StatusBar initialCount={status.todayCount} />
@@ -208,9 +208,7 @@ export default async function HomePage() {
             would become unreachable.
           */}
           <aside>
-            <div className="flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto">
-              <RecentVacanciesCard records={recentVacancies} />
-
+            <div className="flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto no-scrollbar">
               {status.latestIssue ? (
                 <IssueCard
                   year={status.latestIssue.year}
@@ -220,6 +218,8 @@ export default async function HomePage() {
                   pdfUrl={status.latestIssue.pdfUrl}
                 />
               ) : null}
+
+              <RecentVacanciesCard records={recentVacancies} />
 
               <TopSearchCard items={googleTop} />
 
