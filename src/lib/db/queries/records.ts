@@ -785,5 +785,20 @@ export async function logSearch(query: string, resultCount: number): Promise<voi
   `);
 }
 
+/** List items for the given slugs, in the order given; unknown or page-less slugs are dropped. */
+export async function recordsBySlugs(slugs: string[]): Promise<RecordListItem[]> {
+  if (!slugs.length) return [];
+
+  const rows = await db.execute<Row<RawListRow>>(sql`
+    select ${sql.raw(LIST_COLUMNS)}, null::text as snippet
+      from records r
+      ${sql.raw(LIST_JOINS)}
+     where r.has_own_page and r.slug in (${inList(slugs)})
+  `);
+
+  const bySlug = new Map(rows.map((row) => [row.slug, mapListItem(row)]));
+  return slugs.flatMap((slug) => bySlug.get(slug) ?? []);
+}
+
 /** Builds and returns the masked title on the server — email and RSS use the same function. */
 export { maskTitle, formatRef };

@@ -14,6 +14,7 @@ import { SearchBox } from "@/components/search-box";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBar } from "@/components/status-bar";
+import { TopSearchCard } from "@/components/top-search-card";
 import { TopicStrip } from "@/components/topic-strip";
 import {
   listRecords,
@@ -26,6 +27,7 @@ import { archiveCoverage, coverageShort } from "@/lib/db/queries/coverage";
 import { RSS_ALTERNATE } from "@/lib/seo/metadata";
 import { ARCHIVE_START_YEAR, SITE_NAME } from "@/lib/seo/config";
 import { formatCount } from "@/lib/db/queries/shared";
+import { googleTopRecords } from "@/lib/gsc/top-records";
 
 /**
  * THE HOME PAGE'S OWN TITLE AND DESCRIPTION — and why they are not the site-wide
@@ -99,7 +101,7 @@ export default async function HomePage() {
     .toISOString()
     .slice(0, 10);
 
-  const [status, recent, counts, institutions, popular, coverage, recentVacancies] =
+  const [status, recent, counts, institutions, popular, coverage, recentVacancies, googleTop] =
     await Promise.all([
       siteStatus(),
       listRecords({ limit: 6 }),
@@ -108,6 +110,7 @@ export default async function HomePage() {
       popularQueries(3),
       archiveCoverage(),
       listRecords({ topic: "munhal", baslangic: sevenDaysAgo, limit: 10 }),
+      googleTopRecords(5),
     ]);
 
   return (
@@ -217,6 +220,8 @@ export default async function HomePage() {
                   pdfUrl={status.latestIssue.pdfUrl}
                 />
               ) : null}
+
+              <TopSearchCard items={googleTop} />
 
               {/*
                 Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor --
