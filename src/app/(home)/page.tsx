@@ -196,19 +196,15 @@ export default async function HomePage() {
           </div>
 
           {/*
-            The side column is sticky. The sticky element CANNOT BE THE ASIDE
-            ITSELF: the aside is a grid cell and the cell stretches to the row
-            height, so the element and its container end up the same size and there
-            is no room to scroll. The stickiness therefore lives on an inner wrapper;
-            the aside stays as the stretched container and the block inside moves
-            within it.
-
-            The height limit plus its own scrolling has the same rationale as the
-            filter rail: if the content is taller than the window, its lower part
-            would become unreachable.
+            The side column is NOT sticky. It was — pinned under the header with a
+            height cap and its own scroll — but three cards stacked are taller than
+            most windows, so the last one was cut off and only reachable by
+            scrolling inside the column, which nothing on screen suggested (the
+            scrollbar was hidden). Left in normal flow it simply scrolls with the
+            page and every card is reachable.
           */}
           <aside>
-            <div className="flex flex-col gap-[18px] lg:sticky lg:top-[var(--sticky-top)] lg:max-h-[calc(100vh-var(--sticky-top)-1rem)] lg:overflow-y-auto no-scrollbar">
+            <div className="flex flex-col gap-[18px]">
               {status.latestIssue ? (
                 <IssueCard
                   year={status.latestIssue.year}

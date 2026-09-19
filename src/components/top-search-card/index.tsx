@@ -6,7 +6,7 @@ import { TOP_WINDOW_DAYS, type TopRecord } from '@/lib/gsc/top-records';
 import { cn } from '@/lib/utils';
 
 /**
- * "Google'da öne çıkanlar" — the karar pages people reached from Google
+ * "Öne çıkanlar" — the karar pages people reached from Google
  * search most over the last month. Named for what the data is: search
  * clicks, not visits. Renders nothing when the list is empty (no Search
  * Console access yet, or nothing to show).
@@ -18,7 +18,7 @@ export function TopSearchCard({ items, className }: { items: TopRecord[]; classN
     <div className={cn('rounded-md border border-line bg-surface-muted p-[18px]', className)}>
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <span className="text-base font-semibold uppercase tracking-wide text-ink">
-          Google&apos;da öne çıkanlar
+          Öne çıkanlar
         </span>
         <span className="text-sm text-ink-fainter">son {TOP_WINDOW_DAYS} gün</span>
       </div>
