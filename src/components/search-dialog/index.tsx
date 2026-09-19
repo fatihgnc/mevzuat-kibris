@@ -1,12 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, type FormEvent } from 'react';
 
 import { Modal } from '@/components/modal';
-import { cancelRouteProgress } from '@/components/route-progress';
-import { searchInputSchema } from '@/lib/search/search-input-schema';
-import { cn } from '@/lib/utils';
 
 /**
  * The header's search — an icon, and a full-screen box behind it.
@@ -28,22 +25,12 @@ import { cn } from '@/lib/utils';
 export function SearchDialog({ defaultValue = '' }: { defaultValue?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = searchInputSchema.safeParse(input.current?.value ?? '');
-
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? 'Geçersiz arama.');
-      // The route-progress bar's capture-phase listener has already started
-      // on this same submit, before it could know we would reject it.
-      cancelRouteProgress();
-      return;
-    }
-
+    const query = input.current?.value.trim() ?? '';
     input.current?.closest('dialog')?.close();
-    router.push('/ara?q=' + encodeURIComponent(result.data));
+    router.push(query ? '/ara?q=' + encodeURIComponent(query) : '/ara');
   }
 
   return (
@@ -56,7 +43,6 @@ export function SearchDialog({ defaultValue = '' }: { defaultValue?: string }) {
           type="button"
           onClick={() => {
             open();
-            setError(null);
             /*
              * `autoFocus` is not reliable here: the dialog otherwise focuses its
              * first tabbable child, which is the close button. Selecting rather
@@ -93,23 +79,10 @@ export function SearchDialog({ defaultValue = '' }: { defaultValue?: string }) {
           name="q"
           type="search"
           defaultValue={defaultValue}
-          onChange={() => {
-            if (error) setError(null);
-          }}
           placeholder="kelime, kurum, şirket, köy ya da referans numarası"
           autoComplete="off"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? 'q-dialog-error' : undefined}
-          className={cn(
-            'w-full rounded-lg border border-ink bg-surface px-4 py-3.5 text-lg text-ink outline-none placeholder:text-ink-placeholder',
-            error && 'border-danger-border focus:border-danger-border',
-          )}
+          className="w-full rounded-lg border border-ink bg-surface px-4 py-3.5 text-lg text-ink outline-none placeholder:text-ink-placeholder"
         />
-        {error ? (
-          <p id="q-dialog-error" className="m-0 mt-1.5 text-sm font-medium text-danger-ink">
-            {error}
-          </p>
-        ) : null}
         {/*
           * A REAL SUBMIT BUTTON, not just Enter. The instruction used to read
           * "Enter'a basın", which on a phone is advice about a key that is not

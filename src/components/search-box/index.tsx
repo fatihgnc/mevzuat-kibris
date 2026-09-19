@@ -3,10 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
-import { cancelRouteProgress } from '@/components/route-progress';
-import { searchInputSchema } from '@/lib/search/search-input-schema';
-import { cn } from '@/lib/utils';
-
 /**
  * The search box — one of the site's four client components (spec 13).
  *
@@ -28,21 +24,11 @@ import { cn } from '@/lib/utils';
 export function SearchBox() {
   const router = useRouter();
   const [value, setValue] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = searchInputSchema.safeParse(value);
-
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? 'Geçersiz arama.');
-      // The route-progress bar's capture-phase listener has already started
-      // on this same submit, before it could know we would reject it.
-      cancelRouteProgress();
-      return;
-    }
-
-    router.push('/ara?q=' + encodeURIComponent(result.data));
+    const query = value.trim();
+    router.push(query ? '/ara?q=' + encodeURIComponent(query) : '/ara');
   }
 
   return (
@@ -51,42 +37,27 @@ export function SearchBox() {
       method="get"
       onSubmit={onSubmit}
       role="search"
-      className="max-w-[44em]"
+      className="flex max-w-[44em] gap-2.5"
     >
-      <div className="flex gap-2.5">
-        <label className="sr-only" htmlFor="q-hero">
-          Resmî Gazete kayıtlarında ara
-        </label>
-        <input
-          id="q-hero"
-          name="q"
-          type="search"
-          value={value}
-          onChange={(event) => {
-            setValue(event.target.value);
-            if (error) setError(null);
-          }}
-          placeholder="kelime, kurum, şirket, köy ya da referans numarası"
-          autoComplete="off"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? 'q-hero-error' : undefined}
-          className={cn(
-            'min-w-0 flex-1 rounded border border-ink bg-surface px-3.5 py-3 text-lg text-ink outline-none placeholder:text-ink-placeholder',
-            error && 'border-danger-border focus:border-danger-border',
-          )}
-        />
-        <button
-          type="submit"
-          className="shrink-0 rounded bg-accent px-6 py-3 text-lg font-semibold text-accent-ink transition-colors hover:bg-accent-hover"
-        >
-          Ara
-        </button>
-      </div>
-      {error ? (
-        <p id="q-hero-error" className="m-0 mt-1.5 text-sm font-medium text-danger-ink">
-          {error}
-        </p>
-      ) : null}
+      <label className="sr-only" htmlFor="q-hero">
+        Resmî Gazete kayıtlarında ara
+      </label>
+      <input
+        id="q-hero"
+        name="q"
+        type="search"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="kelime, kurum, şirket, köy ya da referans numarası"
+        autoComplete="off"
+        className="min-w-0 flex-1 rounded border border-ink bg-surface px-3.5 py-3 text-lg text-ink outline-none placeholder:text-ink-placeholder"
+      />
+      <button
+        type="submit"
+        className="shrink-0 rounded bg-accent px-6 py-3 text-lg font-semibold text-accent-ink transition-colors hover:bg-accent-hover"
+      >
+        Ara
+      </button>
     </form>
   );
 }

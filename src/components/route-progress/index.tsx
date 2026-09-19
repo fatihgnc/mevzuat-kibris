@@ -27,30 +27,10 @@ import { useEffect, useState } from 'react';
  * the entire prerendered archive. It is mounted as
  * `<Suspense fallback={null}><RouteProgress /></Suspense>`.
  */
-/** Event name for `cancelRouteProgress` — see its own comment. */
-const CANCEL_EVENT = 'route-progress:cancel';
-
-/**
- * For a form whose submit handler decides, after the fact, that there is no
- * navigation to make (e.g. client-side validation rejected the input): the
- * capture-phase listener below has already started the bar by the time that
- * decision is made, because it runs before the form's own (bubble-phase)
- * handler ever does. Call this from that handler to turn it back off.
- */
-export function cancelRouteProgress() {
-  document.dispatchEvent(new Event(CANCEL_EVENT));
-}
-
 export function RouteProgress() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
   const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    const onCancel = () => setActive(false);
-    document.addEventListener(CANCEL_EVENT, onCancel);
-    return () => document.removeEventListener(CANCEL_EVENT, onCancel);
-  }, []);
 
   useEffect(() => {
     const sameAddress = (url: URL) =>
