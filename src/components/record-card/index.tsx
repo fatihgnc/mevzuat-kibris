@@ -21,6 +21,8 @@ interface RecordCardProps {
    * scan, not to compare.
    */
   variant?: 'full' | 'compact';
+  /** The search that produced this row; the record page opens with it highlighted. */
+  highlightQuery?: string;
   className?: string;
 }
 
@@ -39,15 +41,22 @@ export function RecordCard({
   hideTopic,
   showDeadline,
   variant = 'full',
+  highlightQuery,
   className,
 }: RecordCardProps) {
   const heading = record.summary ?? null;
   const deadlinePassed = isDeadlinePassed(record.deadlineAt);
   const compact = variant === 'compact';
+  const query = highlightQuery?.trim();
+  /* Only records with their own page can carry it; the rest link to an issue page. */
+  const href =
+    query && record.hasOwnPage
+      ? recordHref(record) + '?q=' + encodeURIComponent(query)
+      : recordHref(record);
 
   return (
     <Link
-      href={recordHref(record)}
+      href={href}
       className={cn(
         /*
          * Künye sütunuyla metnin arası telefonda 14px, ondan yukarısı 18px.

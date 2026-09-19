@@ -209,6 +209,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
                 <RecordList
                   records={result.items}
+                  highlightQuery={params.q}
                   adSlotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_FEED}
                   emptyMessage="Bu filtrelerle kayıt yok. Filtreleri gevşetmeyi deneyin."
                 />

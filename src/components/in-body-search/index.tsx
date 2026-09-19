@@ -82,6 +82,22 @@ export function InBodySearch({ targetId }: { targetId: string }) {
     setSupported('Highlight' in window && 'highlights' in CSS);
   }, []);
 
+  /*
+   * A search result links here as `?q=<what was searched>`. Prefill the bar with
+   * it and jump to the first match once, so the reader lands on the phrase that
+   * brought them here instead of hunting for it in a long body. Read from
+   * `window.location` in an effect rather than `useSearchParams`: the record page
+   * is prerendered, and the hook would opt it out of that (or need a Suspense
+   * boundary) for a value only the browser ever needs.
+   */
+  const scrollToFirstMatch = useRef(false);
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get('q')?.trim();
+    if (!initial) return;
+    scrollToFirstMatch.current = true;
+    setQuery(initial.slice(0, 200));
+  }, []);
+
   // Tracks the ORIGINAL bar — `threshold: 0`, not some fraction, because a
   // half-visible original is still usable and a clone appearing on top of it
   // would just be two bars.
@@ -181,7 +197,12 @@ export function InBodySearch({ targetId }: { targetId: string }) {
       new Highlight(...(ranges[0] ? [ranges[0]] : [])),
     );
     // Deliberately no scroll here — typing must not move the page. Only
-    // `goNext`/`goPrev` (an explicit next/prev press) scrolls; see those.
+    // `goNext`/`goPrev` (an explicit next/prev press) scrolls; see those. The
+    // one exception is the query that arrived in the URL, handled just below.
+    if (scrollToFirstMatch.current) {
+      scrollToFirstMatch.current = false;
+      if (ranges[0]) scrollToRange(ranges[0]);
+    }
   }, [query, supported, targetId]);
 
   // Repaints which match is "active" whenever it changes — including from

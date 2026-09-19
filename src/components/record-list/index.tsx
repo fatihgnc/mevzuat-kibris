@@ -7,6 +7,7 @@ interface RecordListProps {
   hideTopic?: boolean;
   showDeadline?: boolean;
   variant?: 'full' | 'compact';
+  highlightQuery?: string;
   /**
    * The in-feed ad goes after the 5th result, one per page (spec 14.4). If the list
    * is shorter than five, no ad is emitted at all — putting an ad among three
@@ -21,6 +22,7 @@ export function RecordList({
   hideTopic,
   showDeadline,
   variant,
+  highlightQuery,
   adSlotId,
   emptyMessage,
 }: RecordListProps) {
@@ -43,6 +45,7 @@ export function RecordList({
           hideTopic={hideTopic}
           showDeadline={showDeadline}
           variant={variant}
+          highlightQuery={highlightQuery}
         />
       ))}
 
@@ -55,6 +58,7 @@ export function RecordList({
           hideTopic={hideTopic}
           showDeadline={showDeadline}
           variant={variant}
+          highlightQuery={highlightQuery}
         />
       ))}
     </div>
