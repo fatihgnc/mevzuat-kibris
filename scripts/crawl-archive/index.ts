@@ -91,6 +91,13 @@ export async function crawlYear(year: number): Promise<{ seen: number; inserted:
     if (rows[0]?.inserted) inserted += 1;
   }
 
+  // Records copy the issue date at parse time; a later date correction on the issue must follow.
+  await sql`
+    update records r set published_at = i.published_at
+      from issues i
+     where r.issue_id = i.id and i.year = ${year} and r.published_at <> i.published_at
+  `;
+
   log.info('arşiv taraması bitti', { year, seen: issues.length, inserted });
   return { seen: issues.length, inserted };
 }
