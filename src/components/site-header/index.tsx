@@ -24,8 +24,13 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: '/konu', label: 'Konular' },
   { href: '/sayilar', label: 'Sayılar' },
   { href: '/kurum', label: 'Kurumlar' },
-  { href: '/sirket', label: 'Şirketler' },
-  { href: '/yer', label: 'Yerler' },
+  /*
+   * Yasalar and Tüzükler took the slots Şirketler and Yerler had in the desktop
+   * row, yasalar first. Those two stay in the narrow-screen menu (MOBILE_ONLY
+   * below) and in the footer, the guides and the sitemap.
+   */
+  { href: '/yasa', label: 'Yasalar' },
+  { href: '/tuzuk', label: 'Tüzükler' },
   /*
    * The guides were reachable only from the footer, which is the wrong end of
    * the page for them: they answer the questions a first-time visitor arrives
@@ -44,6 +49,12 @@ const NAV: Array<{ href: string; label: string }> = [
    * added, eight links plus the search icon and the theme switch were what
    * pushed the inline list to collapse into the menu earlier than it needed to.
    */
+];
+
+/** In the menu below 1060px only; the desktop row has no room for them (see NAV). */
+const MOBILE_ONLY = [
+  { href: '/sirket', label: 'Şirketler' },
+  { href: '/yer', label: 'Yerler' },
 ];
 
 /**
@@ -74,7 +85,11 @@ const OTHER_SERVICE_ITEMS = [
  * altında hiç render edilmiyor (bkz. NavDropdown); mobil menü listesine
  * eklemek bu davranışı tekrar açardı.
  */
-const NAV_WITH_TOOLS = [...NAV, { href: TOOLS_PATH, label: 'Araçlar' }];
+const NAV_WITH_TOOLS = [
+  // Kept next to Kurumlar, the entity indexes together, as they were before the desktop row changed.
+  ...NAV.flatMap((item) => (item.href === '/kurum' ? [item, ...MOBILE_ONLY] : [item])),
+  { href: TOOLS_PATH, label: 'Araçlar' },
+];
 
 interface SiteHeaderProps {
   /**
