@@ -266,7 +266,7 @@ export const GUIDES: Guide[] = [
         heading: 'Adım 4 — sonuç ve atama',
         paragraphs: [
           'Sınav sonuçları gazetede yayımlanır. Ardından atama kararnamesi çıkar; kararname yayımlanmadan göreve başlama olmaz.',
-          'Sınav sonuç listeleri kişi adı içerdiği için biz bu listeleri sayfada yayımlamıyoruz. Kayıt sayfasında künye ve gazete yeri duruyor, tam liste için orijinal PDF’e yönlendiriyoruz.',
+          'Sınav sonuç listeleri kişi adı içerir. Kaydın metni sayfaya alınmışsa liste gazetedeki haliyle görünür; alınmamışsa künye ve gazete yeri kayıt sayfasında durur ve tam liste için orijinal PDF’e yönlendiriyoruz.',
         ],
         links: [
           { label: 'Sınav sonuçları', href: '/ara?tur=sinav_sonucu' },
@@ -453,8 +453,8 @@ export const GUIDES: Guide[] = [
       {
         heading: 'Kişisel veri',
         paragraphs: [
-          'Gazete, atama kararnameleri ve sınav sonuç listeleri gibi kişi adı içeren kayıtlar barındırıyor. Bunlar kamuya açık belgeler olsa da bir arama motoru hâline getirmek farklı bir sorumluluk doğuruyor.',
-          'Kişi adına özel sayfa üretmiyoruz. Sınav sonucu ve benzeri listelerde kişi adlarını sayfada göstermiyor, tam liste için orijinal PDF’e yönlendiriyoruz. Kaldırma talebiniz varsa iletişim sayfasından yazın; yedi gün içinde yanıtlıyoruz.',
+          'Gazete, atama kararnameleri ve sınav sonuç listeleri gibi kişi adı içeren kayıtlar barındırıyor. Bunlar kamuya açık resmî belgeler; kayıtların metni gazetede yayımlandığı şekliyle sayfada yer alıyor.',
+          'Kişi adına özel sayfa üretmiyoruz. Adınızın geçtiği bir kaydın kaldırılmasını isterseniz iletişim sayfasından yazın; yedi gün içinde yanıtlıyoruz.',
         ],
       },
       {
@@ -646,10 +646,10 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'sinav-sonuclari-ve-kisisel-veri',
-    title: 'Sınav sonuçları ve kişisel veri',
-    summary: 'Sonuç listeleri gazetede yayımlanıyor; biz adları neden göstermiyoruz.',
+    title: 'Sınav sonuçları ve kişi adları',
+    summary: 'Sonuç listeleri gazetede yayımlanıyor; sitede nasıl yer aldıkları ve kaldırma talebi.',
     description:
-      'KKTC Resmî Gazete’de yayımlanan sınav sonuç listelerinin nasıl ele alındığı ve kişi adlarının neden sayfada gösterilmediği.',
+      'KKTC Resmî Gazete’de yayımlanan sınav sonuç listelerinin sitede nasıl ele alındığı ve kişi adları için kaldırma talebi.',
     sections: [
       {
         paragraphs: [
@@ -658,9 +658,9 @@ export const GUIDES: Guide[] = [
         links: [{ label: 'Sınav sonucu kayıtları', href: '/ara?tur=sinav_sonucu' }],
       },
       {
-        heading: 'Adları neden göstermiyoruz',
+        heading: 'Adlar ve kaldırma talebi',
         paragraphs: [
-          'Belge kamuya açık olsa da, bir sonuç listesini aranabilir hâle getirmek ayrı bir sorumluluk doğurur: gazetede bir kez yayımlanan ad, arama motorunda kalıcı hâle gelir. Bu yüzden sınav sonucu kayıtlarında ve “yasaklı göçmen” kararlarında kişi adlarını sayfada render etmiyoruz; kaydın var olduğunu ve nerede yayımlandığını gösteriyor, tam liste için orijinal PDF’e yönlendiriyoruz.',
+          'Sonuç listeleri kamuya açık resmî belgelerdir ve kaydın metni sayfaya alındığında gazetede yayımlandığı şekliyle gösterilir. Bazı listelerin metni henüz sayfaya alınamadı; onlar için kaydın künyesi ve gazete yeri durur, tam liste orijinal PDF’tedir. Adınızın geçtiği bir kaydın kaldırılmasını isterseniz iletişim sayfasından yazın; yedi gün içinde yanıtlıyoruz.',
         ],
       },
       {

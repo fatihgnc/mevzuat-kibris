@@ -169,11 +169,11 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           </div>
 
           {/*
-           * GEÇİCİ: gövde hiçbir kayıtta gösterilmiyor, hepsinde aynı tek
-           * mesaj basılıyor. hasBody/OCR/hasPersonalData dallanması ve
-           * BodyText/BodyHiddenCard/MissingTextCard/PersonalDataNotice
-           * fonksiyonları kasıtlı olarak SİLİNMEDİ — sorun çözülünce bu blok
-           * eski dallanmaya geri döner.
+           * GEÇİCİ: gövde varsa (body_markdown) düz gösterilir, yoksa tek mesaj
+           * basılır. hasBody/OCR dallanması ve BodyText/BodyHiddenCard/
+           * MissingTextCard fonksiyonları kasıtlı olarak SİLİNMEDİ — sorun
+           * çözülünce bu blok eski dallanmaya geri döner. Kişisel veri
+           * (hasPersonalData) gövdeyi gizlemez.
            */}
           {record.bodyMarkdown ? (
             <BodyMarkdown markdown={record.bodyMarkdown} />
@@ -289,11 +289,10 @@ function Divider() {
 }
 
 /*
- * GEÇİCİ kart — gövde çıkarma hattı düzelene kadar hangi durumda olursa olsun
- * (metin var/yok, kişisel veri var/yok, OCR kalitesi ne olursa olsun) tek bu
- * mesaj basılıyor. Aşağıdaki BodyText/BodyHiddenCard/MissingTextCard/
- * PersonalDataNotice ve ilgili yardımcılar kasıtlı olarak duruyor; sorun
- * çözülünce RecordDetail içindeki çağrı eski dallanmaya geri alınacak.
+ * GEÇİCİ kart — gövde (body_markdown) olmayan kayıtlarda tek bu mesaj basılıyor.
+ * Aşağıdaki BodyText/BodyHiddenCard/MissingTextCard ve ilgili yardımcılar
+ * kasıtlı olarak duruyor; sorun çözülünce RecordDetail içindeki çağrı eski
+ * dallanmaya geri alınacak.
  */
 function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType }) {
   const page = record.pageFrom ? ', sayfa ' + record.pageFrom : '';
@@ -537,22 +536,6 @@ function MissingTextCard({ record }: { record: RecordDetailType }) {
       <p className="border-t border-line bg-surface-muted px-6 py-3.5 text-base leading-[1.55] text-ink-muted">
         Metni okuma denemesini yeniden kuyruğa aldık. Çıkarılabilirse bu sayfaya eklenir,
         takipçilere ayrıca bildirim gitmez.
-      </p>
-    </div>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
-function PersonalDataNotice({ pdfUrl }: { pdfUrl: string }) {
-  return (
-    <div className="rounded-md border border-notice-border bg-notice px-5 py-4 text-base leading-[1.6] text-notice-ink">
-      <p className="m-0 font-semibold">Bu kayıtta kişi adları var.</p>
-      <p className="m-0 mt-1.5">
-        Listeyi burada yayımlamıyoruz. Tam liste için{' '}
-        <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
-          orijinal PDF&apos;e bakınız
-        </a>
-        .
       </p>
     </div>
   );

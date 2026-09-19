@@ -319,9 +319,8 @@ export function classifyTopics(input: { title: string; docType: DocType }): Topi
 }
 
 /**
- * Personal-data flag — spec 3.7 rule 2.
- * The body text of these records is not rendered; the user is sent to the
- * original PDF instead.
+ * Personal-data flag — informational only (spec 3.7 rule 2).
+ * Nothing branches on it: bodies of these records are published like any other.
  */
 export function detectPersonalData(input: { title: string; docType: DocType }): boolean {
   if (input.docType === 'sinav_sonucu') return true;

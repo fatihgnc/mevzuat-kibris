@@ -77,7 +77,7 @@ export async function GET(): Promise<Response> {
       SITE_URL +
       '/karar/<slug> biçimindedir ve şunları taşır: yayım tarihi, referans numarası (A.E., Ü(K-I) gibi), gazete sayısı, belge türü, konu, adı geçen kurum ve şirketler, çıkarılabildiyse gövde metni, ve orijinal PDF sayfasına bağlantı.',
     '',
-    'Kişisel veri içeren kayıtlarda gövde metni yayımlanmaz; o sayfalar doğrudan resmî PDF’e yönlendirir.',
+    'Kişi adı içeren kayıtların metni de gazetede yayımlandığı şekliyle yer alır; kaldırma talepleri iletişim adresine yazılarak yapılır.',
     '',
     '## Konular',
     '',

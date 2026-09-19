@@ -28,8 +28,8 @@ export interface FaqItem {
  *
  * 2. Every claim about the site has to be true of the site as it is. Each answer
  *    below describes behaviour that exists: the deadline on vacancy rows, the
- *    document-type filter, the entity pages, the body text withheld from records
- *    containing personal data. If a behaviour changes, the answer changes with it
+ *    document-type filter, the entity pages, the removal-on-request channel for
+ *    records with personal names. If a behaviour changes, the answer changes with it
  *    — a stale FAQ is worse than none, because this one is machine-readable.
  */
 export const TOPIC_FAQ: Record<TopicSlug, FaqItem[]> = {
@@ -161,7 +161,7 @@ export const TOPIC_FAQ: Record<TopicSlug, FaqItem[]> = {
     {
       question: 'Kişi adıyla arama yapabilir miyim?',
       answer:
-        'Arama kişi adını bulabilir, ancak kişisel veri içeren kayıtlarda gövde metnini sayfada yayımlamayız; sizi gazetenin orijinal PDF sayfasına yönlendiririz. Amaç, bu belgeleri kişilerin aranabilir bir dizinine dönüştürmemektir.',
+        'Evet. Kaydın metni sayfaya alındıysa gazetede yayımlandığı şekliyle yer alır ve kişi adı arama sonuçlarında çıkabilir. Kişi adına ayrı bir sayfa üretmiyoruz. Adınızın geçtiği bir kaydın kaldırılmasını isterseniz iletişim sayfasından yazın.',
     },
     {
       question: 'Bir kurumun atama kararlarını toplu olarak nasıl görürüm?',
@@ -177,7 +177,7 @@ export const TOPIC_FAQ: Record<TopicSlug, FaqItem[]> = {
     {
       question: 'Kararların metni neden sayfada görünmüyor?',
       answer:
-        'Bu kayıtlar kişi adı taşır. Kişisel veri içeren kayıtlarda gövde metnini yayımlamıyoruz; kaydın sayfasından gazetenin orijinal PDF sayfasına geçebilirsiniz.',
+        'Bazı kayıtların metni henüz sayfaya alınamadı. Bu durumda kaydın sayfasından gazetenin orijinal PDF sayfasına geçebilirsiniz.',
     },
     {
       question: 'Kendi kararımı nasıl bulurum?',

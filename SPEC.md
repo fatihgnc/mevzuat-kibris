@@ -155,12 +155,12 @@ Bir kayıt **birden fazla konuya** ait olabilir (`record_topics` çoka-çok tabl
 
 ### 3.7 Kişisel veri
 
-RG; atama kararnameleri, sınav sonuç listeleri ve "yasaklı göçmen ilan edilmesi" kararları gibi **kişi adı içeren** kayıtlar barındırıyor. Bunlar kamuya açık resmî belgeler olsa da bir arama motoru haline getirmek farklı bir sorumluluk doğurur.
+RG; atama kararnameleri, sınav sonuç listeleri ve "yasaklı göçmen ilan edilmesi" kararları gibi **kişi adı içeren** kayıtlar barındırıyor. Bunlar kamuya açık resmî belgelerdir ve gazetede yayımlandığı şekliyle yayımlanır.
 
 Kurallar:
 
 1. **Kişi adına özel sayfa üretilmez.** `/sirket/[slug]` ve `/yer/[slug]` var, `/kisi/[slug]` **yok**.
-2. Kişi adı geçen kayıt sayfaları indekslenir, ancak `sinav_sonucu` ve "yasaklı göçmen" içeren kayıtlarda kişi adları render edilmez; "tam liste için orijinal PDF'e bakınız" denir.
+2. Kişi adı içeren kayıtların gövdesi de diğer kayıtlar gibi düz şekilde yayımlanır; gövde gizleme yoktur. `records.has_personal_data` sütunu ve `detectPersonalData` yalnızca bilgi amaçlı bir işaret olarak durur, arayüzde ve ingest'te hiçbir davranışı değiştirmez. (Önceki kural — `sinav_sonucu` ve "yasaklı göçmen" kayıtlarında isimlerin render edilmemesi — 2026-09-19'da kaldırıldı.) Bir kişi itiraz ederse 4. maddedeki kanaldan yazar ve ilgili kayıt kaldırılır.
 3. Arama, kişi adıyla sonuç döndürebilir (kayıt başlığında geçiyorsa) ama sonuç sayfası `noindex`.
 4. Kaldırma talebi için `/iletisim` üzerinde açık bir kanal bulunur ve 7 gün içinde yanıtlanır.
 
