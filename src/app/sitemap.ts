@@ -5,10 +5,12 @@ import {
   archiveRecordEntries,
   entityEntries,
   issueEntries,
+  legislationEntries,
   recentRecordEntries,
   staticEntries,
   topicYearEntries,
   SITEMAP_CHUNK_COUNT,
+  SITEMAP_LEGISLATION_CHUNK,
 } from '@/lib/seo/sitemap-chunks';
 
 /**
@@ -16,7 +18,8 @@ import {
  *
  * generateSitemaps puts the chunks at /sitemap/<id>.xml. Chunk 0 is static pages
  * and topics, 1 the last 24 months of records (fetched most often), 2 issues, 3
- * entities, 4 topic x year, 5+ the older archive.
+ * entities, 4 topic x year, then the older archive, and last the yasalar and
+ * tüzükler (SITEMAP_LEGISLATION_CHUNK).
  *
  * THE INDEX AT /sitemap.xml IS OURS TO SERVE — see app/sitemap.xml/route.ts. Next
  * does not create one when generateSitemaps is used; the comment here used to
@@ -70,6 +73,8 @@ export default async function sitemap({
       return entityEntries();
     case 4:
       return topicYearEntries();
+    case SITEMAP_LEGISLATION_CHUNK:
+      return legislationEntries();
     default:
       return archiveRecordEntries(Math.max(0, chunk - 5));
   }

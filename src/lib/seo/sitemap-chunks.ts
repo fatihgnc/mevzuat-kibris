@@ -9,6 +9,7 @@ import { topicYearCounts } from '@/lib/db/queries/records';
 import { TOPIC_SLUGS, isTopicSlug } from '@/lib/constants/topics';
 import { GUIDES } from '@/lib/content/guides';
 import { TOOLS, toolPath } from '@/lib/tools/registry';
+import { legislationHref, type LegislationKind } from '@/lib/legislation/labels';
 
 import { ARCHIVE_START_YEAR, RECENT_MONTHS, absoluteUrl } from './config';
 
@@ -23,7 +24,8 @@ import { ARCHIVE_START_YEAR, RECENT_MONTHS, absoluteUrl } from './config';
 
 
 /**
- * How many sitemap chunks exist: 5 fixed ones plus the archive pages.
+ * How many sitemap chunks exist: 5 fixed ones, the archive pages, and the
+ * legislation chunk at the very end.
  *
  * It lives here rather than in app/sitemap.ts because TWO routes need it and they
  * must not drift: generateSitemaps produces /sitemap/<id>.xml, and the index at
@@ -42,7 +44,15 @@ import { ARCHIVE_START_YEAR, RECENT_MONTHS, absoluteUrl } from './config';
  * SITEMAP_ARCHIVE_CHUNKS * 45,000 falls out of the sitemap silently.
  */
 export const SITEMAP_ARCHIVE_CHUNKS = 1;
-export const SITEMAP_CHUNK_COUNT = 5 + SITEMAP_ARCHIVE_CHUNKS;
+
+/**
+ * The yasalar and tüzükler (about a thousand pages) get a chunk of their own, and
+ * it comes AFTER the archive. Putting it before would have moved every archive
+ * chunk one id up, and a crawler holding the old index would then read the archive's
+ * address as something else.
+ */
+export const SITEMAP_LEGISLATION_CHUNK = 5 + SITEMAP_ARCHIVE_CHUNKS;
+export const SITEMAP_CHUNK_COUNT = SITEMAP_LEGISLATION_CHUNK + 1;
 
 type Entry = MetadataRoute.Sitemap[number];
 
@@ -74,6 +84,12 @@ export function staticEntries(): MetadataRoute.Sitemap {
     entry('/sirket', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
     entry('/yer', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
     entry('/rehber', { priority: 0.7, changeFrequency: 'monthly' }),
+    /*
+     * The law indexes. The laws themselves are in their own chunk
+     * (legislationEntries); these two are the hubs that list them.
+     */
+    entry('/yasa', { lastModified: now, priority: 0.8, changeFrequency: 'weekly' }),
+    entry('/tuzuk', { lastModified: now, priority: 0.8, changeFrequency: 'weekly' }),
     /*
      * The calculators. Same priority as the guides: both are hand-written
      * landing pages that answer a query outright rather than listing records.
@@ -227,4 +243,30 @@ export async function topicYearEntries(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: row.year >= currentYear ? 'weekly' : 'yearly',
       }),
     );
+}
+
+/**
+ * Every yasa and tüzük that has a text — the same rows the index pages list, so the
+ * sitemap and the pages agree. A row whose extraction failed still has a page (it
+ * says the text could not be read) but is left out here: it is a thin page.
+ *
+ * `lastModified` is the source file's date, the only date we have for the text.
+ */
+export async function legislationEntries(): Promise<MetadataRoute.Sitemap> {
+  const rows = await db.execute<
+    Row<{ kind: string; slug: string; body_modified_at: string | Date | null }>
+  >(sql`
+    select kind, slug, body_modified_at
+      from legislation
+     where lang = 'tr' and extract_status = 'ok'
+     order by kind, title_normalized
+  `);
+
+  return rows.map((row) =>
+    entry(legislationHref(row.kind as LegislationKind, row.slug), {
+      lastModified: row.body_modified_at ? new Date(row.body_modified_at) : undefined,
+      priority: 0.7,
+      changeFrequency: 'monthly',
+    }),
+  );
 }

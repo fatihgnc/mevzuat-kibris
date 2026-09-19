@@ -89,6 +89,8 @@ export async function GET(): Promise<Response> {
     '- [Şirketler](' + SITE_URL + '/sirket): bir şirketin sicil hareketleri, ihale ve marka ilanları',
     '- [Yerler](' + SITE_URL + '/yer): bir köy ya da mahalle adının geçtiği kamulaştırma ve imar kararları',
     '- [Sayılar](' + SITE_URL + '/sayilar): gazete sayısına ve yılına göre',
+    '- [Yasalar](' + SITE_URL + '/yasa): yasaların birleştirilmiş güncel metinleri, kaynağı ve tarihiyle',
+    '- [Tüzükler](' + SITE_URL + '/tuzuk): tüzüklerin birleştirilmiş güncel metinleri, kaynağı ve tarihiyle',
     '',
     '## Rehberler',
     '',
