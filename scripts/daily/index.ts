@@ -4,6 +4,7 @@ import { triggerRevalidate } from '../revalidate';
 import { closeDb, finishRun, sql, startRun } from '../shared/db';
 import { log, toErrorEntry } from '../shared/logger';
 import { flagForReview } from './flag-review';
+import { notifyNewIssues } from './notify-new-issues';
 
 /**
  * Daily ingest — runs the nine stages of spec 7.1 in order.
@@ -33,6 +34,7 @@ async function main() {
   let issuesSeen = 0;
   let issuesNew = 0;
   let recordsNew = 0;
+  let newIssueNumbers: number[] = [];
 
   const topics = new Set<string>();
   const entities = new Set<string>();
@@ -44,6 +46,7 @@ async function main() {
     const crawl = await crawlYear(year);
     issuesSeen = crawl.seen;
     issuesNew = crawl.inserted;
+    newIssueNumbers = crawl.insertedNumbers;
 
     /*
      * Unprocessed issues and the retry queue (spec 7.2) together. Retrying stops
@@ -121,6 +124,9 @@ async function main() {
       issues,
       records: [...touchedRecordSlugs],
     });
+
+    // After processing, so the email can report record counts and review flags.
+    await notifyNewIssues(year, newIssueNumbers);
 
     await finishRun(runId, errors.length ? 'failed' : 'ok', { issuesSeen, issuesNew, recordsNew }, errors);
     log.info('günlük ingest bitti', { issuesSeen, issuesNew, recordsNew, errors: errors.length });

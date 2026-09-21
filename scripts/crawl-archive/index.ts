@@ -61,7 +61,7 @@ async function findIssues(year: number): Promise<CrawledIssue[]> {
   return fromHome;
 }
 
-export async function crawlYear(year: number): Promise<{ seen: number; inserted: number }> {
+export async function crawlYear(year: number): Promise<{ seen: number; inserted: number; insertedNumbers: number[] }> {
   const issues = await findIssues(year);
 
   /*
@@ -76,6 +76,7 @@ export async function crawlYear(year: number): Promise<{ seen: number; inserted:
   }
 
   let inserted = 0;
+  const insertedNumbers: number[] = [];
 
   for (const issue of issues) {
     const rows = await sql<Array<{ inserted: boolean }>>`
@@ -88,7 +89,10 @@ export async function crawlYear(year: number): Promise<{ seen: number; inserted:
             updated_at     = now()
       returning (xmax = 0) as inserted
     `;
-    if (rows[0]?.inserted) inserted += 1;
+    if (rows[0]?.inserted) {
+      inserted += 1;
+      insertedNumbers.push(issue.number);
+    }
   }
 
   // Records copy the issue date at parse time; a later date correction on the issue must follow.
@@ -99,7 +103,7 @@ export async function crawlYear(year: number): Promise<{ seen: number; inserted:
   `;
 
   log.info('arşiv taraması bitti', { year, seen: issues.length, inserted });
-  return { seen: issues.length, inserted };
+  return { seen: issues.length, inserted, insertedNumbers };
 }
 
 async function main() {

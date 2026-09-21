@@ -63,6 +63,9 @@ jobs:
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ vars.RESEND_FROM }}
+          INGEST_NOTIFY_EMAIL: ${{ vars.INGEST_NOTIFY_EMAIL }}
 
       # LLM ÖZET KATMANI ARTIK BURADA DEĞİL -> summarize.yml
       #
