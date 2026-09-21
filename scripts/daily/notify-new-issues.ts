@@ -22,12 +22,13 @@ export async function notifyNewIssues(year: number, numbers: number[]): Promise<
 
   try {
     const rows = await sql<
-      Array<{ number: number; published_at: string | Date; text_status: string; records: number; flagged: number }>
+      Array<{ number: number; published_at: string | Date; records: number; with_body: number }>
     >`
-      select i.number, i.published_at, i.text_status,
+      select i.number, i.published_at,
              count(r.id)::int as records,
-             count(r.id) filter (where r.review_flags is not null
-                                   and cardinality(r.review_flags) > 0)::int as flagged
+             count(r.id) filter (
+               where coalesce(nullif(r.body_markdown, ''), nullif(r.body_text, '')) is not null
+             )::int as with_body
         from issues i
         left join records r on r.issue_id = i.id
        where i.year = ${year} and i.number = any(${numbers}::int[])
@@ -41,9 +42,9 @@ export async function notifyNewIssues(year: number, numbers: number[]): Promise<
           ? row.published_at.toISOString().slice(0, 10)
           : String(row.published_at).slice(0, 10);
       return (
-        `Sayı ${row.number} (${date}) — ${row.records} kayıt, durum: ${row.text_status}` +
-        (row.flagged ? `, ${row.flagged} kayıt işaretli` : '') +
-        `\n${SITE_URL}/sayilar/${year}/${row.number}`
+        `Sayı ${row.number} (${date})\n` +
+        `${row.records} kayıt — ${row.with_body} gövde dolu, ${row.records - row.with_body} gövde boş\n` +
+        `${SITE_URL}/sayilar/${year}/${row.number}`
       );
     });
 
