@@ -110,8 +110,7 @@ const config: Config = {
         record: '1fr 250px',
         // Arama: filtre rayı + sonuçlar
         search: '210px 1fr',
-        // Konu ve varlık akışı: filtre rayı + akış. Takip sütunu kalktı; teklif
-        // artık sayfanın sonunda (components/follow-block).
+        // Konu ve varlık akışı: filtre rayı + akış.
         feed: '190px 1fr',
       },
     },
