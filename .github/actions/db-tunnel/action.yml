@@ -1,0 +1,43 @@
+name: db-tunnel
+description: >
+  Opens an SSH tunnel to the production Postgres on the VPS, so the job can use
+  DATABASE_URL=postgresql://...@127.0.0.1:5432/mevzuat. The database is not
+  exposed to the internet; the gh-tunnel user on the VPS can only forward to
+  127.0.0.1:5432 and has no shell.
+
+inputs:
+  host:
+    description: VPS address
+    required: true
+  ssh-key:
+    description: Private key of the gh-tunnel user
+    required: true
+  known-hosts:
+    description: known_hosts line(s) for the VPS, so the host key is verified
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Open DB tunnel
+      shell: bash
+      env:
+        HOST: ${{ inputs.host }}
+        SSH_KEY: ${{ inputs.ssh-key }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        install -d -m 700 ~/.ssh
+        printf '%s\n' "$SSH_KEY" > ~/.ssh/db_tunnel
+        chmod 600 ~/.ssh/db_tunnel
+        printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+        # Keepalives: ingest and summarize hold the tunnel for up to an hour.
+        ssh -i ~/.ssh/db_tunnel \
+          -o BatchMode=yes -o ExitOnForwardFailure=yes \
+          -o ServerAliveInterval=30 -o ServerAliveCountMax=4 \
+          -f -N -L 5432:127.0.0.1:5432 "gh-tunnel@$HOST"
+        for i in $(seq 1 15); do
+          if (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then exit 0; fi
+          sleep 1
+        done
+        echo "::error::DB tunnel did not come up"
+        exit 1

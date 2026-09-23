@@ -55,11 +55,16 @@ jobs:
             poppler-utils tesseract-ocr tesseract-ocr-tur ocrmypdf ghostscript \
             python3-pdfminer
 
+      - uses: ./.github/actions/db-tunnel
+        with:
+          host: ${{ vars.VPS_HOST }}
+          ssh-key: ${{ secrets.DB_TUNNEL_SSH_KEY }}
+          known-hosts: ${{ vars.VPS_KNOWN_HOSTS }}
+
       - run: npm ci
       - run: npm run ingest:daily
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}

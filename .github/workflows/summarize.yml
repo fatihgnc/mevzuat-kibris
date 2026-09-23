@@ -41,6 +41,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      - uses: ./.github/actions/db-tunnel
+        with:
+          host: ${{ vars.VPS_HOST }}
+          ssh-key: ${{ secrets.DB_TUNNEL_SSH_KEY }}
+          known-hosts: ${{ vars.VPS_KNOWN_HOSTS }}
+
       - run: npm ci
 
       # Anahtar yoksa adım atlanıyor, iş yeşil kalıyor. Ürün özetsiz de çalışıyor
