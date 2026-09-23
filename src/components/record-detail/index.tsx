@@ -8,9 +8,6 @@ import { AdSlot } from '@/components/ad-slot';
 import { EntityChip } from '@/components/entity-chip';
 import { InBodySearch } from '@/components/in-body-search';
 import { MaskedText } from '@/components/masked-text';
-// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-// kaldırıldı, kod silinmedi. Geri eklerken bu satırı ve aşağıdaki <FollowDialog> bloğunu aç.
-// import { FollowDialog } from '@/components/follow-dialog';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 import { OcrNotice } from '@/components/source-notice';
@@ -56,34 +53,6 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
           Sayı {record.issue.number}
         </Link>
       </div>
-
-      {/*
-        * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-        * kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
-        *
-        * "Takip et" sits above the title rather than beside or below it — the
-        * title is the first thing to read, not something to click past.
-        *
-        * <div className="flex flex-wrap gap-2.5">
-        *   <FollowDialog
-        *     label="Bu kaydı takip et"
-        *     className="px-1 py-2.5 text-md"
-        *     title="Bu kaydı takip et"
-        *     description={
-        *       institution
-        *         ? institution.name + ' ile ilgili yeni bir kayıt yayımlanırsa haber veririz.'
-        *         : 'Bu konuda yeni bir kayıt yayımlanırsa haber veririz.'
-        *     }
-        *     subject={{
-        *       label: primaryTopic?.name ?? 'Bu kayıt',
-        *       topic: primaryTopic?.slug,
-        *       entityId: institution?.id,
-        *     }}
-        *     showFrequency={false}
-        *     rssHref={primaryTopic ? '/konu/' + primaryTopic.slug + '/rss.xml' : '/rss.xml'}
-        *   />
-        * </div>
-        */}
 
       <h1 className="mt-3 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink sm:text-6xl">
         {heading}
@@ -534,8 +503,7 @@ function MissingTextCard({ record }: { record: RecordDetailType }) {
         </div>
       </div>
       <p className="border-t border-line bg-surface-muted px-6 py-3.5 text-base leading-[1.55] text-ink-muted">
-        Metni okuma denemesini yeniden kuyruğa aldık. Çıkarılabilirse bu sayfaya eklenir,
-        takipçilere ayrıca bildirim gitmez.
+        Metni okuma denemesini yeniden kuyruğa aldık. Çıkarılabilirse bu sayfaya eklenir.
       </p>
     </div>
   );

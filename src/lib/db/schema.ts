@@ -15,7 +15,6 @@ import {
   text,
   timestamp,
   uniqueIndex,
-  uuid,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -31,10 +30,6 @@ const tsvector = customType<{ data: string; driverData: string }>({
 
 const textArray = customType<{ data: string[]; driverData: string }>({
   dataType: () => 'text[]',
-});
-
-const bigintArray = customType<{ data: number[]; driverData: string }>({
-  dataType: () => 'bigint[]',
 });
 
 const EMPTY_ARRAY = sql`'{}'`;
@@ -159,48 +154,6 @@ export const recordEntities = pgTable(
   (t) => ({
     pk: primaryKey({ columns: [t.recordId, t.entityId] }),
     byEntity: index('record_entities_entity_idx').on(t.entityId, t.recordId),
-  }),
-);
-
-export const profiles = pgTable('profiles', {
-  id: uuid('id').primaryKey(),
-  email: text('email').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const alerts = pgTable(
-  'alerts',
-  {
-    id: bigserial('id', { mode: 'number' }).primaryKey(),
-    userId: uuid('user_id').notNull(),
-    label: text('label').notNull(),
-    query: text('query'),
-    topics: textArray('topics').notNull().default(EMPTY_ARRAY),
-    docTypes: textArray('doc_types').notNull().default(EMPTY_ARRAY),
-    entityIds: bigintArray('entity_ids').notNull().default(EMPTY_ARRAY),
-    frequency: text('frequency').notNull().default('weekly'),
-    preferredWeekday: smallint('preferred_weekday').notNull().default(1),
-    isActive: boolean('is_active').notNull().default(true),
-    lastSentAt: timestamp('last_sent_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => ({
-    byUser: index('alerts_user_idx').on(t.userId),
-  }),
-);
-
-export const alertDeliveries = pgTable(
-  'alert_deliveries',
-  {
-    id: bigserial('id', { mode: 'number' }).primaryKey(),
-    alertId: bigint('alert_id', { mode: 'number' }).notNull(),
-    recordIds: bigintArray('record_ids').notNull(),
-    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
-    status: text('status').notNull(),
-    providerId: text('provider_id'),
-  },
-  (t) => ({
-    bySent: index('alert_deliveries_sent_idx').on(t.sentAt),
   }),
 );
 

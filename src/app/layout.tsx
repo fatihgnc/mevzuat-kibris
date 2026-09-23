@@ -32,10 +32,9 @@ const sans = Source_Sans_3({
  * Next merges metadata by field, so anything declared in this object is INHERITED
  * by every page that does not declare the same field. A canonical is the one value
  * that must never be inherited: it names one specific URL. While `canonical: '/'`
- * sat here, `/ara`, `/takip` and `/hesap` — the three pages that build their own
- * metadata without an `alternates` block — each emitted a canonical pointing at the
- * home page, telling Google they were the home page. They are noindex, so nothing
- * broke; the mechanism was the problem, because every future page that forgot
+ * sat here, `/ara` — a page that builds its own metadata without an `alternates`
+ * block — emitted a canonical pointing at the home page, telling Google it was the
+ * home page. It is noindex, so nothing broke; the mechanism was the problem, because every future page that forgot
  * `alternates` would have done the same silently.
  *
  * `types` stays: a feed declaration genuinely is site-wide.

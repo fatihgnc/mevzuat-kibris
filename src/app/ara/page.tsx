@@ -8,10 +8,6 @@ import { ActiveFilterChips, SearchFilters, type PinNames } from '@/components/se
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
-// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-// kaldırıldı, kod silinmedi. Geri eklerken bu satırı ve aşağıdaki iki
-// <FollowDialog> bloğunu aç.
-// import { FollowDialog } from '@/components/follow-dialog';
 import { TOPIC_LIST } from '@/lib/constants/topics';
 import {
   countForQuery,
@@ -190,25 +186,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     <LooseHint raw={built.raw} extra={result.looseExtra} params={params} />
                   </div>
                   <div className="flex items-baseline gap-x-[18px]">
-                    {/*
-                      * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor --
-                      * görünürden kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
-                      *
-                      * Only with a query: there is nothing to follow about /ara
-                      * with no words in it.
-                      *
-                      * {built.raw ? (
-                      *   <FollowDialog
-                      *     label="Bu aramayı takip et"
-                      *     title="Bu aramayı takibe al"
-                      *     description={
-                      *       '“' + built.raw + '” için yeni kayıt yayımlandığında haber veririz.'
-                      *     }
-                      *     subject={{ label: built.raw, query: built.raw }}
-                      *     rssHref="/rss.xml"
-                      *   />
-                      * ) : null}
-                      */}
                     <SortLinks
                       active={params.sirala}
                       hrefFor={(option) => buildSearchHref(params, { sirala: option, sayfa: 1 })}
@@ -314,8 +291,7 @@ async function resolvePinNames(params: SearchParams): Promise<PinNames> {
  *
  * The design's decision: rather than stop at "no results found", offer four ways
  * out. In order: a spelling suggestion (trigram), clearing filters, entering by
- * topic, searching by reference number. At the bottom, turning the search into an
- * alert.
+ * topic, searching by reference number.
  */
 async function EmptyResults({
   query,
@@ -390,26 +366,6 @@ async function EmptyResults({
           </li>
         </ul>
       </section>
-
-      {/*
-        * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-        * kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
-        *
-        * On the empty screen the offer is the last of the four ways out (artboard
-        * 1f), so it stays where the list of suggestions ends rather than moving
-        * to the top of results that do not exist.
-        *
-        * <p className="mt-[30px] border-t border-line pt-5 text-base text-ink-muted">
-        *   Bugün kayıt yok, yarın olabilir.{' '}
-        *   <FollowDialog
-        *     label="Bu aramayı takibe alın"
-        *     title="Bu aramayı takibe alın"
-        *     description="Bu arama için yeni kayıt yayımlandığında haber veririz."
-        *     subject={{ label: query, query }}
-        *     rssHref="/rss.xml"
-        *   />
-        * </p>
-        */}
     </div>
   );
 }

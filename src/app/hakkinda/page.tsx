@@ -38,9 +38,8 @@ export default async function AboutPage() {
       <Section heading="Ne yapıyoruz">
         <p className="m-0">
           Aynı veriyi indiriyor, metne çeviriyor, kayıt seviyesinde parçalıyor, sınıflandırıyor ve
-          aranabilir hâle getiriyoruz. Kaydettiğiniz kelime, şirket, yer ya da konu için yeni bir
-          kayıt yayımlandığında e-posta gönderiyoruz. Aynı akışların RSS bağlantısı da var ve kayıt
-          gerektirmiyor.
+          aranabilir hâle getiriyoruz. Her konunun, kurumun, şirketin ve yerin kendi RSS akışı
+          var; kayıt gerektirmiyor.
         </p>
         <p className="m-0">
           {coverageShort(coverage)}. Süreci{' '}

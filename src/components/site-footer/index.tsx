@@ -136,13 +136,6 @@ export function SiteFooter({
               <li>
                 <Link href="/rehber">Rehber</Link>
               </li>
-              {/*
-                Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-                kaldırıldı, kod silinmedi. Geri eklerken bu <li>'yi aç.
-                <li>
-                  <Link href="/takip">Takiplerim</Link>
-                </li>
-              */}
               <li>
                 <Link href="/hakkinda">Hakkında</Link>
               </li>

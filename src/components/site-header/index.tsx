@@ -38,9 +38,6 @@ const NAV: Array<{ href: string; label: string }> = [
    * to the bottom yet.
    */
   { href: '/rehber', label: 'Rehber' },
-  // Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-  // kaldırıldı, kod silinmedi. Geri eklerken bu satırı aç.
-  // { href: '/takip', label: 'Takip' },
   /*
    * NO 'Hakkında'. It is a page you read once and never return to, and the
    * header is for the places you go repeatedly; it sits in the footer beside

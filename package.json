@@ -24,7 +24,6 @@
     "ingest:entities": "tsx scripts/extract-entities/index.ts",
     "ingest:daily": "tsx scripts/daily/index.ts",
     "ingest:backfill": "tsx scripts/backfill/index.ts",
-    "alerts:dispatch": "tsx scripts/dispatch-alerts/index.ts",
     "revalidate": "tsx scripts/revalidate/index.ts",
     "db:migrate": "tsx scripts/migrate/index.ts",
     "deepseek:run": "tsx scripts/extract-text/deepseek-run.ts",
@@ -34,8 +33,6 @@
     "db:reset": "tsx scripts/migrate/index.ts --reset && tsx scripts/seed/index.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.47.10",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.38.3",
     "lucide-react": "^0.469.0",

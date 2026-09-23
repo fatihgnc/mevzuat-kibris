@@ -149,7 +149,7 @@ export const TOPIC_FAQ: Record<TopicSlug, FaqItem[]> = {
     {
       question: 'Bir konudaki yeni düzenlemeleri nasıl takip ederim?',
       answer:
-        'Konu sayfasındaki takip kutusundan e-posta bildirimi kurabilir ya da sayfanın RSS akışını okuyucunuza ekleyebilirsiniz; ikisi de aynı kayıtları aynı sırada verir.',
+        'Konu sayfasının RSS akışını okuyucunuza ekleyebilirsiniz; yeni kayıtlar yayımlandıkça orada görünür.',
     },
   ],
   atama: [

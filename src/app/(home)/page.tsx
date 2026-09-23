@@ -2,14 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdSlot } from "@/components/ad-slot";
-// Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- görünürden
-// kaldırıldı, kod silinmedi. Geri eklerken bu iki satırı ve aşağıdaki
-// <FollowCard>/<RssCard> bloğunu aç.
-// import { FollowCard } from "@/components/follow-card";
 import { IssueCard } from "@/components/issue-card";
 import { RecordCard } from "@/components/record-card";
 import { RecentVacanciesCard } from "@/components/vacancy-card";
-// import { RssCard } from "@/components/rss-card";
 import { SearchBox } from "@/components/search-box";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -218,19 +213,6 @@ export default async function HomePage() {
               <RecentVacanciesCard records={recentVacancies} />
 
               <TopSearchCard items={googleTop} />
-
-              {/*
-                Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor --
-                görünürden kaldırıldı, kod silinmedi. Geri eklerken bu bloğu aç.
-
-                <FollowCard
-                  title="Bir konuyu takibe al"
-                  description="Seçtiğiniz konuda ya da kelimede yeni kayıt yayımlanırsa e-posta göndeririz."
-                  subject={{ label: "Tüm kayıtlar" }}
-                />
-
-                <RssCard href="/rss.xml" />
-              */}
 
               <div className="hidden flex-col gap-2.5 border-t border-line pt-4 text-sm leading-[1.5] text-ink-muted lg:flex">
                 <span>

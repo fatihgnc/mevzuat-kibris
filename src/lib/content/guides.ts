@@ -276,7 +276,7 @@ export const GUIDES: Guide[] = [
       {
         heading: 'Kaçırmamak için',
         paragraphs: [
-          'Münhal akışını takibe alırsanız yeni ilan yayımlandığında e-posta göndeririz. E-posta vermek istemiyorsanız aynı akışın RSS bağlantısı var ve kayıt gerektirmiyor.',
+          'Münhal konusunun kendi RSS akışı var; okuyucunuza eklerseniz yeni ilanlar yayımlandıkça orada görünür. Kayıt gerektirmiyor.',
         ],
       },
     ],
@@ -357,7 +357,7 @@ export const GUIDES: Guide[] = [
         heading: 'Nasıl takip edilir',
         paragraphs: [
           'Kamulaştırma kararları çoğunlukla “1962 Zorla Mal İktisabı Yasası” başlığı altında, bir ilçe ve köy adıyla yayımlanır: örneğin “Gazimağusa/Vadili”. Bu yüzden yer adıyla aramak en verimli yol.',
-          'Bir köy ya da mahalleyi takibe alırsanız o yerle ilgili yeni kayıt yayımlandığında haber veririz. Arsası olan biri için bu, gazeteyi her gün taramanın tek alternatifi.',
+          'Her köyün ve mahallenin yer sayfasının kendi RSS akışı var; okuyucunuza eklerseniz o yerle ilgili yeni kayıtlar yayımlandıkça orada görünür. Arsası olan biri için bu, gazeteyi her gün taramanın tek alternatifi.',
         ],
       },
       {
@@ -439,13 +439,13 @@ export const GUIDES: Guide[] = [
         paragraphs: [
           '2018 sonrası sayıların çoğunda PDF’in kendi metin katmanı var ve doğrudan okunabiliyor. Daha eski sayılar taranmış görüntü; bunlarda optik karakter tanıma kullanıyoruz ve hata payı belirgin biçimde yükseliyor.',
           'Her sayı için bir okunabilirlik oranı hesaplıyoruz. Oran düşükse kaydı yine saklıyoruz ama sayfada bunu söylüyoruz. Metni hiç çıkaramadığımız kayıtlarda gövde yerine “metni çıkarılamadı” kutusu görürsünüz; künye ve gazete yeri yine doğrudur.',
-          'Okunamayan kayıtları ayda bir yeniden deniyoruz. Başarılı olursa sayfa güncelleniyor ama takipçilere bildirim gitmiyor — bu yeni bir kayıt değil, mevcut kaydın tamamlanması.',
+          'Okunamayan kayıtları ayda bir yeniden deniyoruz. Başarılı olursa sayfa güncelleniyor; bu yeni bir kayıt değil, mevcut kaydın tamamlanması.',
         ],
       },
       {
         heading: 'Özet cümleler',
         paragraphs: [
-          'Gazetedeki başlıklar okunması zor kalıplar. Her kayıt için başlıktan kesin olarak çıkarılabilen bir özet cümle üretiyoruz ve bunu kalıcı olarak saklıyoruz; liste, detay, e-posta ve RSS aynı cümleyi gösteriyor.',
+          'Gazetedeki başlıklar okunması zor kalıplar. Her kayıt için başlıktan kesin olarak çıkarılabilen bir özet cümle üretiyoruz ve bunu kalıcı olarak saklıyoruz; liste, detay ve RSS aynı cümleyi gösteriyor.',
           'Özet asla kararın sonucunu bildirmez. “İtirazı karara bağladı” yazarız, “itirazı reddetti” yazmayız — o bilgi gövdededir ve hukuki metinde tahmin yürütmek kabul edilemez.',
           'Gazetenin kendi başlığı her kayıt sayfasında olduğu gibi durur ve kopyalanabilir. Kalıp kısımları soluk, ayırt edici kısımları koyu gösteriyoruz; metin değişmiyor, yalnızca okunması kolaylaşıyor.',
         ],
@@ -636,10 +636,8 @@ export const GUIDES: Guide[] = [
       {
         heading: 'Bir kurumu takip etmek',
         paragraphs: [
-          'Belirli bir kurumun atamalarını izlemek istiyorsanız kurum sayfasından takip kurabilirsiniz. Yeni bir kayıt yayımlandığında e-posta gelir; e-posta vermek istemiyorsanız aynı akışın RSS’i var.',
+          'Belirli bir kurumun atamalarını izlemek istiyorsanız kurum sayfasının RSS akışını okuyucunuza ekleyebilirsiniz; yeni bir kayıt yayımlandığında orada görünür.',
         ],
-        // Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor, /takip
-        // görünürden kaldırıldı -- o bağlantı buradan da çıkarıldı.
         links: [{ label: 'Kurumlar dizini', href: '/kurum' }],
       },
     ],
@@ -798,56 +796,6 @@ export const GUIDES: Guide[] = [
       },
     ],
   },
-  /*
-   * Takip akışı test edilmedi ve şu an sağlıklı çalışmıyor -- bu rehber
-   * baştan sona o akışı anlattığı için tamamen yoruma alındı, silinmedi.
-   * Geri eklerken bu bloğu aç.
-   *
-   * {
-   *   slug: 'takip-kurmak-eposta-ve-rss',
-   *   title: 'Takip kurmak — e-posta ve RSS',
-   *   summary: 'Bir konuda ya da kelimede yeni kayıt çıktığında nasıl haber alırsınız.',
-   *   description:
-   *     'Mevzuat Kıbrıs’ta konu, kurum ve arama takibi nasıl kurulur; e-posta sıklığı ve RSS akışları nasıl çalışır.',
-   *   sections: [
-   *     {
-   *       paragraphs: [
-   *         'Yeni bir kayıt yayımlandığında haber almanın iki yolu var: e-posta ya da RSS. İkisi de aynı kayıtları aynı sırada verir; fark, adresinizi verip vermemenizde.',
-   *       ],
-   *       links: [{ label: 'Takiplerim', href: '/takip' }],
-   *     },
-   *     {
-   *       heading: 'Neyi takip edebilirsiniz',
-   *       paragraphs: [
-   *         'Bir konuyu (münhal, ihale, şirket gibi), bir kurumu, bir yeri ya da kendi arama kelimenizi takibe alabilirsiniz. Arama takibi, konu listesinde olmayan dar bir ilgi için en kullanışlısı — örneğin belirli bir köyün adı ya da bir şirket unvanı.',
-   *       ],
-   *       links: [
-   *         { label: 'Konular', href: '/konu' },
-   *         { label: 'Kurumlar', href: '/kurum' },
-   *       ],
-   *     },
-   *     {
-   *       heading: 'Sıklık',
-   *       paragraphs: [
-   *         'Haftalık ya da her gün seçebilirsiniz. Haftalık seçerseniz size sabit bir gün atanır ve özet o sabah gelir; hangi gün olduğunu takip kurulurken görürsünüz. Günlük seçenek sınırlıdır, kota dolduğunda talebiniz haftalığa çevrilir ve bu size söylenir.',
-   *       ],
-   *     },
-   *     {
-   *       heading: 'Doğrulama bağlantısı',
-   *       paragraphs: [
-   *         'Takip, e-postadaki bağlantıya tıklayana kadar başlamaz. Önemli bir ayrıntı: bağlantıyı formu doldurduğunuz tarayıcıda açmanız gerekir. E-postayı telefonunuzda açarsanız doğrulama başarısız olur — bu bir hata değil, doğrulamanın güvenlik biçiminden kaynaklanıyor.',
-   *       ],
-   *     },
-   *     {
-   *       heading: 'RSS',
-   *       paragraphs: [
-   *         'E-posta vermek istemiyorsanız her konunun kendi RSS akışı var, sitenin tamamı için de bir akış. Akış adresini okuyucunuza eklemeniz yeterli; adres kaydı ya da doğrulama gerekmez.',
-   *       ],
-   *       links: [{ label: 'Tüm kayıtlar akışı', href: '/rss.xml' }],
-   *     },
-   *   ],
-   * },
-   */
   {
     slug: 'kaydin-orijinal-pdfini-bulmak',
     title: 'Bir kaydın orijinal PDF’ini bulmak',

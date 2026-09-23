@@ -37,7 +37,7 @@ export interface PageMetaInput {
   title: string;
   description: string;
   path: string;
-  /** Search results, follow and account pages are not indexed. */
+  /** Search results and other utility pages are not indexed. */
   noindex?: boolean;
   /** From page 2 onward, list pages are noindex, follow (spec 8.2 rule 4). */
   page?: number;
