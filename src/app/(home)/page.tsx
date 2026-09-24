@@ -82,6 +82,16 @@ export async function generateMetadata(): Promise<Metadata> {
 // ISR + tag: when ingest finishes, revalidateTag('latest') refreshes this page (spec 11.1).
 export const revalidate = 3600;
 
+/** The phone's quick-access row under the search box. */
+const QUICK_LINKS = [
+  { href: '/konu/munhal', label: 'Münhal' },
+  { href: '/konu/ihale', label: 'İhale' },
+  { href: '/yasa', label: 'Yasalar' },
+  { href: '/tuzuk', label: 'Tüzükler' },
+  { href: '/konu/sirket', label: 'Şirket' },
+  { href: '/konu/atama', label: 'Atama' },
+];
+
 export default async function HomePage() {
   /*
    * Son 1 hafta (home page "son eklenen münhal ilanları" card). Filtered by
@@ -121,7 +131,17 @@ export default async function HomePage() {
             <h1 className="m-0 mb-2.5 max-w-[22em] text-4xl font-semibold leading-[1.25] tracking-tightest text-ink sm:text-5xl">
               Resmî Gazete&apos;de aradığınız bilgiye hızlıca ulaşın
             </h1>
-            <p className="mb-[22px] max-w-lede text-xl leading-[1.55] text-ink-muted">
+            {/*
+              * Phone: one sentence. The full paragraph ran to eight lines there
+              * and pushed the search box — the thing people came to use — down to
+              * 418px. It stays in the page for everything wider, and in the
+              * markup for crawlers.
+              */}
+            <p className="mb-[18px] text-lg leading-[1.5] text-ink-muted sm:hidden">
+              KKTC Resmî Gazete&apos;nin {coverage.earliestYear ?? ARCHIVE_START_YEAR}&apos;den bugüne
+              tüm sayıları, aranabilir metin olarak.
+            </p>
+            <p className="mb-[22px] hidden max-w-lede text-xl leading-[1.55] text-ink-muted sm:block">
               KKTC&apos;de Resmî Gazete, yalnızca PDF olarak yayımlanıyor ve hiçbir
               filtreleme, sınıflandırma veya arama gibi sizi aradığınız bilgiye
               hızlıca ulaştıracak özellikleri barındırmıyor. Biz her sayıyı indirip
@@ -134,6 +154,26 @@ export default async function HomePage() {
 
             <SearchBox />
 
+            {/*
+              * Phone: one tap to the sections most visits are for, without
+              * scrolling. A single row that scrolls sideways rather than wraps,
+              * so it costs one line of height however many there are.
+              */}
+            <nav
+              aria-label="Hızlı erişim"
+              className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+            >
+              {QUICK_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="shrink-0 rounded-pill border border-line-strong bg-surface px-3.5 py-1.5 text-base font-medium text-ink no-underline transition-colors hover:border-accent hover:text-link hover:no-underline"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+
             {popular.length ? (
               <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base text-ink-muted">
                 <span>Sık aranan:</span>
@@ -144,6 +184,14 @@ export default async function HomePage() {
                 ))}
               </div>
             ) : null}
+
+            {/*
+              * Phone: the vacancies card up here rather than in the side column,
+              * which on a phone comes after everything else — it used to start
+              * 2972px down, three and a half screens in. The copy in the aside
+              * is hidden below lg, so each screen shows exactly one.
+              */}
+            <RecentVacanciesCard records={recentVacancies.slice(0, 5)} className="mt-8 lg:hidden" />
 
             <section className="mt-11">
               <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
@@ -164,6 +212,9 @@ export default async function HomePage() {
                 ))}
               </div>
             </section>
+
+            {/* Phone: before the topics, for the same reason as the vacancies card above. */}
+            <TopSearchCard items={googleTop} className="mt-9 lg:hidden" />
 
             <section className="mt-9">
               <h2 className="border-b border-line pb-3 text-md font-semibold text-ink">
@@ -210,9 +261,9 @@ export default async function HomePage() {
                 />
               ) : null}
 
-              <RecentVacanciesCard records={recentVacancies} />
+              <RecentVacanciesCard records={recentVacancies} className="hidden lg:block" />
 
-              <TopSearchCard items={googleTop} />
+              <TopSearchCard items={googleTop} className="hidden lg:block" />
 
               <div className="hidden flex-col gap-2.5 border-t border-line pt-4 text-sm leading-[1.5] text-ink-muted lg:flex">
                 <span>
