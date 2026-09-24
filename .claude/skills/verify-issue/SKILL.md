@@ -128,6 +128,36 @@ resist it — each issue's transcription needs your full attention on that issue
 page images, and interleaving them is how a page number or a transcribed paragraph
 ends up filed under the wrong issue.
 
+## Step 0 — Connect to the production database
+
+Production Postgres runs on the VPS (container `mevzuat-db`, see `/opt/mevzuat-db`) and
+is not exposed to the internet. Local scripts and the local dev server reach it through
+an SSH tunnel, and `.env.local` must point `DATABASE_URL` at that tunnel:
+`postgresql://mevzuat:<password>@127.0.0.1:5433/mevzuat`. The password is in
+`/opt/mevzuat-db/.env` on the server; never print it or copy it anywhere else.
+
+Open the tunnel with the Bash tool (`run_in_background: true`), leaving it running for
+the whole session:
+
+```bash
+ssh -N -L 5433:127.0.0.1:5432 vps
+```
+
+The `vps` host config also forwards the Coolify/Dozzle ports, so "Address already in
+use" warnings for 8000/6001/6002/8081 are expected when the user already has their own
+tunnel open. They're harmless as long as the 5433 forward came up.
+
+**Then confirm you are on the right database before any query:**
+
+```sql
+select current_user, inet_server_port()
+```
+
+It must return `mevzuat`. If it returns `postgres`, `.env.local` still points at the
+old Supabase project, which was abandoned on 2026-09-24. It is stale, the live site no
+longer reads it, and anything written there is silently lost. Stop and ask the user to
+update `.env.local` rather than working around it.
+
 ## Step 1 — Pull the full record list and flag gaps
 
 Write a small throwaway script under `scripts/` (pattern: `scripts/_tmp-audit.ts`,
@@ -264,8 +294,8 @@ identical across records wastes effort and risks introducing small inconsistenci
 ## Step 4 — Before writing anything to the DB
 
 **Stop and get the user's explicit go-ahead before running any UPDATE.** There is no
-separate dev database here — `scripts/shared/db.ts`'s `sql` connects straight to the
-production Supabase instance the live site reads from. Show the user what you found
+separate dev database here — through the Step 0 tunnel, `scripts/shared/db.ts`'s `sql`
+connects straight to the production Postgres the live site reads from. Show the user what you found
 (how many records, which gap categories) and what you're about to write, the same way
 you would before any other production DB write in this repo.
 
@@ -304,7 +334,8 @@ not meant to be committed.
 
 Start (or reuse) this repo's own dev server — `.claude/launch.json` already has a
 `mevzuat-kibris-3065` config, use the Browser tool's `preview_start` with that name
-rather than guessing a bare port. Visit a few of the freshly-written `/karar/<slug>`
+rather than guessing a bare port. It reads the same `.env.local`, so the Step 0 tunnel
+must still be up, or every page fails to load its data. Visit a few of the freshly-written `/karar/<slug>`
 pages and the issue's `/sayilar/<year>/<number>` listing to confirm:
 
 - the body actually renders (not the "kararın metni gösterilemiyor" fallback card)
