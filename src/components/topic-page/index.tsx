@@ -6,6 +6,7 @@ import { RecordList } from '@/components/record-list';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
+import { FilterSheet } from '@/components/filter-sheet';
 import { TopicFilters } from '@/components/topic-filters';
 import { TOPICS, type DeadlineState, type TopicSlug } from '@/lib/constants/topics';
 import { TOPIC_FAQ } from '@/lib/content/topic-faq';
@@ -167,6 +168,10 @@ export async function TopicPage({
       ]
     : [];
 
+  /** Shown on the phone's "Filtreler" button, so the sheet does not have to be opened to know. */
+  const activeFilters =
+    (baslangic ? 1 : 0) + (bitis ? 1 : 0) + (tur?.length ?? 0) + (applied ? 1 : 0);
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const latest = records[0];
   const crumbs = [
@@ -199,17 +204,46 @@ export async function TopicPage({
           {/*
             * The rail comes FIRST in the source as well as on screen, so tab order
             * and reading order agree with the layout.
+            *
+            * Two presentations of one rail, as on /ara. On a phone the grid
+            * collapses to one column and the whole rail — status, eight document
+            * types, a date range — stood above the list: the topic's own heading
+            * landed around 700px down and its first record below the fold. There
+            * it becomes a button that opens the same form in a sheet.
             */}
-          <TopicFilters
-            action={topicHref(konu, { durum: applied })}
-            clearHref={topicHref(konu)}
-            statusOptions={statusOptions}
-            baslangic={baslangic}
-            bitis={bitis}
-            tur={tur}
-            docTypes={facets.docTypes}
-            coverage={coverage}
-          />
+          {/*
+            * `self-stretch` because the grid is `items-start`: the rail is sticky,
+            * and a sticky element can only travel within its container. Shrunk to
+            * the form's own height, the wrapper would leave it nowhere to go.
+            */}
+          <div className="hidden lg:block lg:self-stretch">
+            <TopicFilters
+              action={topicHref(konu, { durum: applied })}
+              clearHref={topicHref(konu)}
+              statusOptions={statusOptions}
+              baslangic={baslangic}
+              bitis={bitis}
+              tur={tur}
+              docTypes={facets.docTypes}
+              coverage={coverage}
+              scope="rail"
+            />
+          </div>
+          <div className="lg:hidden">
+            <FilterSheet activeCount={activeFilters}>
+              <TopicFilters
+                action={topicHref(konu, { durum: applied })}
+                clearHref={topicHref(konu)}
+                statusOptions={statusOptions}
+                baslangic={baslangic}
+                bitis={bitis}
+                tur={tur}
+                docTypes={facets.docTypes}
+                coverage={coverage}
+                scope="sheet"
+              />
+            </FilterSheet>
+          </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">

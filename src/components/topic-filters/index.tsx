@@ -41,6 +41,12 @@ interface TopicFiltersProps {
   docTypes?: ReadonlyArray<{ key: string; label: string; n: number }>;
   /** Bounds for the pickers, taken from the archive rather than the calendar (spec 8.4). */
   coverage?: { earliestYear: number | null; latestYear: number | null } | null;
+  /**
+   * Which copy this is. The page renders the rail twice — as a column on wide
+   * screens and inside a FilterSheet on narrow ones — and the date inputs carry
+   * ids, which two elements cannot share.
+   */
+  scope?: 'rail' | 'sheet';
 }
 
 /**
@@ -78,6 +84,7 @@ export function TopicFilters({
   tur = [],
   docTypes = [],
   coverage,
+  scope = 'rail',
 }: TopicFiltersProps) {
   const min = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
   const max = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
@@ -119,7 +126,7 @@ export function TopicFilters({
       action={action}
       autoComplete="off"
       aria-label="Kayıt filtreleri"
-      className="flex flex-col gap-6 lg:sticky lg:top-[var(--sticky-top)]"
+      className={cn('flex flex-col gap-6', scope === 'rail' && 'lg:sticky lg:top-[var(--sticky-top)]')}
     >
       {/*
         A SECTION OF LINKS INSIDE A FORM OF CHECKBOXES — deliberate, and the one
@@ -205,8 +212,8 @@ export function TopicFilters({
       <section>
         <h2 className="mb-2.5 text-xs text-ink-faint">Tarih aralığı</h2>
         <div className="flex flex-col gap-2">
-          <DateField name="baslangic" label="Başlangıç" defaultValue={baslangic} min={min} max={max} />
-          <DateField name="bitis" label="Bitiş" defaultValue={bitis} min={min} max={max} />
+          <DateField scope={scope} name="baslangic" label="Başlangıç" defaultValue={baslangic} min={min} max={max} />
+          <DateField scope={scope} name="bitis" label="Bitiş" defaultValue={bitis} min={min} max={max} />
         </div>
       </section>
 
@@ -236,19 +243,21 @@ export function TopicFilters({
 }
 
 function DateField({
+  scope,
   name,
   label,
   defaultValue,
   min,
   max,
 }: {
+  scope: string;
   name: string;
   label: string;
   defaultValue?: string;
   min?: string;
   max?: string;
 }) {
-  const id = 'topic-' + name;
+  const id = 'topic-' + scope + '-' + name;
   return (
     <div className="flex items-center gap-2">
       <label htmlFor={id} className="w-[52px] shrink-0 text-sm text-ink-muted">
