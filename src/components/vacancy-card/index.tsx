@@ -13,7 +13,7 @@ interface RecentVacanciesCardProps {
 
 /**
  * "Son eklenen münhal ilanları" — the home page side column, next to
- * `IssueCard`. The caller already filtered to the last 7 days, so an empty
+ * `IssueCard`. The caller already filtered to the last 30 days, so an empty
  * list here means nothing to show, not zero results to explain — the card
  * renders nothing rather than an empty box with just a heading.
  */

@@ -10,6 +10,7 @@
  */
 export const TOPIC_SLUGS = [
   'munhal',
+  'sinav-sonuclari',
   'ihale',
   'sirket',
   'gayrimenkul',
@@ -59,13 +60,28 @@ export const TOPICS: Record<TopicSlug, Topic> = {
       'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları. Kamu Hizmeti Komisyonu ile kurumların kendi ilanları, gazetede yayımlandığı gün buraya düşer. Başvuru bitiş tarihi, ilanın metni okunabildiğinde kaydın satırında görünür.',
     sortOrder: 1,
   },
+  /*
+   * Split out of 'munhal' on 2026-09-25. KHK exam results outnumbered the
+   * vacancies they follow by roughly eight to one (1,286 against ~170), so the
+   * münhal feed read as a feed of results and the vacancies — what people open
+   * it for — were hard to find. Second in order so that a result which also
+   * carries 'atama' still shows as a result.
+   */
+  'sinav-sonuclari': {
+    slug: 'sinav-sonuclari',
+    name: 'Sınav sonuçları',
+    blurb: 'Kamu Hizmeti Komisyonu ve kurumların sınav sonucu duyuruları',
+    description:
+      'Kamu Hizmeti Komisyonu ile kurumların yazılı ve sözlü sınav sonucu duyuruları, baro ve meslek sınavı sonuçları. Bir kadronun ilanı Münhal konusunda, sınavın sonucu burada, atama kararnamesi ise Atama konusunda yer alır.',
+    sortOrder: 2,
+  },
   ihale: {
     slug: 'ihale',
     name: 'İhale',
     blurb: 'İhale ilanları, sonuçları ve Rekabet Kurulu itiraz kararları',
     description:
       'İhale ilanları, ihale sonuçları ve Rekabet Kurulu itiraz kararları. Bir ihaleye itiraz edildiğinde karar bu akışa düşer; kararın kendisi değil, karara bağlandığı bilgisi burada durur. Kesin sonuç için resmî metne bakın.',
-    sortOrder: 2,
+    sortOrder: 3,
   },
   sirket: {
     slug: 'sirket',
@@ -73,7 +89,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'Şirket tescili, isim değişikliği, tasfiye ve mukayyitlik ilanları',
     description:
       'Şirketler Mukayyitliği ilanları: yeni tescil, isim değişikliği, tasfiye ve sicilden kayıt silinmesi. Bir şirketin adını arattığınızda o şirketle ilgili tüm sicil hareketlerini tarih sırasıyla görürsünüz.',
-    sortOrder: 3,
+    sortOrder: 4,
   },
   gayrimenkul: {
     slug: 'gayrimenkul',
@@ -81,7 +97,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'Kamulaştırma, zorla mal iktisabı ve imar kararları',
     description:
       'Kamulaştırma, zorla mal iktisabı, planlama onayı, hali arazi tahsisi ve yol ayrılması kararları. Kararlar çoğunlukla bir köy ya da mahalle adıyla yayımlanır; yer adından girmek en hızlı yol.',
-    sortOrder: 4,
+    sortOrder: 5,
   },
   marka: {
     slug: 'marka',
@@ -89,7 +105,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'Marka ve patent tescil müracaatı ilanları',
     description:
       'Ticaret markası tescil müracaatlarının resmî ilanları. İlan, itiraz süresini başlatan belgedir; müracaatın kabul edildiği anlamına gelmez.',
-    sortOrder: 5,
+    sortOrder: 6,
   },
   'vergi-mali': {
     slug: 'vergi-mali',
@@ -97,7 +113,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'Vergi oranları, ödenek aktarma, fon ve bütçe kararları',
     description:
       'Katma değer vergisi, harç, fiyat istikrar fonu, azami satış fiyatları, sosyal sigorta primleri ve faiz oranları. Bütçe içi ödenek aktarma kararları da bu akışta yer alır.',
-    sortOrder: 6,
+    sortOrder: 7,
   },
   mevzuat: {
     slug: 'mevzuat',
@@ -105,7 +121,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'Yasa, tüzük ve emirname değişiklikleri',
     description:
       'Yasalar, yasa gücünde kararnameler, tüzükler, emirnameler ve Meclis\u2019e sunulan yasa tasarısı ile önerileri. Bir yasanın değiştirilmiş güncel hâli değil, değişikliğin yayımlandığı hâli gösterilir.',
-    sortOrder: 7,
+    sortOrder: 8,
   },
   atama: {
     slug: 'atama',
@@ -113,7 +129,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'Kamu görevlisi atama, görevlendirme ve emeklilik kararları',
     description:
       'Kamu görevlisi atama, görevden alma, görevlendirme ve emeklilik kararnameleri. Kişi adı geçen kayıtlarda kişiye özel sayfa üretilmez; tam liste için resmî metne yönlendirilirsiniz.',
-    sortOrder: 8,
+    sortOrder: 9,
   },
   /*
    * The ninth topic came from real data. When the 2025 archive was processed, of
@@ -128,7 +144,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     blurb: 'KKTC yurttaşlığına alınma kararları',
     description:
       'Bakanlar Kurulunun KKTC yurttaşlığına alınma kararları. Kayıtlar kişi adı taşıdığı için kişiye özel sayfa üretilmez; tam metin için resmî PDF sayfasına yönlendirilirsiniz.',
-    sortOrder: 9,
+    sortOrder: 10,
   },
 };
 

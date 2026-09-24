@@ -84,25 +84,25 @@ export const revalidate = 3600;
 
 /** The phone's quick-access row under the search box. */
 const QUICK_LINKS = [
-  { href: '/konu/munhal', label: 'Münhal' },
-  { href: '/konu/ihale', label: 'İhale' },
+  { href: '/konu/munhal', label: 'Münhaller' },
+  { href: '/konu/ihale', label: 'İhaleler' },
   { href: '/yasa', label: 'Yasalar' },
   { href: '/tuzuk', label: 'Tüzükler' },
-  { href: '/konu/sirket', label: 'Şirket' },
-  { href: '/konu/atama', label: 'Atama' },
+  { href: '/konu/sirket', label: 'Şirketler' },
+  { href: '/konu/atama', label: 'Atamalar' },
 ];
 
 export default async function HomePage() {
   /*
-   * Son 1 hafta (home page "son eklenen münhal ilanları" card). Filtered by
+   * Son 30 gün (home page "son eklenen münhal ilanları" card). Filtered by
    * TOPIC, not doc_type='munhal_ilani' — a Kamu Hizmeti Komisyonu circular
    * (doc_type 'genelge', ref type 'mia') announcing a vacancy is exactly as
-   * much a "münhal ilanı" to a reader as the ones filed under that doc type
-   * itself; the topic classifier already groups them together (rules.ts'
-   * TOPIC_KEYWORDS), which is why the topic strip's own "Münhal" count is in
-   * the thousands while the doc-type facet is in the dozens.
+   * much a "münhal ilanı" to a reader, and the topic classifier already groups
+   * them together (scripts/classify/rules.ts). Exam results have their own
+   * topic, so the card shows vacancies only. 30 days rather than 7: a week of
+   * vacancies alone often held two.
    */
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
 
@@ -114,7 +114,7 @@ export default async function HomePage() {
       topEntities("institution", 20),
       popularQueries(3),
       archiveCoverage(),
-      listRecords({ topic: "munhal", baslangic: sevenDaysAgo, limit: 10 }),
+      listRecords({ topic: "munhal", baslangic: thirtyDaysAgo, limit: 10 }),
       googleTopRecords(5),
     ]);
 

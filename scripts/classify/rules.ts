@@ -181,7 +181,7 @@ export function classifyDocType(input: {
  */
 const TOPIC_BY_DOC_TYPE: Partial<Record<DocType, TopicSlug[]>> = {
   munhal_ilani: ['munhal'],
-  sinav_sonucu: ['munhal'],
+  sinav_sonucu: ['sinav-sonuclari'],
   rekabet_kurulu_karari: ['ihale'],
   sirket_duyurusu: ['sirket'],
   marka_ilani: ['marka'],
@@ -196,10 +196,33 @@ const TOPIC_BY_DOC_TYPE: Partial<Record<DocType, TopicSlug[]>> = {
   gorevden_alma: ['atama'],
 };
 
-const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
+interface TopicKeywordRule {
+  topic: TopicSlug;
+  keywords: string[];
+  /** Document types the rule must not fire on, whatever the title says. */
+  exceptDocTypes?: DocType[];
+}
+
+const TOPIC_KEYWORDS: TopicKeywordRule[] = [
   {
     topic: 'munhal',
-    keywords: ['MÜNHAL', 'SINAV SONUÇLARI', 'İLK ATAMA KADROSU', 'KADROSU'],
+    /*
+     * A bare 'KADROSU' used to be on this list. Measured on 2026-09-25 it was
+     * the only reason 84 records were in 'munhal', and they were appointment
+     * and promotion notices ("… ÖĞRETİM KADROSU … MEVKİSİNE ATAMALAR",
+     * "MAHKEMELER KADROSU … TERFİ ETTİRİLEN KİŞİLER"), not vacancies. A
+     * vacancy says MÜNHAL or İLK ATAMA KADROSU in its title — or, for a
+     * correction to one, SON BAŞVURU TARİHİ.
+     */
+    keywords: ['MÜNHAL', 'İLK ATAMA KADROSU', 'SON BAŞVURU TARİHİ'],
+  },
+  {
+    topic: 'sinav-sonuclari',
+    /*
+     * 'SINAV SONUÇ', not 'SINAV SONUÇLARI': the source also writes
+     * "SÖZLÜ SINAV SONUÇLAR:" with the last letter dropped.
+     */
+    keywords: ['SINAV SONUÇ'],
   },
   {
     topic: 'ihale',
@@ -294,6 +317,32 @@ const TOPIC_KEYWORDS: Array<{ topic: TopicSlug; keywords: string[] }> = [
     ],
   },
   {
+    topic: 'atama',
+    /*
+     * KHK appointment and promotion notices: "… MEVKİİNE ATANAN KİŞİLER",
+     * "ADAY OLARAK ATANAN", "TERFİ ETTİRİLEN", "MEVKİSİNE ATAMALAR". The rule
+     * above matches none of them; some were in 'munhal' only through a bare
+     * 'KADROSU' and ~250 had no topic at all.
+     *
+     * Phrases, not the bare words: 'TERFİ' also matches vacancies ("TERFİ
+     * KADROSU MÜNHAL İLANI") and 'ATANAN' matches board decisions about people
+     * appointed long ago. Exam results are excluded — hundreds of them say
+     * "… MEVKİİNE ATANAN" too, and they have their own topic.
+     */
+    keywords: [
+      'ATANAN KİŞİ',
+      // Also "… OLARAK ATANMALARI".
+      'OLARAK ATAN',
+      'KADROSUNA ATANAN',
+      'TERFİ ETTİRİL',
+      'MEVKİSİNE ATAMA',
+      'MEVKİİNE ATAMA',
+      // Verbatim typo in the source ("YUNANCA ÖĞRETMENİ MEVKİSİNE ATMALAR").
+      'MEVKİSİNE ATMALAR',
+    ],
+    exceptDocTypes: ['sinav_sonucu'],
+  },
+  {
     topic: 'yurttaslik',
     /*
      * The 'YURTTAŞL' prefix is ESSENTIAL. The source has three spellings and two
@@ -311,7 +360,8 @@ export function classifyTopics(input: { title: string; docType: DocType }): Topi
   const topics = new Set<TopicSlug>(TOPIC_BY_DOC_TYPE[input.docType] ?? []);
   const upper = turkishUpper(input.title);
 
-  for (const { topic, keywords } of TOPIC_KEYWORDS) {
+  for (const { topic, keywords, exceptDocTypes } of TOPIC_KEYWORDS) {
+    if (exceptDocTypes?.includes(input.docType)) continue;
     if (keywords.some((keyword) => upper.includes(keyword))) topics.add(topic);
   }
 

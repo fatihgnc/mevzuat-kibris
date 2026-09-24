@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyDocType, detectPersonalData } from './rules';
+import { classifyDocType, classifyTopics, detectPersonalData } from './rules';
 
 /**
  * Doc-type classification — spec 3.4 and 7.1 step 5.
@@ -103,5 +103,72 @@ describe('classifyDocType — sınav neticelerinin ekli biçimi', () => {
   /* "SINAVI NETİCELERİ" does not contain "SINAV NETİCELERİ"; 15 records fell past. */
   it('SINAVI NETİCELERİ biçimini yakalar', () => {
     expect(ae('EK_III', 'AVUKATLAR YASASI- BARO SINAVI NETİCELERİ İLANI')).toBe('sinav_sonucu');
+  });
+});
+
+describe('classifyTopics — münhal holds vacancies only', () => {
+  /*
+   * Exam results and appointment notices used to share 'munhal' with the
+   * vacancies and outnumbered them eight to one. Titles are verbatim.
+   */
+  it('sınav sonucunu kendi konusuna koyar, münhale değil', () => {
+    const topics = classifyTopics({
+      title:
+        'KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI SÖZLÜ SINAV SONUÇLARI,GENEL ORTA ÖĞRETİM DAİRESİ,BİLİŞİM TEKNOLOJİLERİ ÖĞRETMENİ MEVKİSİNE ATAMA',
+      docType: 'sinav_sonucu',
+    });
+    expect(topics).toContain('sinav-sonuclari');
+    expect(topics).not.toContain('munhal');
+    expect(topics).not.toContain('atama');
+  });
+
+  it('harfi düşmüş "SINAV SONUÇLAR:" başlığını da tanır', () => {
+    expect(
+      classifyTopics({
+        title:
+          "KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI, SÖZLÜ SINAV SONUÇLAR: SELDA DEMR MULLAOĞLU'NUN GENEL ORTAÖĞRETİM DAİRESİ,ÖĞRETİM KADROSUNA",
+        docType: 'diger',
+      }),
+    ).toContain('sinav-sonuclari');
+  });
+
+  it('KHK genelgesi olarak gelen ilanı münhalde tutar', () => {
+    expect(
+      classifyTopics({
+        title:
+          'KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI,GENELGE MİA.19/2026 ÇEVRE KORUMA DAİRESİ İLK ATAMA KADROSU MÜNHAL İLANI VE SINAVI DUYURUSU',
+        docType: 'genelge',
+      }),
+    ).toEqual(['munhal']);
+  });
+
+  it('"ÖĞRETİM KADROSU … ATAMALAR" münhal değil atamadır', () => {
+    expect(
+      classifyTopics({
+        title:
+          'KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI,GENEL ORTA ÖĞRETİM DAİRESİ,ÖĞRETİM KADROSU TÜRKÇE ÖĞRETMENİ MEVKİSİNE ATAMALAR',
+        docType: 'diger',
+      }),
+    ).toEqual(['atama']);
+  });
+
+  it('terfi münhalini atama saymaz', () => {
+    expect(
+      classifyTopics({
+        title:
+          'KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI, KAMU YÖNETİMİ VE İNSAN KAYNAKLARI BAŞKANLIĞI TERFİ KADROSU MÜNHAL İLANI',
+        docType: 'munhal_ilani',
+      }),
+    ).toEqual(['munhal']);
+  });
+
+  it('terfi ettirilen kişiler atamadır', () => {
+    expect(
+      classifyTopics({
+        title:
+          'KAMU HİZMETİ KOMİSYONUNCA GÜMRÜK VE RÜSUMAT DAİRESİ I.DERECE MUHAFIZ MEVKİİNE TERFİ ETTİRİLEN KİŞİLER',
+        docType: 'diger',
+      }),
+    ).toContain('atama');
   });
 });

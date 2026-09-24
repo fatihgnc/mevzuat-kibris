@@ -45,9 +45,26 @@ export const TOPIC_FAQ: Record<TopicSlug, FaqItem[]> = {
         'Münhal akışındaki “Başvurusu açık” bağlantısı yalnızca başvuru bitiş tarihi geçmemiş kayıtları listeler. Bu tarihi ilanın gövde metninden okuyoruz; münhal ilanlarının çoğu gazetede taranmış görüntü olarak yayımlandığı için şu anda çoğunda tarih çıkmıyor ve liste boş görünüyor. Bitiş tarihi için ilanın orijinal PDF sayfasına bakın — bağlayıcı olan da odur.',
     },
     {
-      question: 'Sınav sonuçları neden münhal akışında?',
+      question: 'Sınav sonuçlarını nerede bulurum?',
       answer:
-        'Kamu Hizmeti Komisyonu’nun sınav sonucu duyuruları da bu konuya düşer ve sayıca ilanların kendisinden fazladır. Filtre sütunundaki belge türünden “Münhal ilanı” ile “Sınav sonucu”nu ayırabilirsiniz.',
+        'Sınav sonucu duyuruları ayrı bir konuda, “Sınav sonuçları” sayfasında listelenir. Münhal akışında yalnızca ilanlar ve ilan duyuran Kamu Hizmeti Komisyonu genelgeleri yer alır.',
+    },
+  ],
+  'sinav-sonuclari': [
+    {
+      question: 'Sınav sonuçları neden münhal ilanlarından ayrı?',
+      answer:
+        'Kamu Hizmeti Komisyonu’nun sınav sonucu duyuruları sayıca ilanların kendisinden kat kat fazladır; aynı akışta durduklarında ilanları bulmak zorlaşıyordu. Bir kadronun ilanı Münhal konusunda, sınavın sonucu bu konuda yer alır.',
+    },
+    {
+      question: 'Kendi sonucumu nasıl bulurum?',
+      answer:
+        'Kadronun ya da dairenin adını arama kutusuna yazın. Kaydın metni sayfaya alındıysa liste gazetedeki haliyle görünür; alınamadıysa kayıt sayfasından gazetenin orijinal PDF sayfasına geçebilirsiniz. Bağlayıcı olan her zaman gazetenin kendi metnidir.',
+    },
+    {
+      question: 'Adımın geçtiği bir kaydın kaldırılmasını isteyebilir miyim?',
+      answer:
+        'Evet. Sonuç listeleri gazetede yayımlandığı şekliyle gösterilir; adınızın geçtiği bir kaydın kaldırılmasını isterseniz iletişim sayfasından yazın.',
     },
   ],
   ihale: [

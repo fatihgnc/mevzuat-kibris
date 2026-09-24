@@ -269,7 +269,7 @@ export const GUIDES: Guide[] = [
           'Sınav sonuç listeleri kişi adı içerir. Kaydın metni sayfaya alınmışsa liste gazetedeki haliyle görünür; alınmamışsa künye ve gazete yeri kayıt sayfasında durur ve tam liste için orijinal PDF’e yönlendiriyoruz.',
         ],
         links: [
-          { label: 'Sınav sonuçları', href: '/ara?tur=sinav_sonucu' },
+          { label: 'Sınav sonuçları', href: '/konu/sinav-sonuclari' },
           { label: 'Atama kararnameleri', href: '/konu/atama' },
         ],
       },
@@ -653,7 +653,7 @@ export const GUIDES: Guide[] = [
         paragraphs: [
           'Kamu Hizmeti Komisyonu’nun sınav sonuçları Resmî Gazete’de yayımlanır ve arşivde 1.267 kayıt tutar. Bu listeler kazananların adlarını içerir.',
         ],
-        links: [{ label: 'Sınav sonucu kayıtları', href: '/ara?tur=sinav_sonucu' }],
+        links: [{ label: 'Sınav sonucu kayıtları', href: '/konu/sinav-sonuclari' }],
       },
       {
         heading: 'Adlar ve kaldırma talebi',
