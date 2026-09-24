@@ -19,6 +19,12 @@ const SHEET_DISMISS_PX = 90;
 const TAB_POSITION_KEY = 'iletisim-sekme-konum';
 /** The tab's default resting place, measured from the bottom of the viewport. */
 const TAB_DEFAULT_BOTTOM_PX = 96;
+/** Phone: how long a slid-out tab waits for its second tap before tucking back in. */
+const TAB_COLLAPSE_MS = 4000;
+
+function isPhone(): boolean {
+  return window.matchMedia('(max-width: 767px)').matches;
+}
 
 // useLayoutEffect has nothing to measure on the server.
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
@@ -62,9 +68,11 @@ function anchorAdOffset(): number {
  * sheet. On both, the tab can be dragged up and down the edge and stays where
  * it was left.
  *
- * The tab opens on a tap as well as a pull: on iOS and Android a swipe that
- * starts at the screen edge can be taken by the system's own back/forward
- * gesture, so a pull alone would be unreliable.
+ * On phones the tab rests tucked in, showing only its spine: the first tap
+ * slides it out, the second opens the sheet, and without a second tap it
+ * tucks itself back in after a few seconds. A pull does the same as a tap: on
+ * iOS and Android a swipe that starts at the screen edge can be taken by the
+ * system's own back/forward gesture, so a pull alone would be unreliable.
  */
 export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   const [open, setOpen] = useState(false);
@@ -83,6 +91,8 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   /** Phone only: how far the sheet is being pulled down by its handle. */
   const [sheetDrag, setSheetDrag] = useState(0);
   const [sheetDragging, setSheetDragging] = useState(false);
+  /** Phone only: false while the tab is tucked in with just its spine showing. */
+  const [expanded, setExpanded] = useState(false);
 
   const tabRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -100,6 +110,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   const sheetStartY = useRef<number | null>(null);
   /** The latest pull distance, read on release — state can still be a render behind. */
   const sheetPull = useRef(0);
+  const collapseTimer = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -145,7 +156,23 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
     setPanelTop(clampTop(tab.top + tab.height / 2 - height / 2, height, adOffset));
   }, [open, status, error, tabTop, adOffset]);
 
+  function cancelCollapse() {
+    if (collapseTimer.current != null) window.clearTimeout(collapseTimer.current);
+    collapseTimer.current = null;
+  }
+
+  /** Slides the phone tab out, and back in again if the second tap never comes. */
+  function expand() {
+    setExpanded(true);
+    cancelCollapse();
+    collapseTimer.current = window.setTimeout(() => setExpanded(false), TAB_COLLAPSE_MS);
+  }
+
+  useEffect(() => cancelCollapse, []);
+
   function close() {
+    // The phone tab comes back tucked in, not still slid out from before.
+    setExpanded(false);
     setOpen(false);
     setError(null);
     setSheetDrag(0);
@@ -155,6 +182,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   /** A fresh form each time after a successful send, not the thank-you note again. */
   function openPanel() {
     gesture.current = null;
+    cancelCollapse();
     if (status === 'sent') {
       setStatus('idle');
       setEmail('');
@@ -171,9 +199,12 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
         // Not remembered across pages, but it still stays put on this one.
       }
     }
+    const dragged = gesture.current?.mode === 'drag';
     gesture.current = null;
     draggedTop.current = null;
     setDragging(false);
+    // Moving a slid-out tab restarts its wait rather than tucking it in mid-drag.
+    if (dragged && expanded) expand();
     // Only the click the browser may send right after this gesture is swallowed.
     if (suppressClick.current) {
       window.setTimeout(() => {
@@ -249,6 +280,8 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
             return;
           }
           if (open) close();
+          // Phone: the first tap only slides the tab out; the second opens the sheet.
+          else if (isPhone() && !expanded) expand();
           else openPanel();
         }}
         onPointerDown={(event) => {
@@ -275,10 +308,13 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
               g.mode = 'drag';
               suppressClick.current = true;
               setDragging(true);
+              cancelCollapse();
             } else if (dx > PULL_THRESHOLD_PX && !open) {
               g.mode = 'done';
               suppressClick.current = true;
-              openPanel();
+              // A pull does what a tap would: slide out first, then open.
+              if (isPhone() && !expanded) expand();
+              else openPanel();
               return;
             } else {
               return;
@@ -295,6 +331,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
         aria-expanded={open}
         aria-controls="contact-widget-panel"
         data-dragging={dragging || undefined}
+        data-collapsed={!expanded || undefined}
         style={
           tabTop == null
             ? { bottom: TAB_DEFAULT_BOTTOM_PX + adOffset }
@@ -302,8 +339,15 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
         }
         className={
           'group fixed right-0 z-40 flex touch-none select-none flex-col items-center gap-2 rounded-l-lg border border-r-0 border-line-strong bg-surface py-3 pl-[10px] pr-[5px] text-link ' +
-          'shadow-[0_8px_24px_-10px_rgb(0_0_0/0.35)] transition-shadow duration-200 ' +
-          'animate-tab-peek motion-reduce:animate-none dark:bg-surface-muted ' +
+          'shadow-[0_8px_24px_-10px_rgb(0_0_0/0.35)] transition-[transform,box-shadow] duration-300 ease-out ' +
+          'md:animate-tab-peek md:motion-reduce:animate-none dark:bg-surface-muted ' +
+          /*
+           * Phone: tucked in, only the border and spine (11px) stay on screen.
+           * An invisible strip to its left widens what a finger can hit, since
+           * 11px alone is too narrow to tap reliably.
+           */
+          'max-md:data-[collapsed]:translate-x-[19px] max-md:data-[collapsed]:shadow-none ' +
+          "max-md:before:absolute max-md:before:inset-y-0 max-md:before:-left-3 max-md:before:w-3 max-md:before:content-[''] " +
           'cursor-grab data-[dragging]:cursor-grabbing data-[dragging]:shadow-[0_14px_32px_-10px_rgb(0_0_0/0.45)] ' +
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ' +
           'w-[30px] md:w-[36px] ' +
