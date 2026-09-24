@@ -25,7 +25,7 @@ export function TopSearchCard({ items, className }: { items: TopRecord[]; classN
       <ul className="flex flex-col gap-2.5">
         {items.map(({ record, clicks }) => (
           <li key={record.id} className="flex flex-col gap-0.5">
-            <Link href={recordHref(record)} className="text-base leading-[1.4] text-ink">
+            <Link href={recordHref(record)} className="text-base leading-[1.4] text-ink [overflow-wrap:anywhere]">
               {record.summary ? record.summary : <MaskedText tokens={record.titleTokens} />}
             </Link>
             <span className="text-sm text-ink-fainter">{clicks} tıklama</span>

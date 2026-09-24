@@ -41,7 +41,7 @@ export function RecentVacanciesCard({ records, className }: RecentVacanciesCardP
              * anchor entirely.
              */}
             <span className="text-sm text-ink-fainter">{formatDateShort(record.publishedAt)}</span>
-            <Link href={recordHref(record)} className="text-base leading-[1.4] text-ink">
+            <Link href={recordHref(record)} className="text-base leading-[1.4] text-ink [overflow-wrap:anywhere]">
               {record.summary ? (
                 record.summary
               ) : (

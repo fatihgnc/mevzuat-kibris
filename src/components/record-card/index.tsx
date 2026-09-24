@@ -29,9 +29,17 @@ interface RecordCardProps {
 /**
  * The list row — the single form used in artboards 1b/1d/1e.
  *
- * The left column is a fixed 92px: date and reference number. The fixed width
- * creates a vertical alignment between rows, so the eye scans a single column even
- * when the dates differ in length.
+ * From `sm` up, the left column is a fixed 92px: date and reference number. The
+ * fixed width creates a vertical alignment between rows, so the eye scans a
+ * single column even when the dates differ in length.
+ *
+ * On a phone that column cost the title a third of the row: 92px of a 343px
+ * line went to a date, leaving the title 218px and wrapping every summary onto
+ * three or four lines. There the date and reference move onto a small line
+ * above the title, and the title gets the full width. The badges are capped at
+ * two for the same reason — the third is almost always the institution, which
+ * the document type beside it already implies ("Bakanlar Kurulu kararı",
+ * "Bakanlar Kurulu").
  *
  * The summary is the main text, not the raw title. The raw title appears only when
  * no body text could be extracted, and even then in its masked form (spec 3.8).
@@ -58,26 +66,37 @@ export function RecordCard({
     <Link
       href={href}
       className={cn(
-        /*
-         * Künye sütunuyla metnin arası telefonda 14px, ondan yukarısı 18px.
-         * 92px'lik sabit künye sütunu dar ekranda satırın üçte birini alıyor;
-         * dört piksel, başlığın bir satır daha erken sarmasını engelliyor.
-         */
-        'grid grid-cols-row items-start gap-[14px] border-b border-line-soft py-4 pl-3 pr-[10px] sm:gap-[18px]',
+        'flex flex-col gap-1.5 border-b border-line-soft py-4 pl-3 pr-[10px] sm:grid sm:grid-cols-row sm:items-start sm:gap-[18px]',
         'no-underline transition-colors hover:bg-surface-hover hover:no-underline',
         className,
       )}
     >
-      <div className="flex flex-col gap-[3px] pt-0.5">
-        <time dateTime={record.publishedAt} className="text-base font-semibold text-ink-body">
+      <div className="flex flex-row flex-wrap items-baseline gap-x-2 sm:flex-col sm:gap-[3px] sm:pt-0.5">
+        <time
+          dateTime={record.publishedAt}
+          className="text-sm font-semibold text-ink-muted sm:text-base sm:text-ink-body"
+        >
           {formatDateShort(record.publishedAt)}
         </time>
         {!compact && record.refLabel ? (
-          <span className="text-xs text-ink-fainter">{record.refLabel}</span>
+          <>
+            <span aria-hidden className="text-sm text-ink-placeholder sm:hidden">
+              ·
+            </span>
+            <span className="text-sm text-ink-fainter sm:text-xs">{record.refLabel}</span>
+          </>
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      {/*
+        * `overflow-wrap: anywhere` — gazette titles glue words together with bare
+        * commas ("SONUÇLARI,MESLEKİ TEKNİK ÖĞRETİM DAİRESİ,ÖĞRETİM KADROSU,…"),
+        * and to the browser each run is one unbreakable word. Wider than the
+        * screen, it pushed the page to 424px on a 375px phone, and the browser
+        * zoomed the whole page out to fit. This only ever breaks a word that
+        * cannot fit on a line at all; ordinary titles wrap at spaces as before.
+        */}
+      <div className="flex min-w-0 flex-col gap-1.5 [overflow-wrap:anywhere]">
         {heading ? (
           <span className="text-xl font-medium leading-[1.38] tracking-tight text-ink">
             {heading}
@@ -106,28 +125,43 @@ export function RecordCard({
         ) : null}
 
         <span className="flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
-          {!hideTopic && record.primaryTopic ? (
-            <Badge>{TOPICS[record.primaryTopic].name}</Badge>
-          ) : null}
-          {/*
-           * If the document type starts with the topic name we do not print it
-           * twice: a line like "Münhal · Münhal ilanı" carries no information. This
-           * is the design's showTur rule.
-           */}
-          {shouldShowDocType(record) ? <Badge>{record.docTypeLabel}</Badge> : null}
-          {record.institution ? <Badge>{record.institution}</Badge> : null}
+          {badges(record, hideTopic).map((label, index) => (
+            // Phone: two badges at most (see the note on the component).
+            <Badge key={label} className={index >= 2 ? 'hidden sm:inline' : undefined}>
+              {label}
+            </Badge>
+          ))}
         </span>
       </div>
     </Link>
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
+function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className="rounded-[6px] border border-line bg-surface-muted px-2 py-0.5 text-sm text-ink-muted">
+    <span
+      className={cn(
+        'rounded-[6px] border border-line bg-surface-muted px-2 py-0.5 text-sm text-ink-muted',
+        className,
+      )}
+    >
       {children}
     </span>
   );
+}
+
+/** Topic, document type and institution, in that order, without repeats. */
+function badges(record: RecordListItem, hideTopic?: boolean): string[] {
+  const labels: string[] = [];
+  if (!hideTopic && record.primaryTopic) labels.push(TOPICS[record.primaryTopic].name);
+  /*
+   * If the document type starts with the topic name we do not print it twice: a
+   * line like "Münhal · Münhal ilanı" carries no information. This is the
+   * design's showTur rule.
+   */
+  if (shouldShowDocType(record)) labels.push(record.docTypeLabel);
+  if (record.institution) labels.push(record.institution);
+  return [...new Set(labels)];
 }
 
 function shouldShowDocType(record: RecordListItem): boolean {
