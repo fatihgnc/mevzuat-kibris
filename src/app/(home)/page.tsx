@@ -139,7 +139,7 @@ export default async function HomePage() {
               */}
             <p className="mb-[18px] text-lg leading-[1.5] text-ink-muted sm:hidden">
               KKTC Resmî Gazete&apos;nin {coverage.earliestYear ?? ARCHIVE_START_YEAR}&apos;den bugüne
-              tüm sayıları, aranabilir metin olarak.
+              tüm sayıları aradığınızı kolayca bulabileceğiniz şekilde elinizde.
             </p>
             <p className="mb-[22px] hidden max-w-lede text-xl leading-[1.55] text-ink-muted sm:block">
               KKTC&apos;de Resmî Gazete, yalnızca PDF olarak yayımlanıyor ve hiçbir
