@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 
-import { ContactForm } from '@/components/contact-form';
 import { ProsePage, Section } from '@/components/prose-page';
 import { CONTACT_EMAIL } from '@/lib/seo/config';
 import { buildMetadata } from '@/lib/seo/metadata';
@@ -51,13 +50,6 @@ export default function ContactPage() {
           Verinin toplu kullanımı, RSS beslemelerinin haber sitesi ya da Telegram kanalında
           kullanılması için izin almanıza gerek yok. Kaynak göstermeniz yeterli.
         </p>
-      </Section>
-
-      <Section heading="Mesaj gönderin">
-        <p className="m-0">
-          Mail istemcisi açmak istemiyorsanız, kısa bir mesaj için aşağıdaki formu kullanabilirsiniz.
-        </p>
-        <ContactForm />
       </Section>
     </ProsePage>
   );
