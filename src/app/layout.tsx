@@ -3,9 +3,10 @@ import { Source_Sans_3 } from 'next/font/google';
 import { Suspense } from 'react';
 import Script from 'next/script';
 
+import { ContactWidget } from '@/components/contact-widget';
 import { RouteProgress } from '@/components/route-progress';
 import { DEFAULT_METADATA, RSS_ALTERNATE } from '@/lib/seo/metadata';
-import { ADSENSE_CLIENT, IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
+import { ADSENSE_CLIENT, CONTACT_EMAIL, IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/json-ld';
 
 import '@/styles/globals.css';
@@ -102,6 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Suspense>
 
         {children}
+        <ContactWidget contactEmail={CONTACT_EMAIL} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
