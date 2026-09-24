@@ -2,7 +2,7 @@ import { docTypeLabel } from '@/lib/constants/doc-types';
 import { toIsoDate } from '@/lib/text/dates';
 import type { RecordDetail } from '@/types/record';
 
-import { CONTACT_EMAIL, SITE_NAME, SITE_URL, SOURCE_NAME, absoluteUrl } from './config';
+import { CONTACT_EMAIL, FACEBOOK_URL, SITE_NAME, SITE_URL, SOURCE_NAME, absoluteUrl } from './config';
 
 /** Spec 8.3 — schema selection by page type. */
 
@@ -60,6 +60,7 @@ export function organizationJsonLd() {
       ', KKTC Resmî Gazete kayıtlarını aranabilir hâle getiren bağımsız bir arşivdir. Resmî bir kurum değildir.',
     inLanguage: 'tr',
     email: CONTACT_EMAIL,
+    sameAs: [FACEBOOK_URL],
   };
 }
 

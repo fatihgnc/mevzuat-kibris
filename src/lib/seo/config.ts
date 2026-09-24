@@ -43,6 +43,9 @@ export const SOURCE_BASE_URL = 'https://basimevi.gov.ct.tr';
 
 export const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'iletisim@mevzuatkibris.com';
 
+/** The site's Facebook page — linked from the footer and listed as `sameAs` in the Organization JSON-LD. */
+export const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61594094134559';
+
 /**
  * Preview and non-production deployments are not indexed (spec 8.4).
  * Every environment other than Vercel production is noindex.
