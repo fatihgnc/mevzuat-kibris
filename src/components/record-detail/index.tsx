@@ -54,7 +54,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         </Link>
       </div>
 
-      <h1 className="mt-3 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink sm:text-6xl">
+      <h1 className="mt-3 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink [overflow-wrap:anywhere] sm:text-6xl">
         {heading}
       </h1>
 
@@ -75,28 +75,6 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         })}
       />
 
-      {/*
-        * The same reference number, spelled the way it gets typed.
-        *
-        * The meta bar above already shows "A.E. 21196"; nobody searching for it
-        * writes the dots, and Search Console shows the query arriving as one
-        * unbroken token. Without this line the page does not contain the string
-        * the visitor typed, so the result reads as the wrong record and goes
-        * unclicked at a rank that was already good enough.
-        *
-        * IT IS VISIBLE, DELIBERATELY. A hidden block of spelling variants is
-        * exactly what a search engine treats as keyword stuffing, and the line
-        * earns its place for a reader too: it confirms, in the words they used,
-        * that this is the record they came for. Rendered only when refAliases
-        * finds a prefix worth respelling, so ordinary "Karar 123" references get
-        * no line at all.
-        */}
-      {aliases.length ? (
-        <p className="mt-4 text-xs text-ink-faint">
-          Arama karşılıkları: {aliases.join(', ')}
-        </p>
-      ) : null}
-
       {record.deadlineAt ? (
         <p className="mt-4 text-md">
           {isDeadlinePassed(record.deadlineAt) ? (
@@ -116,12 +94,12 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
 
       {/*
        * The meta bar above already ends in its own hairline (`border-y` on
-       * RecordMetaBar). With no aliases line and no deadline banner between
-       * them, this section's own top border landed 16px under that one —
-       * two hairlines reading as one doubled, purposeless line. Only draw
-       * this one when there is content between the two to actually separate.
+       * RecordMetaBar). With no deadline banner between them, this section's
+       * own top border landed 16px under that one — two hairlines reading as
+       * one doubled, purposeless line. Only draw this one when there is
+       * content between the two to actually separate.
        */}
-      <div className={cn('mt-4 pt-[26px]', (aliases.length > 0 || record.deadlineAt) && 'border-t border-line')}>
+      <div className={cn('mt-4 pt-5 sm:pt-[26px]', record.deadlineAt && 'border-t border-line')}>
         <div className="min-w-0">
           {/*
            * A LABEL, so the document has a visible start. Everything above this
@@ -150,16 +128,40 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             <BodyTemporarilyUnavailableNotice record={record} />
           )}
 
-          {record.entities.length ? (
+          {aliases.length || record.entities.length ? (
             <section className="mt-[30px] border-t border-line pt-[22px]">
-              <h2 className="mb-3 text-xs text-ink-faint">
-                {hasBody ? 'Kayıtta geçenler' : 'Başlıktan çıkarılan varlıklar'}
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {record.entities.map((entity) => (
-                  <EntityChip key={entity.id} {...entity} />
-                ))}
-              </div>
+              {/*
+                * The same reference number, spelled the way it gets typed.
+                *
+                * The meta bar shows "A.E. 21196"; nobody searching for it writes
+                * the dots, and Search Console shows the query arriving as one
+                * unbroken token. Without this line the page does not contain the
+                * string the visitor typed, so the result reads as the wrong record
+                * and goes unclicked at a rank that was already good enough.
+                *
+                * IT IS VISIBLE, DELIBERATELY — a hidden block of spelling variants
+                * is exactly what a search engine treats as keyword stuffing. It
+                * used to sit between the meta bar and the text, where on a phone it
+                * was one more line to scroll past before the record began; down
+                * here it is still on the page without standing in the way.
+                */}
+              {aliases.length ? (
+                <p className={cn('text-xs text-ink-faint', record.entities.length && 'mb-4')}>
+                  Arama karşılıkları: {aliases.join(', ')}
+                </p>
+              ) : null}
+              {record.entities.length ? (
+                <>
+                  <h2 className="mb-3 text-xs text-ink-faint">
+                    {hasBody ? 'Kayıtta geçenler' : 'İlgili başlıklar'}
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {record.entities.map((entity) => (
+                      <EntityChip key={entity.id} {...entity} />
+                    ))}
+                  </div>
+                </>
+              ) : null}
             </section>
           ) : null}
 
@@ -223,7 +225,10 @@ function BodyMarkdown({ markdown }: { markdown: string }) {
         // say "this is the document" rather than more page around it. Full
         // width (no max-w-prose) — a plain content box, sans font kept as
         // everywhere else on the page.
-        'w-full rounded-md border border-line bg-surface-muted px-6 py-6 shadow-sm sm:px-10 sm:py-8',
+        //
+        // Phone: no card. Its border, padding and the page gutter together left
+        // the text 298px of a 375px screen; without them it gets the full 343px.
+        'w-full sm:rounded-md sm:border sm:border-line sm:bg-surface-muted sm:px-10 sm:py-8 sm:shadow-sm',
         'text-xl leading-[1.72] text-ink-body',
         // Paragraphs and lists: unchanged from the pre-styling pass.
         '[&_p]:m-0 [&_p+p]:mt-[18px] [&_p+ol]:mt-[18px] [&_ol+p]:mt-[18px] [&_li+li]:mt-[18px]',

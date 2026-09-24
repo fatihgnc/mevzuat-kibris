@@ -7,27 +7,42 @@ import { cn } from '@/lib/utils';
 interface MetaField {
   label: string;
   value: React.ReactNode;
+  /** Already on the meta line above the title, so a phone does not need it twice. */
+  hideOnPhone?: boolean;
 }
 
 /**
  * The meta bar — the four-column grid in artboards 1a/1g.
  *
- * Four columns on desktop, two on mobile (as in the design's mobile artboard). A
- * hairline above and below: the bar separates from the body text without being
- * boxed in, because the meta line is part of the content rather than an aside.
+ * Four columns from `sm` up. A hairline above and below: the bar separates from
+ * the body text without being boxed in, because the meta line is part of the
+ * content rather than an aside.
+ *
+ * On a phone it is a compact list instead — label and value on one line. As a
+ * two-column grid of stacked label/value pairs it took about 200px, and with the
+ * meta line and the title above it the record's own text did not start until
+ * 778px, below the first screen.
  */
 export function RecordMetaBar({ fields, className }: { fields: MetaField[]; className?: string }) {
   return (
     <dl
       className={cn(
-        'grid grid-cols-2 gap-x-5 gap-y-4 border-y border-line py-[22px] sm:grid-cols-4',
+        'flex flex-col gap-1.5 border-y border-line py-3.5 sm:grid sm:grid-cols-4 sm:gap-x-5 sm:gap-y-4 sm:py-[22px]',
         className,
       )}
     >
       {fields.map((field) => (
-        <div key={field.label} className="flex flex-col gap-1">
-          <dt className="text-xs text-ink-faint">{field.label}</dt>
-          <dd className="text-md font-semibold text-ink">{field.value}</dd>
+        <div
+          key={field.label}
+          className={cn(
+            'flex items-baseline gap-3 sm:flex-col sm:gap-1',
+            field.hideOnPhone && 'max-sm:hidden',
+          )}
+        >
+          <dt className="w-[92px] shrink-0 text-sm text-ink-faint sm:w-auto sm:text-xs">
+            {field.label}
+          </dt>
+          <dd className="min-w-0 text-base font-semibold text-ink sm:text-md">{field.value}</dd>
         </div>
       ))}
     </dl>
@@ -52,6 +67,7 @@ export function buildRecordMetaFields(input: {
   fields.push({
     label: 'Yayım',
     value: <time dateTime={input.publishedAt}>{formatDateLong(input.publishedAt)}</time>,
+    hideOnPhone: true,
   });
 
   fields.push({
