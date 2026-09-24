@@ -13,7 +13,6 @@ import { TopSearchCard } from "@/components/top-search-card";
 import { TopicStrip } from "@/components/topic-strip";
 import {
   listRecords,
-  popularQueries,
   siteStatus,
   topicCounts,
 } from "@/lib/db/queries/records";
@@ -92,6 +91,15 @@ const QUICK_LINKS = [
   { href: '/konu/atama', label: 'Atamalar' },
 ];
 
+/*
+ * The row under the search box. It used to be the three most logged queries of
+ * the last 30 days, but the log is easy to inflate: "sokağa çıkma" was searched
+ * 100 times in a single day and "A.E." 152 times in a month, so the home page
+ * advertised a 2020–21 curfew search. A fixed list of queries that return a lot
+ * of current records.
+ */
+const SUGGESTED_QUERIES = ['ihale', 'münhal', 'tapu'];
+
 export default async function HomePage() {
   /*
    * Son 30 gün (home page "son eklenen münhal ilanları" card). Filtered by
@@ -106,13 +114,12 @@ export default async function HomePage() {
     .toISOString()
     .slice(0, 10);
 
-  const [status, recent, counts, institutions, popular, coverage, recentVacancies, googleTop] =
+  const [status, recent, counts, institutions, coverage, recentVacancies, googleTop] =
     await Promise.all([
       siteStatus(),
       listRecords({ limit: 6 }),
       topicCounts(),
       topEntities("institution", 20),
-      popularQueries(3),
       archiveCoverage(),
       listRecords({ topic: "munhal", baslangic: thirtyDaysAgo, limit: 10 }),
       googleTopRecords(5),
@@ -174,16 +181,14 @@ export default async function HomePage() {
               ))}
             </nav>
 
-            {popular.length ? (
-              <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base text-ink-muted">
-                <span>Sık aranan:</span>
-                {popular.map((query) => (
-                  <Link key={query} href={"/ara?q=" + encodeURIComponent(query)}>
-                    {query}
-                  </Link>
-                ))}
-              </div>
-            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base text-ink-muted">
+              <span>Önerilen:</span>
+              {SUGGESTED_QUERIES.map((query) => (
+                <Link key={query} href={"/ara?q=" + encodeURIComponent(query)}>
+                  {query}
+                </Link>
+              ))}
+            </div>
 
             {/*
               * Phone: the vacancies card up here rather than in the side column,

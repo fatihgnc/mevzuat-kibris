@@ -804,20 +804,6 @@ export async function siteStatus(): Promise<{
   };
 }
 
-/** The most searched queries — the "Sık aranan" row on the home page. */
-export async function popularQueries(limit = 3): Promise<string[]> {
-  const rows = await db.execute<Row<{ query: string }>>(sql`
-    select query
-      from search_logs
-     where result_count > 0
-       and created_at > now() - interval '30 days'
-     group by query
-     order by count(*) desc
-     limit ${limit}
-  `);
-  return rows.map((row) => row.query);
-}
-
 export async function logSearch(query: string, resultCount: number): Promise<void> {
   if (!query.trim()) return;
   await db.execute(sql`
