@@ -83,6 +83,13 @@ const OTHER_SERVICE_ITEMS = [
  * eklemek bu davranışı tekrar açardı.
  */
 const NAV_WITH_TOOLS = [
+  /*
+   * The two topics most visits are for, first. On a phone the home page used to
+   * bury the vacancies three screens down, and this menu had no way to them
+   * short of Konular and a second choice.
+   */
+  { href: '/konu/munhal', label: 'Münhal ilanları' },
+  { href: '/konu/ihale', label: 'İhaleler' },
   // Kept next to Kurumlar, the entity indexes together, as they were before the desktop row changed.
   ...NAV.flatMap((item) => (item.href === '/kurum' ? [item, ...MOBILE_ONLY] : [item])),
   { href: TOOLS_PATH, label: 'Araçlar' },
