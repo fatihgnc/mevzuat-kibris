@@ -78,9 +78,15 @@ async function coOccurringUncached(entityId: number, limit = 8): Promise<CoOccur
 }
 
 /**
- * The "search institutions" / "region, village or neighbourhood" boxes in the
- * filter rail. Backed by a trigram index; results are ordered by record count,
- * because users are usually after the most frequently occurring entity.
+ * The filter box on the entity index pages (/kurum, /sirket, /yer). Backed by a
+ * trigram index; results are ordered by record count, because users are usually
+ * after the most frequently occurring entity.
+ *
+ * A substring match, not just a prefix one: "ziraat" has to find "T.C. Ziraat
+ * Bankası A.Ş.", and trigram similarity alone scores a short query against a long
+ * name too low to pass the `%` threshold. The `%` operator stays as a fallback for
+ * typos. The `record_count >= 2` threshold matches listEntities — anything below
+ * it has no detail page, so returning it would link to a 404.
  */
 export async function searchEntities(
   kind: EntityKind,
@@ -90,12 +96,20 @@ export async function searchEntities(
   const normalized = normalizeForSearch(query);
   if (normalized.length < 2) return [];
 
+  const escaped = normalized.replace(/[\\%_]/g, (ch) => '\\' + ch);
+  const prefix = escaped + '%';
+  const contains = '%' + escaped + '%';
+
   const rows = await db.execute<Row<RawEntity>>(sql`
     select id, kind, slug, name, name_normalized, aliases, district, record_count
       from entities
      where kind = ${kind}
-       and (name_normalized like ${normalized + '%'} or name_normalized % ${normalized})
-     order by (name_normalized like ${normalized + '%'}) desc, record_count desc
+       and record_count >= 2
+       and (name_normalized like ${contains} or name_normalized % ${normalized})
+     order by (name_normalized like ${prefix}) desc,
+              (name_normalized like ${contains}) desc,
+              record_count desc,
+              name
      limit ${limit}
   `);
 

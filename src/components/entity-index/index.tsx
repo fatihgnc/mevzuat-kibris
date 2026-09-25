@@ -15,6 +15,9 @@ import { pageHref } from '@/lib/seo/pagination';
 import { ENTITY_LABEL_PLURAL, ENTITY_PATH } from '@/types/entity';
 import type { EntityKind } from '@/types/record';
 
+import { EntityFilter } from './entity-filter';
+import { ENTITY_GRID_CLASS, EntityRow } from './entity-row';
+
 /**
  * The institution / company / place index — one template for all three, the same
  * arrangement `EntityPage` uses for the detail pages.
@@ -128,40 +131,33 @@ export async function EntityIndex({ kind, page }: { kind: EntityKind; page: numb
         ) : null}
 
         {entities.length ? (
-          /*
-            A dense two-up / three-up index rather than the one-per-row cards the
-            record lists use: a row here is a name and a number, and sixty of them
-            down a single column is a page the reader has to scroll past rather than
-            scan. The border sits on the <li>, so each column keeps its own rules
-            and they line up across the grid.
-          */
-          <ul className="mt-7 grid list-none border-t border-line p-0 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3">
-            {entities.map((entity) => (
-              <li key={entity.id} className="m-0 border-b border-line-soft">
-                <Link
+          <EntityFilter kind={kind} basePath={basePath} unit={copy.unit}>
+            {/*
+              A dense two-up / three-up index rather than the one-per-row cards the
+              record lists use: a row here is a name and a number, and sixty of them
+              down a single column is a page the reader has to scroll past rather
+              than scan. The border sits on the <li>, so each column keeps its own
+              rules and they line up across the grid.
+            */}
+            <ul className={'mt-5 ' + ENTITY_GRID_CLASS}>
+              {entities.map((entity) => (
+                <EntityRow
+                  key={entity.id}
                   href={basePath + '/' + entity.slug}
-                  className="flex items-baseline justify-between gap-3 py-3 text-ink-body no-underline hover:text-accent hover:no-underline"
-                >
-                  <span className="min-w-0 text-md leading-[1.45]">
-                    {entity.name}
-                    {/*
-                      The district is only worth showing when it ADDS something. For
-                      the six districts themselves it repeats the name — the row for
-                      Lefkoşa reads "Lefkoşa, Lefkoşa" — because a district's own
-                      district is itself. Villages and neighbourhoods are the case
-                      this field exists for.
-                    */}
-                    {entity.district && entity.district !== entity.name ? (
-                      <span className="text-ink-fainter">, {entity.district}</span>
-                    ) : null}
-                  </span>
-                  <span className="shrink-0 text-sm tabular-nums text-ink-fainter">
-                    {formatCount(entity.recordCount)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  name={entity.name}
+                  district={entity.district}
+                  count={entity.recordCount}
+                />
+              ))}
+            </ul>
+
+            <Pagination
+              className="mt-[22px]"
+              page={page}
+              totalPages={totalPages}
+              hrefFor={(next) => pageHref(basePath, next)}
+            />
+          </EntityFilter>
         ) : (
           <EmptyState
             className="mt-7"
@@ -177,13 +173,6 @@ export async function EntityIndex({ kind, page }: { kind: EntityKind; page: numb
             </p>
           </EmptyState>
         )}
-
-        <Pagination
-          className="mt-[22px]"
-          page={page}
-          totalPages={totalPages}
-          hrefFor={(next) => pageHref(basePath, next)}
-        />
       </main>
 
       <SiteFooter />
