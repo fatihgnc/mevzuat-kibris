@@ -26,10 +26,12 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: '/kurum', label: 'Kurumlar' },
   /*
    * Yasalar and Tüzükler took the slots Şirketler and Yerler had in the desktop
-   * row, yasalar first. Those two stay in the narrow-screen menu (MOBILE_ONLY
-   * below) and in the footer, the guides and the sitemap.
+   * row, yasalar first. Şirketler came back after Yasalar once its index got a
+   * search box; Yerler stays in the narrow-screen menu (MOBILE_ONLY below) and in
+   * the footer, the guides and the sitemap.
    */
   { href: '/yasa', label: 'Yasalar' },
+  { href: '/sirket', label: 'Şirketler' },
   { href: '/tuzuk', label: 'Tüzükler' },
   /*
    * The guides were reachable only from the footer, which is the wrong end of
@@ -49,10 +51,7 @@ const NAV: Array<{ href: string; label: string }> = [
 ];
 
 /** In the menu below 1060px only; the desktop row has no room for them (see NAV). */
-const MOBILE_ONLY = [
-  { href: '/sirket', label: 'Şirketler' },
-  { href: '/yer', label: 'Yerler' },
-];
+const MOBILE_ONLY = [{ href: '/yer', label: 'Yerler' }];
 
 /**
  * The calculators get ONE MENU, and it is built from the registry.
