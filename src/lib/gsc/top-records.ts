@@ -3,18 +3,15 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 
 import { recordsBySlugs } from '@/lib/db/queries/records';
-import type { RecordListItem } from '@/types/record';
+import { recordHref } from '@/lib/db/queries/shared';
 
 import { topPages } from './client';
+import { TOP_WINDOW_DAYS, type TopSearchItem } from './shared';
 
-export const TOP_WINDOW_DAYS = 28;
+export { TOP_WINDOW_DAYS };
+
 /** Cached for 6 hours: the source data is a day or more behind anyway. */
 const TTL_SECONDS = 6 * 60 * 60;
-
-export interface TopRecord {
-  record: RecordListItem;
-  clicks: number;
-}
 
 export function slugFromPageUrl(page: string): string | null {
   try {
@@ -33,7 +30,7 @@ export function slugFromPageUrl(page: string): string | null {
  * The public wrapper below turns the throw into "no card".
  */
 const cachedTopRecords = unstable_cache(
-  async (limit: number): Promise<TopRecord[]> => {
+  async (limit: number): Promise<TopSearchItem[]> => {
     const rows = await topPages('/karar/', TOP_WINDOW_DAYS, limit * 3);
 
     const clicksBySlug = new Map<string, number>();
@@ -45,14 +42,28 @@ const cachedTopRecords = unstable_cache(
     }
 
     const records = await recordsBySlugs([...clicksBySlug.keys()]);
-    return records.slice(0, limit).map((record) => ({ record, clicks: clicksBySlug.get(record.slug) ?? 0 }));
+    return records.slice(0, limit).map((record) => ({
+      id: record.id,
+      href: recordHref(record),
+      summary: record.summary,
+      titleTokens: record.titleTokens,
+      clicks: clicksBySlug.get(record.slug) ?? 0,
+    }));
   },
-  ['gsc-top-records'],
+  ['gsc-top-items'],
   { revalidate: TTL_SECONDS },
 );
 
-/** Most Google-clicked karar pages of the last month; empty when Search Console is unreachable. */
-export async function googleTopRecords(limit = 5): Promise<TopRecord[]> {
+/**
+ * Most Google-clicked karar pages of the last month; empty when Search Console is
+ * unreachable.
+ *
+ * Empty is not rare: it is what the BUILD gets whenever Search Console is out of
+ * reach there, and the home page is prerendered, so the empty card used to stay
+ * baked into the HTML until the next ISR regeneration — at least an hour after
+ * every deploy. The card now refetches from /api/top-records when it starts empty.
+ */
+export async function googleTopRecords(limit = 5): Promise<TopSearchItem[]> {
   try {
     return await cachedTopRecords(limit);
   } catch (error) {

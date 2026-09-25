@@ -1,8 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 import { MaskedText } from '@/components/masked-text';
-import { recordHref } from '@/lib/db/queries/shared';
-import { TOP_WINDOW_DAYS, type TopRecord } from '@/lib/gsc/top-records';
+import { TOP_WINDOW_DAYS, type TopSearchItem } from '@/lib/gsc/shared';
 import { cn } from '@/lib/utils';
 
 /**
@@ -10,8 +12,39 @@ import { cn } from '@/lib/utils';
  * search most over the last month. Named for what the data is: search
  * clicks, not visits. Renders nothing when the list is empty (no Search
  * Console access yet, or nothing to show).
+ *
+ * The list comes with the prerendered page, but the build is where Search
+ * Console most often fails, and an empty list then stays in the static HTML
+ * until the page regenerates. So when it starts empty the card asks
+ * /api/top-records once after mount — the same correction StatusBar makes.
  */
-export function TopSearchCard({ items, className }: { items: TopRecord[]; className?: string }) {
+export function TopSearchCard({
+  items: initialItems,
+  className,
+}: {
+  items: TopSearchItem[];
+  className?: string;
+}) {
+  const [items, setItems] = useState(initialItems);
+
+  useEffect(() => {
+    if (initialItems.length) return;
+    let cancelled = false;
+
+    fetch('/api/top-records')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: TopSearchItem[] | null) => {
+        if (!cancelled && Array.isArray(data) && data.length) setItems(data);
+      })
+      .catch(() => {
+        // No list, no card — the same as before the refetch.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialItems.length]);
+
   if (!items.length) return null;
 
   return (
@@ -23,10 +56,10 @@ export function TopSearchCard({ items, className }: { items: TopRecord[]; classN
         <span className="text-sm text-ink-fainter">son {TOP_WINDOW_DAYS} gün</span>
       </div>
       <ul className="flex flex-col gap-2.5">
-        {items.map(({ record, clicks }) => (
-          <li key={record.id} className="flex flex-col gap-0.5">
-            <Link href={recordHref(record)} className="text-base leading-[1.4] text-ink [overflow-wrap:anywhere]">
-              {record.summary ? record.summary : <MaskedText tokens={record.titleTokens} />}
+        {items.map(({ id, href, summary, titleTokens, clicks }) => (
+          <li key={id} className="flex flex-col gap-0.5">
+            <Link href={href} className="text-base leading-[1.4] text-ink [overflow-wrap:anywhere]">
+              {summary ? summary : <MaskedText tokens={titleTokens} />}
             </Link>
             <span className="text-sm text-ink-fainter">{clicks} tıklama</span>
           </li>
