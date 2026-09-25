@@ -153,6 +153,12 @@ export async function searchRecords(
   const strict = built.tsquery ? sql`(select mk_tsquery(${built.tsquery}))` : null;
   const loose = built.tsquery ? sql`(select mk_tsquery_expand(${built.tsquery}, 0))` : null;
   const tsq = params.uzak ? loose : strict;
+  /*
+   * Records that contain the typed word itself come first, synonym-only hits
+   * (tapu -> koçan) after them; date orders within each tier (migration 0023).
+   */
+  const direct = built.tsquery ? sql`(select mk_tsquery_direct(${built.tsquery}))` : null;
+  const tierOrder = direct ? sql`(r.search_vector @@ ${direct}) desc, ` : sql``;
 
   const matchCondition = tsq ? sql`r.search_vector @@ ${tsq}` : sql`true`;
   const rankExpr = loose
@@ -201,7 +207,7 @@ export async function searchRecords(
      where ${matchCondition}
        and r.has_own_page
        and ${filters}
-     order by ${orderBy(params.sirala)}
+     order by ${tierOrder}${orderBy(params.sirala)}
      limit ${built.limit} offset ${built.offset}
   `);
 
