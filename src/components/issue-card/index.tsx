@@ -27,7 +27,7 @@ export function IssueCard({
         Son yayımlanan sayı
       </div>
       <div className="text-3xl font-semibold text-ink">
-        Sayı {number} <span className="text-lg font-normal text-ink-muted">— {recordCount} kayıt işlendi</span>
+        {number}. sayı <span className="text-lg font-normal text-ink-muted">— {recordCount} kayıt işlendi</span>
       </div>
       <div className="mt-0.5 text-md text-ink-body">
         <time dateTime={publishedAt}>{formatDateLong(publishedAt)}</time>

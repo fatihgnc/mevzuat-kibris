@@ -18,7 +18,7 @@ export const SECTIONS = [
 
 export type Section = (typeof SECTIONS)[number];
 
-/** The short name shown in the meta bar: "Sayı 262, Ek III" */
+/** The short name shown in the meta bar: "262. sayı, Ek III" */
 export const SECTION_SHORT: Record<Section, string> = {
   MAIN: 'Ana bölüm',
   EK_I_B_I: 'Ek I Bölüm I',

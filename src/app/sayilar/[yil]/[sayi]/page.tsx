@@ -62,7 +62,7 @@ export default async function IssuePage({ params }: Props) {
     { name: 'Ana sayfa', href: '/' },
     { name: 'Sayılar', href: '/sayilar' },
     { name: String(year), href: '/sayilar/' + year },
-    { name: 'Sayı ' + number },
+    { name: number + '. sayı' },
   ];
 
   return (
@@ -73,7 +73,7 @@ export default async function IssuePage({ params }: Props) {
         <Breadcrumbs items={crumbs} />
 
         <h1 className="m-0 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">
-          Resmî Gazete sayı {number}
+          Resmî Gazete&apos;nin {number}. sayısı
         </h1>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-ink-muted">
@@ -162,14 +162,14 @@ export default async function IssuePage({ params }: Props) {
         <nav className="mt-10 flex items-center justify-between gap-4 border-t border-line pt-5 text-base">
           {adjacent.prev ? (
             <Link href={'/sayilar/' + adjacent.prev.year + '/' + adjacent.prev.number} rel="prev">
-              ← Sayı {adjacent.prev.number}
+              ← {adjacent.prev.number}. sayı
             </Link>
           ) : (
             <span />
           )}
           {adjacent.next ? (
             <Link href={'/sayilar/' + adjacent.next.year + '/' + adjacent.next.number} rel="next">
-              Sayı {adjacent.next.number} →
+              {adjacent.next.number}. sayı →
             </Link>
           ) : (
             <span />

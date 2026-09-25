@@ -110,7 +110,7 @@ export const GUIDES: Guide[] = [
       {
         question: 'Bir kararın hangi bölümde yayımlandığını nereden görürüm?',
         answer:
-          'Her kayıt sayfasının künye şeridinde gazete sayısı ve bölüm yazılıdır, örneğin “Sayı 262, Ek III”.',
+          'Her kayıt sayfasının künye şeridinde gazete sayısı ve bölüm yazılıdır, örneğin “262. sayı, Ek III”.',
       },
     ],
   },

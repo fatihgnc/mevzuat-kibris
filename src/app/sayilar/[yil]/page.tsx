@@ -84,7 +84,7 @@ export default async function IssueYearPage({ params }: Props) {
                 className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line-soft py-3.5 no-underline hover:bg-surface-hover hover:no-underline"
               >
                 <span className="flex items-baseline gap-3">
-                  <span className="text-lg font-semibold text-ink">Sayı {issue.number}</span>
+                  <span className="text-lg font-semibold text-ink">{issue.number}. sayı</span>
                   <time dateTime={issue.publishedAt} className="text-base text-ink-muted">
                     {formatDateLong(issue.publishedAt)}
                   </time>

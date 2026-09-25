@@ -74,8 +74,14 @@ export function buildRecordMetaFields(input: {
     label: 'Gazete',
     value: (
       <>
+        {/*
+          * "187. sayı", not "Sayı 187": gazette notices carry their own running
+          * number, printed as "Sayı : 177" at the top of the body. Two "Sayı N"
+          * lines on one page with different numbers read as a mistake; the
+          * ordinal says this one is the gazette issue.
+          */}
         <Link href={'/sayilar/' + input.issueYear + '/' + input.issueNumber}>
-          Sayı {input.issueNumber}
+          {input.issueNumber}. sayı
         </Link>
         {', ' + sectionShort(input.section)}
       </>

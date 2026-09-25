@@ -50,7 +50,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         <time dateTime={record.publishedAt}>{formatDateLong(record.publishedAt)}</time>
         <Divider />
         <Link href={'/sayilar/' + record.issue.year + '/' + record.issue.number}>
-          Sayı {record.issue.number}
+          {record.issue.number}. sayı
         </Link>
       </div>
 
@@ -175,7 +175,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
 
           {record.sameIssue.length ? (
             <RelatedBlock
-              title={'Sayı ' + record.issue.number + ' içindeki diğer kayıtlar'}
+              title={record.issue.number + '. sayıdaki diğer kayıtlar'}
               records={record.sameIssue}
               moreHref={'/sayilar/' + record.issue.year + '/' + record.issue.number}
             />
@@ -184,7 +184,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
               <h2 className="mb-3.5 text-md font-semibold text-ink">Arşivde gezin</h2>
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-base">
                 <Link href={'/sayilar/' + record.issue.year + '/' + record.issue.number}>
-                  Sayı {record.issue.number}&apos;in tamamı
+                  {record.issue.number}. sayının tamamı
                 </Link>
                 <Link href={'/sayilar/' + record.issue.year}>{record.issue.year} sayıları</Link>
                 <Link href="/sayilar">Tüm sayılar</Link>
@@ -299,7 +299,7 @@ function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType
               href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
               className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
             >
-              Sayı {record.issue.number}&apos;in tamamı
+              {record.issue.number}. sayının tamamı
             </Link>
           </div>
         </div>
@@ -337,7 +337,7 @@ function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType
               href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
               className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
             >
-              Sayı {record.issue.number}&apos;in tamamı
+              {record.issue.number}. sayının tamamı
             </Link>
           </div>
         </div>
@@ -367,7 +367,7 @@ function BodyTemporarilyUnavailableNotice({ record }: { record: RecordDetailType
             href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
             className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
           >
-            Sayı {record.issue.number}&apos;in tamamı
+            {record.issue.number}. sayının tamamı
           </Link>
         </div>
       </div>
@@ -463,7 +463,7 @@ function BodyHiddenCard({ record }: { record: RecordDetailType }) {
             href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
             className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
           >
-            Sayı {record.issue.number}&apos;in tamamı
+            {record.issue.number}. sayının tamamı
           </Link>
         </div>
       </div>
@@ -503,7 +503,7 @@ function MissingTextCard({ record }: { record: RecordDetailType }) {
             href={'/sayilar/' + record.issue.year + '/' + record.issue.number}
             className="rounded border border-line-strong px-[18px] py-3 text-lg font-semibold text-ink no-underline transition-colors hover:border-ink hover:no-underline"
           >
-            Sayı {record.issue.number}&apos;in tamamı
+            {record.issue.number}. sayının tamamı
           </Link>
         </div>
       </div>
@@ -544,7 +544,7 @@ function RelatedBlock({
               {item.summary ?? <MaskedText tokens={item.titleTokens} />}
             </span>
             <span className="text-sm text-ink-muted">
-              {formatDateShort(item.publishedAt)}, Sayı {item.issueNumber},{' '}
+              {formatDateShort(item.publishedAt)}, {item.issueNumber}. sayı,{' '}
               {item.docTypeLabel}
             </span>
           </Link>
