@@ -7,42 +7,6 @@ import { IS_PRODUCTION_DEPLOY, SITE_URL } from '@/lib/seo/config';
  * class of bug as dangerous as the canonical escaping to *.vercel.app: the preview
  * getting indexed and producing duplicate content against production.
  */
-/**
- * Bulk scrapers and AI-training crawlers that respect robots.txt at all — the ones
- * ignoring it entirely aren't stopped by this file no matter what it says, that's
- * the middleware rate limiter's job (src/middleware.ts). This list only catches the
- * crawlers that DO honor the spec, so the OCR text we paid for doesn't get
- * bulk-harvested into someone else's training set or scraping product.
- *
- * Deliberately NOT here: `ChatGPT-User` (and no Anthropic equivalent is blocked
- * either). Those are the on-demand, single-page fetch a chat assistant makes when
- * a person pastes a /karar/ link and asks it to read or summarize that one page —
- * different from `GPTBot`/`ClaudeBot`/`anthropic-ai`, which crawl in bulk to build
- * a training set. Blocking the bulk crawlers stops that; blocking the on-demand
- * ones would just break the case of someone asking ChatGPT or Claude about a
- * specific record they found here, which is a case worth keeping working.
- */
-const DISALLOWED_KARAR_BOTS = [
-  'GPTBot',
-  'CCBot',
-  'Google-Extended',
-  'anthropic-ai',
-  'ClaudeBot',
-  'Claude-Web',
-  'Bytespider',
-  'PerplexityBot',
-  'Applebot-Extended',
-  'Diffbot',
-  'Omgili',
-  'FacebookBot',
-  'Amazonbot',
-  'ImagesiftBot',
-  'SemrushBot',
-  'AhrefsBot',
-  'MJ12bot',
-  'DotBot',
-];
-
 export default function robots(): MetadataRoute.Robots {
   if (!IS_PRODUCTION_DEPLOY) {
     return { rules: [{ userAgent: '*', disallow: '/' }] };
@@ -50,10 +14,6 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
-      {
-        userAgent: DISALLOWED_KARAR_BOTS,
-        disallow: '/karar/',
-      },
       {
         userAgent: '*',
         allow: '/',
