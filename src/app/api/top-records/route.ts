@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { googleTopRecords } from '@/lib/gsc/top-records';
 
 /**
- * The home page's "Öne çıkanlar" list, for the card to refetch when the
+ * The home page's "En çok arananlar" list, for the card to refetch when the
  * prerendered page came out without it (see googleTopRecords).
  *
  * An empty answer is cached only briefly, so a Search Console outage does not
