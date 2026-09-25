@@ -29,7 +29,6 @@ insert into search_synonyms (term, alternative) values
   ('yonetmelik', 'tuzuk'),
   ('kocan', 'tapu'),
   ('tapu', 'kocan'),
-  ('emirname', 'karar'),
   ('kdv', 'katma deger vergisi'),
   ('sgk', 'sosyal sigortalar'),
   ('khk', 'yasa gucunde kararname'),
