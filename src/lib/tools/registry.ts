@@ -85,15 +85,9 @@ export interface Tool {
 }
 
 const LABOUR_LAW_SOURCE: ToolSource = {
-  label: 'Çalışma Dairesi — 22/1992 İş Yasası (birleştirilmiş güncel metin)',
-  href: 'http://calisma.gov.ct.tr/Portals/39/22-1992_1.pdf',
+  label: '22/1992 İş Yasası (birleştirilmiş güncel metin)',
+  href: '/yasa/22-1992-is-yasasi',
   note: '30/1993, 25/2000, 51/2002, 15/2004, 50/2010 ve 23/2015 değişiklikleriyle',
-};
-
-const EMU_LAW_LIST: ToolSource = {
-  label: 'DAÜ İnsan Kaynakları — çalışma ile ilgili KKTC yasaları',
-  href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari',
-  note: 'İş Yasası metni burada 51/2002’de kalmış; fazla mesai oranları için kullanmayın',
 };
 
 export const TOOLS: readonly Tool[] = [
@@ -209,12 +203,12 @@ export const TOOLS: readonly Tool[] = [
     ],
     sources: [
       {
-        label: 'DAÜ İnsan Kaynakları — 73/2007 Sosyal Güvenlik Yasası',
-        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/sosyal-guvenlik-yasasi',
+        label: '73/2007 Sosyal Güvenlik Yasası',
+        href: '/yasa/73-2007-sosyal-guvenlik-yasasi',
       },
       {
-        label: 'DAÜ İnsan Kaynakları — Kıbrıs Türk Sosyal Sigortalar Yasası',
-        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/kibris-turk-sosyal-sigortalar-yasasi',
+        label: '16/1976 Kıbrıs Türk Sosyal Sigortalar Yasası',
+        href: '/yasa/16-1976-kibris-turk-sosyal-sigortalar-yasasi',
       },
       {
         label: 'KKTC Çalışma Dairesi — asgari ücret',
@@ -226,8 +220,8 @@ export const TOOLS: readonly Tool[] = [
         href: 'https://vergi.gov.ct.tr/?q=content%2F2026-y%C4%B1l%C4%B1-gelir-vergisi-matrah-dilimleri-ile-ki%C5%9Fisel-indirim-miktarlar%C4%B1-yay%C4%B1mland%C4%B1',
       },
       {
-        label: 'KKTC Vergi Dairesi — 24/1982 Gelir Vergisi Yasası (birleştirilmiş metin)',
-        href: 'https://www.vergi.gov.ct.tr/?q=content%2Fyasa-ve-t%C3%BCz%C3%BCkler',
+        label: '24/1982 Gelir Vergisi Yasası (birleştirilmiş metin)',
+        href: '/yasa/24-1982-gelir-vergisi-yasasi',
         note: '25/2026 değişikliğiyle',
       },
     ],
@@ -340,7 +334,7 @@ export const TOOLS: readonly Tool[] = [
           'Hizmet akdi ne şekilde sona ererse ersin, hak kazanılıp kullanılmayan iznin ücreti akdin sona erdiği tarihteki ücret üzerinden ödenir.',
       },
     ],
-    sources: [LABOUR_LAW_SOURCE, EMU_LAW_LIST],
+    sources: [LABOUR_LAW_SOURCE],
     assumptions: [
       'Hizmet süresi tek bir işverende kesintisiz geçmiş kabul edilir.',
       'Madde 44(2)’deki devamsızlık ertelemesi hesaba katılmaz.',
@@ -429,7 +423,7 @@ export const TOOLS: readonly Tool[] = [
           'Fazla çalışma karşılığı ücretler, primler ve sosyal yardımlar resmî tatil ücretinin saptanmasında hesaba katılmaz.',
       },
     ],
-    sources: [LABOUR_LAW_SOURCE, EMU_LAW_LIST],
+    sources: [LABOUR_LAW_SOURCE],
     assumptions: [
       'Ücretin aylık ödendiği varsayılır; haftalık ödemede madde 27(3)(D) uyarınca haftalık ücret × 52 ÷ 12 ile aylığa çevrilir.',
       'Zam oranları yasal asgari oranlardır; toplu iş sözleşmesi veya hizmet akdi artırmış olabilir (madde 27(3)(C)).',
@@ -513,7 +507,7 @@ export const TOOLS: readonly Tool[] = [
           'Fesihte kullanılmayan yıllık iznin ücreti ayrıca ödenir; ihbar süreleri ile yıllık izin süreleri iç içe giremez.',
       },
     ],
-    sources: [LABOUR_LAW_SOURCE, EMU_LAW_LIST],
+    sources: [LABOUR_LAW_SOURCE],
     assumptions: [
       'Haftalık ücret, aylık brüt ücretin madde 27(3)(D) çevrimiyle bulunur: aylık × 12 ÷ 52.',
       'İhbar tazminatı, bildirim hiç yapılmadığı varsayımıyla gösterilir (madde 12(1)(C)).',
@@ -602,7 +596,7 @@ export const TOOLS: readonly Tool[] = [
           'Madde 56 uyarınca çalıştırılmayan günler ile madde 53 mazeret izinleri, yıllık ücretli izin hakkının hesabında çalışılmış süre sayılır.',
       },
     ],
-    sources: [LABOUR_LAW_SOURCE, EMU_LAW_LIST],
+    sources: [LABOUR_LAW_SOURCE],
     assumptions: [
       'Süreler doğum tarihinden itibaren takvim üzerinden sayılır; ekranda gösterilen tarihler ilgili hakkın son günüdür.',
     ],
@@ -653,8 +647,12 @@ export const TOOLS: readonly Tool[] = [
         href: '/karar/2025-uki-1243-2025-yabancilarin-calisma-izinleri-degisiklik-tuzugu',
       },
       {
-        label: 'Yabancıların Çalışma İzinleri Tüzüğü — A.E. 41 (2026)',
+        label: 'Yabancıların Çalışma İzinleri (Değişiklik) Tüzüğü — A.E. 41 (2026)',
         href: '/karar/2026-ae-41-yabancilarin-calisma-izinleri-yasasi-yabancilarin-calisma-izinleri',
+      },
+      {
+        label: 'Yabancıların Çalışma İzinleri (Değişiklik) Tüzüğü — A.E. 860 (2026)',
+        href: '/karar/2026-ae-860-yabancilarin-calisma-izinleri-yasasi-yabancilarin-calisma-izinleri',
       },
       {
         label: 'Kesinleşen asgari ücret — Ü(K-I) 1588-2026',
@@ -686,9 +684,14 @@ export const TOOLS: readonly Tool[] = [
     ],
     sources: [
       {
-        label: 'Merkezi Mevzuat Dairesi — 63/2006 Yabancıların Çalışma İzinleri Yasası',
-        href: 'https://mevzuat.gov.ct.tr/Portals/48/63-2006%20Yabanclarn%20Calsms%20Izinleri%20Yasas%20(1).pdf',
+        label: '63/2006 Yabancıların Çalışma İzinleri Yasası',
+        href: '/yasa/63-2006-yabancilarin-calisma-izinleri-yasasi',
         note: '42/2016 ve 25/2025 değişiklikleriyle birleştirilmiş metin',
+      },
+      {
+        label: 'Yabancıların Çalışma İzinleri Tüzüğü (birleştirilmiş metin)',
+        href: '/tuzuk/yabancilarin-calisma-izinleri-tuzugu',
+        note: 'A.E. 473/2025, A.E. 41/2026 ve A.E. 860/2026 değişiklikleriyle',
       },
       {
         label: 'KKTC Çalışma Dairesi — asgari ücret',
@@ -786,8 +789,9 @@ export const TOOLS: readonly Tool[] = [
     ],
     sources: [
       {
-        label: 'DAÜ İnsan Kaynakları — İhtiyat Sandığı Yasası',
-        href: 'https://hr.emu.edu.tr/tr/ilgili-kktc-yasalari/ihtiyat-sandi%C4%9F%C4%B1-yasasi',
+        label: '34/1993 İhtiyat Sandığı Yasası',
+        href: '/yasa/34-1993-ihtiyat-sandigi-yasasi',
+        note: '74/2007 değişikliğiyle',
       },
     ],
     assumptions: [
