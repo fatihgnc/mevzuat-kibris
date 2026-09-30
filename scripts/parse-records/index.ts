@@ -180,7 +180,9 @@ export async function processIssue(issue: {
         deadline_at    = coalesce(excluded.deadline_at, records.deadline_at),
         deadline_note  = coalesce(excluded.deadline_note, records.deadline_note),
         page_from      = coalesce(excluded.page_from, records.page_from),
-        has_own_page   = excluded.has_own_page
+        -- A body written after parsing (hand transcription, OCR) keeps its page:
+        -- the parser only sees body_text, which such records often lack.
+        has_own_page   = excluded.has_own_page or records.body_markdown is not null
       returning id
     `;
 
