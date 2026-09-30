@@ -100,6 +100,9 @@ const QUICK_LINKS = [
  */
 const SUGGESTED_QUERIES = ['ihale', 'münhal', 'tapu'];
 
+/** A guide worth a shortcut of its own, next to the searches: tapu fees are what most visits are for. */
+const SUGGESTED_GUIDE = { href: '/rehber/tapu-harclari-ve-tapu-dairesi-mevzuati', label: 'tapu harçları' };
+
 export default async function HomePage() {
   /*
    * Son 30 gün (home page "son eklenen münhal ilanları" card). Filtered by
@@ -188,6 +191,7 @@ export default async function HomePage() {
                   {query}
                 </Link>
               ))}
+              <Link href={SUGGESTED_GUIDE.href}>{SUGGESTED_GUIDE.label}</Link>
             </div>
 
             {/*

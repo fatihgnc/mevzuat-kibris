@@ -138,6 +138,36 @@ export function recordTitle(
   return prefix + truncateTitle(summaryOrTitle, room) + suffix;
 }
 
+/**
+ * Meta description text from a record's body: the markdown with its scaffolding
+ * taken off (the "Sayı : N" opener, heading marks, table rules and pipes, bare
+ * page-number lines), so the snippet Google shows reads as the record's first
+ * sentence and not as "Sayı : 16 25 TAPU VE KADASTRO…". It used to be cut from the
+ * raw text column, which still carried the page footer.
+ */
+export function bodyForDescription(markdown: string): string {
+  return markdown
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line &&
+        !/^\(?\d{1,4}\)?$/.test(line) &&
+        !/^\|?[\s|:-]*-{3,}[\s|:-]*$/.test(line) &&
+        !/^Sayı\s*:\s*\d+$/i.test(line),
+    )
+    .map((line) =>
+      line
+        .replace(/^#+\s*/, '')
+        .replace(/\*\*/g, '')
+        .replace(/\|/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join(' ');
+}
+
 export const DEFAULT_METADATA: Metadata = {
   title: {
     default: SITE_NAME + ' — ' + SITE_TAGLINE,

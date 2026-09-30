@@ -13,6 +13,7 @@ import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-b
 import { OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
+import { guideForRecord } from '@/lib/content/guides';
 import { recordHref } from '@/lib/db/queries/shared';
 import { formatDateLong, formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
   const refLabel = formatRef(record.refType, record.refNumber);
   const aliases = refAliases(record.refType, record.refNumber);
   const heading = record.summary ?? record.title;
+  const guide = guideForRecord(record.slug);
   const hasBody = Boolean(record.bodyText && record.bodyText.trim().length > 0);
 
   return (
@@ -162,6 +164,16 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
                   </div>
                 </>
               ) : null}
+            </section>
+          ) : null}
+
+          {guide ? (
+            <section className="mt-[30px] border-t border-line pt-[22px]">
+              <h2 className="mb-2 text-md font-semibold text-ink">İlgili rehber</h2>
+              <Link href={'/rehber/' + guide.slug} className="text-lg font-medium">
+                {guide.title}
+              </Link>
+              <p className="mt-1 text-base text-ink-muted">{guide.summary}</p>
             </section>
           ) : null}
 

@@ -983,3 +983,13 @@ export const GUIDES: Guide[] = [
 export function getGuide(slug: string): Guide | undefined {
   return GUIDES.find((guide) => guide.slug === slug);
 }
+
+/**
+ * The guide that explains a record's subject, for the "İlgili rehber" block under
+ * the record. Matched on the slug, which carries the title: today only the Tapu
+ * Dairesi records, whose pages take the most search traffic.
+ */
+export function guideForRecord(slug: string): Guide | undefined {
+  if (slug.includes('tapu-ve-kadastro-dairesi')) return getGuide('tapu-harclari-ve-tapu-dairesi-mevzuati');
+  return undefined;
+}

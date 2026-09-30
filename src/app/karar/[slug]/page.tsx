@@ -11,7 +11,9 @@ import { getRecordBySlug, recentRecordSlugs } from '@/lib/db/queries/records';
 import { recordHref } from '@/lib/db/queries/shared';
 import { RECENT_MONTHS } from '@/lib/seo/config';
 import { breadcrumbJsonLd, recordJsonLd } from '@/lib/seo/json-ld';
-import { buildMetadata, recordTitle } from '@/lib/seo/metadata';
+import { bodyForDescription, buildMetadata, recordTitle } from '@/lib/seo/metadata';
+import { formatDateLong } from '@/lib/text/dates';
+import { titleCaseTr } from '@/lib/text/title-case';
 import { truncateAtSentence } from '@/lib/text/truncate';
 
 /**
@@ -72,14 +74,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const heading = record.summary ?? record.title;
 
+  /*
+   * A LAW IS SEARCHED FOR BY ITS OFFICIAL NAME. Search Console's top queries for
+   * these pages are the law's title, parentheses and all ("tapu ve kadastro dairesi
+   * (kuruluş, görev ve çalışma esasları) yasası"), while the generated summary is a
+   * sentence that clips at "çalışma…" and says neither "yasası" nor the parentheses.
+   * So a law's title element is its own title, cased for reading, with no reference
+   * prefix or RG suffix competing for the 70 characters.
+   */
+  const isLaw = record.docType === 'yasa' || record.docType === 'yasa_gucunde_kararname';
+  const lawTitle = isLaw ? titleCaseTr(record.title) : null;
+
   return buildMetadata({
-    title: recordTitle(
-      heading,
-      record.issue.number,
-      record.issue.year,
-      formatRef(record.refType, record.refNumber),
-    ),
-    description: truncateAtSentence(record.subject ?? record.bodyText ?? record.title, 155),
+    title:
+      lawTitle ??
+      recordTitle(
+        heading,
+        record.issue.number,
+        record.issue.year,
+        formatRef(record.refType, record.refNumber),
+      ),
+    description: lawTitle
+      ? lawTitle +
+        ' — tam metin. KKTC Resmî Gazete ' +
+        record.issue.number +
+        '. sayı, ' +
+        formatDateLong(record.issue.publishedAt) +
+        '.'
+      : truncateAtSentence(
+          record.subject ||
+            bodyForDescription(record.bodyMarkdown ?? record.bodyText ?? '') ||
+            record.title,
+          155,
+        ),
     path: '/karar/' + record.slug,
     type: 'article',
     publishedTime: record.publishedAt,
