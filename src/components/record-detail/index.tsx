@@ -173,6 +173,13 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             <RelatedBlock title="Bağlantılı kayıtlar" records={record.related} />
           ) : null}
 
+          {record.otherAmendments.length ? (
+            <RelatedBlock
+              title="Aynı tüzüğün diğer değişiklikleri"
+              records={record.otherAmendments}
+            />
+          ) : null}
+
           {record.sameIssue.length ? (
             <RelatedBlock
               title={record.issue.number + '. sayıdaki diğer kayıtlar'}

@@ -630,7 +630,7 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
 
   const id = Number(row.id);
 
-  const [entityRows, relatedRows, correctionRows, sameIssueRows] = await Promise.all([
+  const [entityRows, relatedRows, correctionRows, sameIssueRows, amendmentRows] = await Promise.all([
     db.execute<Row<{ id: string; kind: string; slug: string; name: string }>>(sql`
       select e.id, e.kind, e.slug, e.name
         from record_entities re
@@ -664,6 +664,26 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
          and r.id <> ${id}
          and r.has_own_page
        order by r.section, r.id
+       limit 8
+    `),
+    // The same regulation amended again: a tüzük is republished in full-title form
+    // every few months (Harçlar ve Ücretler alone: 12 publication dates since 2020), and search
+    // lands readers on whichever amendment ranks, usually an old one. Matched on the
+    // part of the title after the last hyphen -- the amended instrument's own name --
+    // so the A.E. form ("<law>-<tüzük>") and the Ü(K-I) form ("<tüzük>") meet. One row
+    // per date: both forms of the same amendment are published together.
+    db.execute<Row<RawListRow>>(sql`
+      select distinct on (r.published_at) ${sql.raw(LIST_COLUMNS)}, null::text as snippet
+        from records r
+        ${sql.raw(LIST_JOINS)}
+       where r.doc_type = 'tuzuk'
+         and r.has_own_page
+         and r.id <> ${id}
+         and r.published_at <> (select published_at from records where id = ${id})
+         and char_length((select substring(title_normalized from '[^-]*$') from records where id = ${id})) > 25
+         and (select doc_type from records where id = ${id}) = 'tuzuk'
+         and r.title_normalized like '%' || (select substring(title_normalized from '[^-]*$') from records where id = ${id})
+       order by r.published_at desc, r.id desc
        limit 8
     `),
   ]);
@@ -722,6 +742,7 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
     related: relatedRows.map((r) => mapListItem(r)),
     corrections: correctionRows.map((r) => mapListItem(r)),
     sameIssue: sameIssueRows.map((r) => mapListItem(r)),
+    otherAmendments: amendmentRows.map((r) => mapListItem(r)),
   };
 }
 

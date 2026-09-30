@@ -105,6 +105,8 @@ export interface RecordDetail extends RecordRow {
   related: RecordListItem[];
   corrections: RecordListItem[];
   sameIssue: RecordListItem[];
+  /** Other amendments of the same tüzük, newest first. Empty for every other doc type. */
+  otherAmendments: RecordListItem[];
 }
 
 export type EntityKind = 'institution' | 'company' | 'place';
