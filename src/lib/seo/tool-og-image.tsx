@@ -1,10 +1,8 @@
-import { ImageResponse } from 'next/og';
-
-import { SITE_NAME } from '@/lib/seo/config';
+import { OG_CONTENT_TYPE, OG_SIZE, ogCard } from '@/lib/seo/og-card';
 import { findTool } from '@/lib/tools/registry';
 
-export const TOOL_OG_SIZE = { width: 1200, height: 630 };
-export const TOOL_OG_CONTENT_TYPE = 'image/png';
+export const TOOL_OG_SIZE = OG_SIZE;
+export const TOOL_OG_CONTENT_TYPE = OG_CONTENT_TYPE;
 
 /**
  * Hesaplayıcıların paylaşım kartı.
@@ -43,53 +41,12 @@ export function toolOgImage(slug: string) {
       .map((reference) => reference.article)
       .join('  ·  ') ?? '';
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          background: '#FFFFFF',
-          padding: '64px 72px',
-          borderTop: '10px solid #1F6E7C',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <span
-            style={{ fontSize: 30, fontWeight: 700, color: '#17181A', letterSpacing: '-0.01em' }}
-          >
-            {SITE_NAME}
-          </span>
-          <span style={{ fontSize: 22, color: '#6B6B75' }}>hesaplayıcı</span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <div
-            style={{
-              display: 'flex',
-              /* Uzun başlıklarda punto düşüyor; kayıt kartındaki eşikle aynı mantık. */
-              fontSize: heading.length > 40 ? 52 : 62,
-              lineHeight: 1.2,
-              fontWeight: 600,
-              color: '#17181A',
-              letterSpacing: '-0.015em',
-            }}
-          >
-            {heading}
-          </div>
-          <div style={{ display: 'flex', fontSize: 28, lineHeight: 1.4, color: '#43444A' }}>
-            {summary}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', fontSize: 24, color: '#6B6B75' }}>
-          {primaryLaw ? primaryLaw + '  ·  ' + articles : 'KKTC iş mevzuatı'}
-        </div>
-      </div>
-    ),
-    TOOL_OG_SIZE,
-  );
+  return ogCard({
+    kicker: 'hesaplayıcı',
+    heading,
+    summary,
+    footer: primaryLaw ? primaryLaw + '  ·  ' + articles : 'KKTC iş mevzuatı',
+    /* Uzun başlıklarda punto düşüyor; kayıt kartındaki eşikle aynı mantık. */
+    headingSize: heading.length > 40 ? 54 : 64,
+  });
 }
