@@ -9,6 +9,7 @@ import { sql } from '../shared/db';
 import { log } from '../shared/logger';
 import { summarize } from '../summarize/rules';
 
+import { isRemovedRecord } from './removed';
 import { bodyAnchor, extractBody, parseIndexCell, parseIndexTable } from './parser';
 
 /**
@@ -114,6 +115,7 @@ export async function processIssue(issue: {
 
   for (let i = 0; i < parsed.length; i += 1) {
     const record = parsed[i]!;
+    if (isRemovedRecord(issue, record)) continue;
     const anchor = bodyAnchor(record.refType, record.refNumber);
     const otherAnchors = allAnchors.filter((label) => label !== anchor);
 
