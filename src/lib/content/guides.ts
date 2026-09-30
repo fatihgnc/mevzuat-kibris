@@ -44,7 +44,7 @@ export interface Guide {
 export const GUIDES: Guide[] = [
   {
     slug: 'resmi-gazete-nasil-okunur',
-    title: 'Resmî Gazete nasıl okunur, bölümler ne anlama gelir',
+    title: 'Resmî Gazete nasıl okunur, bölümler ne anlama gelir?',
     summary: 'Gazetenin ana bölümü ve ekleri neyi içerir, aradığınız şey hangi bölümde.',
     description:
       'KKTC Resmî Gazete’nin ana bölümü ve Ek I–Ek VI ekleri neyi içerir, hangi karar hangi bölümde yayımlanır.',
@@ -116,7 +116,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'ae-uk-yt-numaralari-ne-demek',
-    title: 'A.E., Ü(K-I), Y.T. numaraları ne demek',
+    title: 'A.E., Ü(K-I), Y.T. numaraları ne demek?',
     summary: 'Resmî Gazete’deki referans numaralarının hangisi ne anlama geliyor.',
     description:
       'A.E., Ü(K-I), Ü(K-II), Ş.M., Y.T.NO ve Y.Ö.NO numaralarının ne anlama geldiği ve nasıl aranacağı.',
@@ -230,7 +230,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'kamu-isine-nasil-basvurulur',
-    title: 'KKTC’de kamu işine nasıl başvurulur',
+    title: 'KKTC’de kamu işine nasıl başvurulur?',
     summary: 'Münhal ilanından atamaya kadar sürecin adımları ve nelere dikkat etmek gerektiği.',
     description:
       'KKTC’de kamu kadrosuna başvuru süreci: münhal ilanı, başvuru, sınav, sonuç ve atama kararnamesi.',
@@ -290,7 +290,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'ihale-ilani-ve-rekabet-kurulu-itirazi',
-    title: 'Bir ihale ilanı nasıl okunur, Rekabet Kurulu itirazı nedir',
+    title: 'Bir ihale ilanı nasıl okunur, Rekabet Kurulu itirazı nedir?',
     summary: 'İhale sürecinin gazetedeki izi ve itiraz mekanizmasının nasıl işlediği.',
     description:
       'KKTC’de ihale ilanlarının okunması ve Rekabet Kurulu’na yapılan itirazların Resmî Gazete’deki karşılığı.',
@@ -369,7 +369,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'sirket-sicilden-silinmesi-ne-demek',
-    title: 'Şirketin sicilden silinmesi ne anlama gelir',
+    title: 'Şirketin sicilden silinmesi ne anlama gelir?',
     summary: 'Tasfiye, sicilden silinme ve isim değişikliği ilanlarının pratik sonuçları.',
     description:
       'Şirketler Mukayyitliği ilanları: tasfiye, sicilden kayıt silinmesi ve isim değişikliği ne anlama gelir.',
@@ -411,7 +411,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'veriyi-nasil-topluyoruz',
-    title: 'Bu site veriyi nasıl topluyor ve doğruluyor',
+    title: 'Bu site veriyi nasıl topluyor ve doğruluyor?',
     summary: 'Kaynaktan sayfaya kadar izlediğimiz yol, hata payı ve yapmadığımız şeyler.',
     description:
       'Mevzuat Kıbrıs’ın Resmî Gazete verisini nasıl indirdiği, metne çevirdiği, sınıflandırdığı ve hangi durumlarda hata yapabildiği.',
@@ -479,7 +479,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'bakanlar-kurulu-karari-nasil-okunur',
-    title: 'Bakanlar Kurulu kararı nasıl okunur',
+    title: 'Bakanlar Kurulu kararı nasıl okunur?',
     summary: 'Arşivdeki en kalabalık belge türü. Bir kararın parçaları ve ne anlama geldikleri.',
     description:
       'KKTC Resmî Gazete’deki Bakanlar Kurulu kararlarının yapısı: karar sayısı, önerge numarası, öneren bakanlık ve karar tarihi.',
@@ -573,7 +573,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'yurttaslik-kararlari',
-    title: 'Yurttaşlık kararları Resmî Gazete’de nasıl görünür',
+    title: 'Yurttaşlık kararları Resmî Gazete’de nasıl görünür?',
     summary: 'Yurttaşlığa alınma, muhaceret ve pasaport kararları hangi biçimde yayımlanır.',
     description:
       'KKTC Resmî Gazete’de yayımlanan yurttaşlık, muhaceret ve pasaport kararlarının biçimi ve nasıl aranacağı.',
@@ -678,7 +678,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'vergi-ve-mali-kayitlar',
-    title: 'Vergi ve mali kayıtlar nerede yayımlanır',
+    title: 'Vergi ve mali kayıtlar nerede yayımlanır?',
     summary: 'Katma değer vergisi oranları, fiyat istikrar fonu ve akaryakıt fiyatlandırması.',
     description:
       'KKTC Resmî Gazete’deki vergi oranları, fon katkı payları ve fiyatlandırma emirnamelerinin nerede yayımlandığı ve nasıl takip edileceği.',
@@ -831,7 +831,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: 'metni-olmayan-kayitlar',
-    title: 'Neden bazı kayıtların metni yok',
+    title: 'Neden bazı kayıtların metni yok?',
     summary: 'Her kaydın gövde metni çıkarılamıyor. Sebepleri ve ne yapabileceğiniz.',
     description:
       'Mevzuat Kıbrıs’ta bazı kayıtların gövde metninin neden bulunmadığı: basılmamış sayfalar, taranmış sayılar ve bozuk metin katmanları.',
@@ -900,6 +900,81 @@ export const GUIDES: Guide[] = [
           'Yüksek Seçim Kurulu kararları seçim takvimi, aday listeleri ve sandık düzeni gibi konuları duyurur. Seçim dönemlerinde yoğunlaşır, arada seyrekleşir; arşivde 464 kayıt tutuyor.',
         ],
         links: [{ label: 'Seçim Kurulu kararları', href: '/ara?tur=secim_kurulu_karari' }],
+      },
+    ],
+  },
+  {
+    slug: 'tapu-harclari-ve-tapu-dairesi-mevzuati',
+    title: 'Tapu harçları ve Tapu Dairesi mevzuatı: hangi kayıt güncel?',
+    summary: 'Tapu Dairesi yasası, harç tüzüğü ve sık yayımlanan değişiklikler; güncel metne nasıl ulaşılır.',
+    description:
+      'KKTC Tapu ve Kadastro Dairesi yasası ile Harç ve Ücretler tüzüğü Resmî Gazete’de nasıl yayımlanır, değişiklik tüzükleri nasıl takip edilir.',
+    sections: [
+      {
+        paragraphs: [
+          'Tapu işlemleriyle ilgili Resmî Gazete kayıtları iki ayrı katmanda toplanıyor: dairenin kendisini düzenleyen yasa ve işlem başına alınan harçları belirleyen tüzük. İkisi ayrı metinler, ayrı sıklıkta değişiyor ve biri ötekinin yerine geçmiyor.',
+        ],
+      },
+      {
+        heading: 'Dairenin kuruluşu ve görevleri',
+        paragraphs: [
+          'Tapu ve Kadastro Dairesi’nin kuruluşunu, görevlerini ve çalışma esaslarını Tapu ve Kadastro Dairesi (Kuruluş, Görev ve Çalışma Esasları) Yasası düzenler. Arşivdeki güncel kayıt 9 Temmuz 2025 tarihli. Dairenin hangi işlemleri yaptığını ve kimin neye yetkili olduğunu öğrenmek için başvurulacak metin bu.',
+        ],
+        links: [
+          {
+            label: 'Kuruluş, Görev ve Çalışma Esasları Yasası',
+            href: '/karar/2025-x-140-7-tapu-ve-kadastro-dairesi-kurulus-gorev-ve-calisma-esaslari-yasasi',
+          },
+        ],
+      },
+      {
+        heading: 'Harçlar ve ücretler',
+        paragraphs: [
+          'Ödenecek harçlar Tapu ve Kadastro Dairesi (Harç ve Ücretler) Yasası’nın (Fasıl 219) 3’üncü maddesi altında Bakanlar Kurulunun yaptığı bir tüzükle belirleniyor. Rakamlar yasada değil tüzükte, ve tüzük sık sık değişiyor.',
+          'Arşivde bu tüzüğün değişikliği 30 Mayıs 2020’den bugüne 12 ayrı tarihte yayımlanmış. Son kayıt 19 Şubat 2026 tarihli, 36. sayıda.',
+        ],
+        links: [
+          {
+            label: 'Son değişiklik (19 Şubat 2026)',
+            href: '/karar/2026-ae-186-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi-tapu-ve-kadastro',
+          },
+          { label: 'Tüm harç tüzüğü kayıtları', href: '/ara?q=' + encodeURIComponent('tapu ve kadastro dairesi harçlar ve ücretler tüzüğü') },
+        ],
+      },
+      {
+        heading: 'Güncel rakamı nasıl bulursunuz',
+        paragraphs: [
+          'Her değişiklik tüzüğü, esas tüzüğün belirli maddelerini değiştirir; tarifenin tamamını yeniden yayımlamaz. Bu yüzden tek bir kayıt size “bugün ödenecek harç”ı vermez. Esas tüzük ile ondan sonra çıkan değişiklikler birlikte okunmalıdır.',
+          'Sitede bu değişikliklerin birleştirilmiş, güncel bir tarifesi yok; her kayıt Resmî Gazetede yayımlandığı haliyle duruyor. Bir işlem için kesin tutar gerekiyorsa, en son değişiklik kaydına bakın ve tutarı Tapu ve Kadastro Dairesi’nden de teyit edin.',
+          'Eski bir değişiklik kaydını açtıysanız, sayfanın altındaki “Aynı tüzüğün diğer değişiklikleri” bölümünden daha yeni kayıtlara geçebilirsiniz.',
+        ],
+      },
+      {
+        heading: 'İlgili kayıtlar',
+        paragraphs: [
+          'Taşınmaz kamulaştırması, arazi tahsisi ve kira kararları tapu mevzuatından ayrı yayımlanır ve ayrı bir rehberde anlatılıyor.',
+        ],
+        links: [
+          { label: 'Gayrimenkul ve taşınmaz kayıtları', href: '/rehber/gayrimenkul-ve-tasinmaz-kayitlari' },
+          { label: 'Gayrimenkul konusu', href: '/konu/gayrimenkul' },
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Tapu harçları nerede belirleniyor?',
+        answer:
+          'Tapu ve Kadastro Dairesi (Harç ve Ücretler) Yasası’nın 3’üncü maddesi altında Bakanlar Kurulunun yaptığı tüzükte. Tutarlar yasada değil, bu tüzükte ve değişikliklerinde yer alır.',
+      },
+      {
+        question: 'Harç tüzüğü ne sıklıkla değişiyor?',
+        answer:
+          'Arşivimizde 30 Mayıs 2020 ile 19 Şubat 2026 arasında 12 ayrı yayım tarihi var. Bir yıl içinde birden fazla değişiklik yayımlandığı da oluyor.',
+      },
+      {
+        question: 'Bu sayfadaki tüzük kaydı güncel mi?',
+        answer:
+          'Kayıt sayfasında “Aynı tüzüğün diğer değişiklikleri” bölümü varsa daha yeni yayımlar da olabilir. En üstteki tarih en yenisidir.',
       },
     ],
   },
