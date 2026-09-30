@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 
+import { OLD_RECORD_SLUGS } from './src/lib/seo/old-slugs';
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -104,6 +106,12 @@ const nextConfig: NextConfig = {
        */
       { source: '/araclar', destination: '/arac', permanent: true },
       { source: '/araclar/:slug', destination: '/arac/:slug', permanent: true },
+      // Record slugs that were renamed when a title was corrected on re-parse.
+      ...Object.entries(OLD_RECORD_SLUGS).map(([from, to]) => ({
+        source: '/karar/' + from,
+        destination: '/karar/' + to,
+        permanent: true,
+      })),
     ];
   },
 
