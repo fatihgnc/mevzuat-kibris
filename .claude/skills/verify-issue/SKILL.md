@@ -13,6 +13,16 @@ body at all), plus assorted one-off OCR failures within an otherwise-successful 
 plus — the sneakiest one — records whose body looked present and non-empty but
 actually contained *other* records' full text glued onto the end.
 
+## Standing rule: always transcribe by hand, never offer alternatives
+
+If the user invokes this skill, the work is hand transcription from the PDF page
+images — even when an entire issue (hundreds of records) has no bodies. Do not propose
+"re-run the parser / reparse first" or any other shortcut as an option, do not ask
+which method to use, and do not frame the size of the job as a reason to pause. Report
+the scope in one line and go straight to transcription (parallel agents per page range
+are fine; agents never touch the DB). The only confirmation still required is the
+Step 4 go-ahead before DB writes.
+
 ## Why this needs a human-in-the-loop pass, not a script
 
 The ingest pipeline (`scripts/parse-records`, `scripts/extract-text`) locates a
