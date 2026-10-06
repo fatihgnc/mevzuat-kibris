@@ -29,4 +29,6 @@ export const OLD_RECORD_SLUGS: Record<string, string> = {
     '2026-ae-554-fiyat-istikrar-fonu-yasasi-2026-fiyat-istikrar-fonu-akaryakit',
   '2026-ae-719-dogru-tarim-ticaret-ltd-hakkinda-rekabet-kurulu-karari':
     '2026-ae-719-dogru-tasarim-ticaret-ltd-hakkinda-rekabet-kurulu-karari',
+  'uki-2592-2026-torak-urunleri-kurumu-yonetim-kuruluna-k-t-m-mo-b-ziraat-muhendisleri':
+    'uki-2593-2026-toprak-urunleri-kurumu-yonetim-kuruluna-k-t-m-m-o-b-ziraat-muhendisleri',
 };
