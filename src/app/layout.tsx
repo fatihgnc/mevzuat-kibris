@@ -3,6 +3,7 @@ import { Source_Sans_3 } from 'next/font/google';
 import { Suspense } from 'react';
 import Script from 'next/script';
 
+import { AdsenseLoader } from '@/components/adsense-loader';
 import { ContactWidget } from '@/components/contact-widget';
 import { RouteProgress } from '@/components/route-progress';
 import { DEFAULT_METADATA, RSS_ALTERNATE } from '@/lib/seo/metadata';
@@ -44,6 +45,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   ...DEFAULT_METADATA,
   alternates: { types: RSS_ALTERNATE },
+  /*
+   * Google's own site-ownership tag. The AdSense loader is no longer in the
+   * server HTML (it is injected per visit, see AdsenseLoader), so this meta
+   * tag is what AdSense's site check finds instead.
+   */
+  ...(ADSENSE_CLIENT ? { other: { 'google-adsense-account': ADSENSE_CLIENT } } : {}),
 };
 
 export const viewport: Viewport = {
@@ -114,21 +121,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
         />
         {/*
-         * The AdSense loader is lazyOnload: it comes down after the page is
-         * interactive and stays out of LCP (spec 13, 14.4). If ADSENSE_CLIENT is
-         * empty it is not emitted at all — before approval the site runs ad-free.
+         * The AdSense loader decides in the browser whether this visit may load
+         * ads at all (owner, bots, non-production hosts are kept out) — see
+         * lib/ads.ts. If ADSENSE_CLIENT is empty it is not emitted at all.
          */}
-        {ADSENSE_CLIENT ? (
-          <Script
-            id="adsense"
-            strategy="lazyOnload"
-            crossOrigin="anonymous"
-            src={
-              'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' +
-              ADSENSE_CLIENT
-            }
-          />
-        ) : null}
+        <AdsenseLoader />
         {/*
          * Cloudflare Web Analytics — page counts only, no cookie and no
          * per-visitor trail. The privacy page has promised this since it was

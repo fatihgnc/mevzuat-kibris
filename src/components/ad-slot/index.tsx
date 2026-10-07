@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { adsAllowed } from '@/lib/ads';
 import { ADSENSE_CLIENT } from '@/lib/seo/config';
 import { cn } from '@/lib/utils';
 
@@ -44,12 +45,18 @@ interface AdSlotProps {
 export function AdSlot({ kind, slotId, className }: AdSlotProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  // null until mounted: adsAllowed() reads the browser, and the server cannot know the answer.
+  const [allowed, setAllowed] = useState<boolean | null>(null);
   const size = SIZES[kind];
   const configured = Boolean(ADSENSE_CLIENT && slotId);
 
   useEffect(() => {
+    setAllowed(adsAllowed());
+  }, []);
+
+  useEffect(() => {
     const node = ref.current;
-    if (!node || !ADSENSE_CLIENT || !slotId) return;
+    if (!node || !ADSENSE_CLIENT || !slotId || !allowed) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -63,7 +70,7 @@ export function AdSlot({ kind, slotId, className }: AdSlotProps) {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [slotId]);
+  }, [slotId, allowed]);
 
   useEffect(() => {
     if (!visible) return;
@@ -82,6 +89,8 @@ export function AdSlot({ kind, slotId, className }: AdSlotProps) {
    * bail out on their own when there is no slot, so this costs nothing.
    */
   if (!configured && process.env.NODE_ENV !== 'development') return null;
+  // A visit kept away from AdSense (owner, bot, non-production host) gets no reserved hole either.
+  if (configured && allowed === false) return null;
 
   return (
     <div
