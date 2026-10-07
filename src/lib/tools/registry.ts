@@ -376,7 +376,7 @@ export const TOOLS: readonly Tool[] = [
     description:
       'KKTC’ye araç ithalatında ödenecek vergiler: otomobil, klasik araç, pikap, kamyon ve motosiklette menşe ve motor hacmine göre gümrük vergisi, Fiyat İstikrar Fonu, %4,4 rıhtım harcı, %2,5 Güvenlik Kuvvetleri payı, KDV, kayıt harcı ve ilk yıl seyrüseferi Resmî Gazete’deki güncel oranlarla hesaplayın; engelli muafiyetlerini ve yaş sınırını kontrol edin.',
     intro:
-      'KKTC’de otomobilde motor hacmine göre alınan ayrı bir tüketim vergisi yok; o yükü Fiyat İstikrar Fonu taşıyor ve oranları yılda birkaç kez değişiyor. Bu araç bütün kalemleri CİF değeri üzerinden, her birinin dayandığı Resmî Gazete kaydıyla hesaplıyor; pikap, kamyon ve motosikletin kendi oranları, klasik araç kuralları, yeni iş aracı muafiyetleri, engelli muafiyetleri ve yerleşmeye gelenlerin yaş istisnası da dahil.',
+      'KKTC’de otomobilde motor hacmine göre alınan ayrı bir tüketim vergisi yok; o yükü Fiyat İstikrar Fonu taşıyor ve oranları yılda birkaç kez değişiyor. Bu araç bütün kalemleri CİF değeri üzerinden, her birinin dayandığı Resmî Gazete kaydıyla hesaplıyor; pikap, kamyon ve motosikletin kendi oranları, klasik araç kuralları, yabancılar için geçici “ZZ” kaydı, yeni iş aracı muafiyetleri, engelli muafiyetleri ve yerleşmeye gelenlerin yaş istisnası da dahil.',
     legal: [
       {
         law: 'Gümrük Vergi Oranları (Değişiklik) Tüzüğü',
@@ -401,6 +401,18 @@ export const TOOLS: readonly Tool[] = [
         article: '87.03 istisna (a)',
         summary:
           'Eski Eserler ve Müzeler Dairesi onayıyla klasik araba kapsamına giren, 25 yaşını doldurmuş araçlardan mevcut oranlar dikkate alınmaksızın araç başına 750 TL spesifik ve %6 ad valorem fon alınır.',
+      },
+      {
+        law: '2026 Fiyat İstikrar Fonu (Fona Yatırılacak Miktarlar) (Değişiklik) Emirnamesi',
+        article: '87.03 özel kural (f)',
+        summary:
+          'KKTC’ye geçici süreyle giren ve “ZZ” geçici kaydı yapılacak araçlara ithalde uygulanan fon oranlarının %50’si uygulanır. Koşullar: 396/96 Geçici İthaller (Özel Taşıt Araçları) Tüzüğü uygulanır; kişi yabancı uyruklu olmalı, çift uyruklular yararlanamaz; Muhaceret Dairesi’nin ikamet ve çalışma izinleri ibraz edilir; araç ihraç ülkesinde kendi adına kayıtlı değilse fona %6 eklenir. ZZ kayıtlı araç başka bir hak sahibine fon alınmadan devredilebilir.',
+      },
+      {
+        law: '37/1983 Gümrük ve İstihsal Yasası',
+        article: 'Madde 34',
+        summary:
+          'Bakanlar Kurulu’nun tüzükle belirlediği hallerde, tekrar ihraç edilmek üzere ithal edilen mallar Müdürün koyacağı koşullarla gümrük vergisi alınmadan girebilir. Geçici İthaller (Özel Taşıt Araçları) Tüzüğü bu madde altında yapılmıştır; KDV Yasası 16(1)(Ç) bu tüzükler kapsamındaki geçici ithalatı KDV’den istisna eder.',
       },
       {
         law: '2026 Fiyat İstikrar Fonu (Fona Yatırılacak Miktarlar) (Değişiklik) Emirnamesi',
@@ -449,6 +461,12 @@ export const TOOLS: readonly Tool[] = [
         article: 'III. Cetvel, Başlık 1, Yan Başlık 10',
         summary:
           'Ortopedik (%50 ve üzeri), görme (%50 ve üzeri), nörolojik kaynaklı (%45 ve üzeri) engelliler ile spastik, Down sendromlu, görme ve zihinsel engellilerin aileleri; silindir hacmi 3000 cm³’ü ve CİF değeri 30.000 £’u geçmeyen veya elektrikli bir binek araç için gümrük vergisinden muaf. Gümrüksüz başka aracı olan yararlanamaz; hak kayıttan üç yıl sonra yenilenir (A.E. 861, 17.09.2026). Yedi yıl dolmadan satışta vergiler alınır (Tarife Yasası 13(3)).',
+      },
+      {
+        law: '28/1983 Diplomatik Hak, Dokunulmazlık ve Ayrıcalıklar Yasası',
+        article: 'Madde 16(3)',
+        summary:
+          'Diplomatik ajanın veya ailesinin özel kullanımı için, mütekabiliyetin gerektirdiği sayıda, mütekabiliyet yoksa yalnızca bir binek araba gümrük vergi, resim ve harçlarından muaf ithal edilebilir; KDV Yasası 16(1)(B) diplomatik ithalatı KDV’den istisna eder. Yaş sınırı, diplomatik kimlik kartlı görevlilerin geçici ithal izniyle getirdiği araçlara uygulanmaz (Yaş Sınırlandırılması Tüzüğü 5(2)(C)).',
       },
       {
         law: '24/1982 Gelir Vergisi Yasası',
@@ -513,10 +531,11 @@ export const TOOLS: readonly Tool[] = [
       'Yeni iş aracı muafiyetleri (rıhtım harcı ve %0 KDV) yalnızca 87.04.21 ve 87.04.31’i, yani dizel ve benzinli 5 tona kadar araçları hariç tutuyor. Metne göre yeni hibrit ve elektrikli pikaplar da muaf sayıldı; uygulama doğrulanamadı.',
       'Klasik araçta gümrük vergisi ve KDV binek otomobil (87.03) oranlarıyla hesaplanır, çünkü fon emirnamesi klasikleri 87.03 altında sayıyor. Gümrük aracı tarihi koleksiyon eşyası (97.05) olarak sınıflandırırsa gümrük vergisi alınmaz.',
       'Kamyon özel kullanımlıdır (kendi yükünü taşıyan); “T” izinli ticari araçların farklı kayıt ve ruhsat harçları hesaplanmaz.',
+      'Geçici “ZZ” kaydında kayıt harcı olarak tüzükteki “geçici kayıt yapılacak motorlu araçlar” kalemi (18.725 TL) alınır. Rıhtım harcı ve Güçlendirme Kurumu payı toplama katılmaz: rıhtım cetvelindeki geçici ithal kategorisinin güncel tutarı internette yok, payın bu araçlardan alınıp alınmadığı da doğrulanamadı. Esas Tüzük (1996) internette yayımlanmadığı için kalış süresi ve teminat gibi koşullar hesaba girmez.',
     ],
     limitations: [
       'Otobüs ve minibüsler (87.02), TIR çekicileri (87.01), iş makineleri ve özel amaçlı taşıtlar (87.05) hesaplanmaz.',
-      'İkamet ve çalışma izni olan yabancılara geçici “ZZ” kaydı (fonun %50’si, geçici kayıt harcı 18.725 TL; Geçici İthaller (Özel Taşıt Araçları) Tüzüğü) ile diplomatlara tanınan muafiyet hesaplanmaz.',
+      'Diplomatlara tanınan muafiyet hesaplanmaz: binek araç gümrük vergi, resim ve harçlarından ve KDV’den muaf (28/1983 madde 16(3)); fonun bu muafiyete girip girmediği metinden anlaşılmıyor.',
       'Muayene, plaka, gümrük müşaviri ve liman hizmet ücretleri dahil değildir.',
       'Gümrük, faturadaki değeri yeterli görmezse kıymeti kendisi saptar; özellikle kullanılmış araçlarda vergiler buna göre değişir.',
     ],
@@ -565,6 +584,11 @@ export const TOOLS: readonly Tool[] = [
         question: 'Motosiklet ithalatında vergiler ne kadar?',
         answer:
           'Diğer ülkelerden gelen motosiklette gümrük vergisi 250 cm³’e kadar %14,5, üzeri %6; Türkiye, AB veya EFTA menşelilerde yok. Fon, bulunabilen en son değişikliğe (2010) göre 125 cm³’ün üzerinde araç başına 750 TL artı %35 (AB-EFTA-TC %23,5). KDV 200 cm³’ün üzerinde %20, altında %16, elektrikli motosiklette %5. Motosiklet de beş yaş sınırına tabi.',
+      },
+      {
+        question: 'KKTC’de çalışan yabancılar araç getirince ne öder (ZZ plaka)?',
+        answer:
+          'İkamet ve çalışma izni olan yabancı uyruklu kişi aracını geçici ithal ederek “ZZ” geçici kaydı yaptırabilir; çift uyruklular yararlanamaz. Gümrük vergisi ve KDV alınmaz, Fiyat İstikrar Fonu normal oranın yarısıdır; araç ihraç ülkesinde kişinin adına kayıtlı değilse fona %6 eklenir. Geçici kayıt harcı 18.725 TL. Rıhtım harcı ve Güçlendirme Kurumu payının uygulanışını Gümrük’e sorun.',
       },
       {
         question: 'Engelliler araç ithalatında hangi vergilerden muaf?',

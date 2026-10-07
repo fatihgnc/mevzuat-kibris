@@ -97,6 +97,8 @@ const schema = z
     resettling: z.boolean(),
     classic: z.boolean(),
     builtBy1983: z.boolean(),
+    temporary: z.boolean(),
+    notOwnName: z.boolean(),
     disability: z.enum(['none', 'orthopaedic', 'cerebral-palsy-down', 'visual-mental', 'neurological']),
     adapted: z.boolean(),
     gbpRate: optionalAmount('kur'),
@@ -141,6 +143,8 @@ export function VehicleImportForm() {
   const [resettling, setResettling] = useState(false);
   const [classic, setClassic] = useState(false);
   const [builtBy1983, setBuiltBy1983] = useState(false);
+  const [temporary, setTemporary] = useState(false);
+  const [notOwnName, setNotOwnName] = useState(false);
   const [disability, setDisability] = useState<DisabilityGroup | 'none'>('none');
   const [adapted, setAdapted] = useState(false);
   const [gbpRate, setGbpRate] = useState('');
@@ -151,7 +155,8 @@ export function VehicleImportForm() {
   const motorcycle = vehicleType === 'motorcycle';
   const symbol = CURRENCIES.find((entry) => entry.value === currency)?.symbol ?? 'TL';
   const showWeight = (car && roadTax) || (pickup && doubleCab);
-  const disabled = car && disability !== 'none';
+  const zz = car && temporary;
+  const disabled = car && !zz && disability !== 'none';
 
   /* A motorcycle is petrol or electric; keep the fuel within its list. */
   const changeVehicleType = (next: VehicleType) => {
@@ -180,6 +185,8 @@ export function VehicleImportForm() {
       resettling,
       classic,
       builtBy1983,
+      temporary,
+      notOwnName,
       disability,
       adapted,
       gbpRate,
@@ -195,7 +202,9 @@ export function VehicleImportForm() {
       const isCar = values.vehicleType === 'car';
       const age = values.firstRegistration ? ageCheck(values.firstRegistration, values.arrival, limitYears) : null;
       const gbp = values.currency === 'GBP' ? rate : values.gbpRate;
-      const disabilityGroup = values.vehicleType === 'car' && values.disability !== 'none' ? values.disability : null;
+      const isTemporary = values.vehicleType === 'car' && values.temporary;
+      const disabilityGroup =
+        values.vehicleType === 'car' && !isTemporary && values.disability !== 'none' ? values.disability : null;
 
       const calculation = calculateVehicleImport({
         vehicleType: values.vehicleType,
@@ -209,8 +218,10 @@ export function VehicleImportForm() {
         weightKg: values.weightKg,
         roadTax: values.roadTax,
         motorKw: values.motorKw,
-        classic: isCar && values.classic,
-        builtBy1983: isCar && values.classic && values.builtBy1983,
+        classic: isCar && !isTemporary && values.classic,
+        builtBy1983: isCar && !isTemporary && values.classic && values.builtBy1983,
+        temporary: isTemporary,
+        notOwnName: isTemporary && values.notOwnName,
         disability: disabilityGroup
           ? { group: disabilityGroup, adapted: values.adapted, cifGbp: gbp ? cifTl / gbp : null }
           : null,
@@ -340,6 +351,24 @@ export function VehicleImportForm() {
 
         <Fieldset legend="Muafiyet ve diğer">
           {car ? (
+            <CheckboxField
+              label="Geçici kayıt (“ZZ”): ikamet ve çalışma izni olan yabancı uyrukluyum"
+              hint="Araç geçici ithal edilir: gümrük vergisi ve KDV alınmaz, fonun yarısı ödenir. Çift uyruklular yararlanamaz."
+              checked={temporary}
+              onChange={setTemporary}
+              wide
+            />
+          ) : null}
+          {zz ? (
+            <CheckboxField
+              label="Araç, ihraç edildiği ülkede benim adıma kayıtlı değil"
+              hint="Fona %6 eklenir (fon emirnamesi 87.03, koşul (d))."
+              checked={notOwnName}
+              onChange={setNotOwnName}
+              wide
+            />
+          ) : null}
+          {car && !zz ? (
             <>
               <CheckboxField
                 label="Klasik araç (25 yaşını doldurmuş, Eski Eserler ve Müzeler Dairesi onaylı)"
@@ -420,6 +449,14 @@ export function VehicleImportForm() {
 
         {result ? (
           <>
+            {result.temporary ? (
+              <ToolNotice tone="notice">
+                Geçici kayıtta rıhtım harcı ve Güçlendirme Kurumu payı toplama katılmadı: rıhtım harcının geçici ithal
+                edilen araçlar için güncel tutarı ve payın bu araçlardan alınıp alınmadığı birincil kaynaktan
+                doğrulanamadı. Pay alınıyorsa {formatCurrency(result.temporaryGkkIfCharged ?? 0)} eklenir. Araç
+                Geçici İthaller (Özel Taşıt Araçları) Tüzüğü koşullarıyla kalır; ikamet ve çalışma izinleri istenir.
+              </ToolNotice>
+            ) : null}
             {result.classicUnavailable ? <ToolNotice tone="notice">{result.classicUnavailable}</ToolNotice> : null}
             {result.classic ? (
               <ToolNotice tone="info">

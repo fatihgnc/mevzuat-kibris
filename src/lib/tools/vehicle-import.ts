@@ -46,6 +46,13 @@
  *    (KDV Oranları Tüzüğü Cetvel I item 23, as rewritten by A.E. 920/2026).
  *    Read literally, this also covers new hybrid (87.04.41, 87.04.51) and
  *    electric (87.04.60) pickups.
+ *  - Temporary "ZZ" registration of a car owned by a foreign national with
+ *    residence and work permits: no customs duty (Gümrük ve İstihsal Yasası
+ *    section 34 and the 1996 Geçici İthaller (Özel Taşıt Araçları) Tüzüğü),
+ *    no VAT (KDV Yasası 16(1)(Ç)), half the FİF (87.03 special rule (f)),
+ *    plus 6% when the car is not registered in the owner's name abroad
+ *    (condition (d)), and the temporary registration fee of A.E. 388/2026,
+ *    Kısım I II(1)(f)(i).
  *  - Classic cars: FİF 87.03 exception (a), a specific 750 TL plus 6% for a
  *    car of 25 or more approved by the Eski Eserler ve Müzeler Dairesi; Yaş
  *    Sınırlandırılması Tüzüğü 5(2)(A) lifts the age limit; the road tax is
@@ -168,6 +175,10 @@ export const VEHICLE_IMPORT_RATES = {
   /** Cetvel V item 7 covers motorcycles over 200 cm³; smaller ones fall to Cetvel IV. */
   vat: { car: 20, other: 16, electric: 5, motorcycleOver200: 20 },
   registration: { standard: 6, electricOrHybrid: 4 },
+  /** "ZZ" temporary registration: share of the FİF paid, and the extra rate when not owned abroad. */
+  temporaryFif: { share: 0.5, notOwnNameExtra: 6 },
+  /** Kısım I II(1)(f)(i), "Geçici kayıt yapılacak motorlu araçlar", TL. */
+  temporaryRegistrationTl: 18_725,
   importWithholding: 4,
 } as const;
 
@@ -259,6 +270,13 @@ export interface VehicleImportInput {
   classic?: boolean;
   /** Classic cars: built up to 31.12.1983, for the road tax relief. */
   builtBy1983?: boolean;
+  /**
+   * Temporary "ZZ" registration for a foreign national with residence and
+   * work permits; cars only.
+   */
+  temporary?: boolean;
+  /** "ZZ" registration: the car is not registered in the owner's name in the exporting country. */
+  notOwnName?: boolean;
   /** Pickups: double cab (carries passengers too). */
   doubleCab?: boolean;
   /** Unladen weight in kg: double-cab FİF limit and the car road tax. */
@@ -316,6 +334,13 @@ export interface VehicleImportResult {
   classicUnavailable: string | null;
   /** The new work vehicle wharf and VAT exemptions were applied. */
   newWorkVehicle: boolean;
+  /** The "ZZ" temporary registration rules were applied. */
+  temporary: boolean;
+  /**
+   * "ZZ" registration: the Güçlendirme Kurumu share, left out of the total
+   * because it could not be confirmed for temporary imports.
+   */
+  temporaryGkkIfCharged: number | null;
 }
 
 function round(value: number): number {
@@ -529,7 +554,9 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
   const vehicleType = input.vehicleType ?? 'car';
   const electric = input.fuel === 'electric';
   const rates = VEHICLE_IMPORT_RATES;
-  const exemptions = disabilityExemptions(input);
+  /* FİF special rule (f) sits under 87.03: temporary registration is for cars. */
+  const temporary = Boolean(input.temporary) && vehicleType === 'car';
+  const exemptions = temporary ? disabilityExemptions({ ...input, disability: null }) : disabilityExemptions(input);
   const lines: ImportLine[] = [];
 
   const push = (line: ImportLine, waived: boolean, reason = 'Engelli muafiyeti.') => {
@@ -544,7 +571,7 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
   } else if (input.classic && (ageYears === null || ageYears < classicLimit)) {
     classicUnavailable = `Klasik araç kuralı ${classicLimit} yaşını doldurmuş araçlar için; ilk kayıt tarihini kontrol edin.`;
   }
-  const classic = Boolean(input.classic) && classicUnavailable === null;
+  const classic = Boolean(input.classic) && classicUnavailable === null && !temporary;
   const newWorkVehicle = isNewWorkVehicle(vehicleType, input.fuel, ageYears);
 
   const customs = customsRate(input.fuel, input.engineCc, input.origin, vehicleType);
@@ -557,7 +584,8 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
       amount: percentOf(cif, customs),
       note: input.origin === 'other' ? 'Genel sütun.' : 'AB-EFTA sütunu: menşe ve dolaşım belgesiyle.',
     },
-    exemptions.customs,
+    exemptions.customs || temporary,
+    temporary ? 'Geçici ithal (Gümrük ve İstihsal Yasası madde 34).' : undefined,
   );
 
   const moto = vehicleType === 'motorcycle' ? motorcycleFif(input.fuel, input.engineCc, input.origin) : null;
@@ -565,13 +593,21 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     ? { rate: rates.classicFif.rate, specificTl: rates.classicFif.specificTl, row: '87.03 istisna (a), klasik araç' }
     : null;
   const specific = moto ?? classicFif;
-  const fif =
+  const baseFif =
     classicFif ??
     (vehicleType === 'pickup'
       ? pickupFifRate(input.origin, ageYears)
       : vehicleType === 'truck'
         ? truckFifRate(input.origin, ageYears)
         : (moto ?? fifRate(input.fuel, input.engineCc, input.origin)));
+  const fif = temporary
+    ? {
+        rate:
+          Math.round(baseFif.rate * rates.temporaryFif.share * 1000) / 1000 +
+          (input.notOwnName ? rates.temporaryFif.notOwnNameExtra : 0),
+        row: `${baseFif.row}; özel kural (f) “ZZ”: %50${input.notOwnName ? ', kendi adına kayıtlı değil: +%6' : ''}`,
+      }
+    : baseFif;
   push(
     {
       key: 'fif',
@@ -608,22 +644,29 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     });
   }
 
-  push(
-    { key: 'wharf', label: 'Rıhtım harcı', base: cif, rate: rates.wharf, amount: percentOf(cif, rates.wharf) },
-    newWorkVehicle,
-    'Yeni iş aracı (A.E. 176/2019, madde 24).',
-  );
+  /*
+   * The wharf fee category for temporary imports is a fixed amount whose
+   * current value is not online, and the Güçlendirme Kurumu share on them
+   * could not be confirmed; both are left out of a "ZZ" total.
+   */
+  if (!temporary) {
+    push(
+      { key: 'wharf', label: 'Rıhtım harcı', base: cif, rate: rates.wharf, amount: percentOf(cif, rates.wharf) },
+      newWorkVehicle,
+      'Yeni iş aracı (A.E. 176/2019, madde 24).',
+    );
 
-  push(
-    {
-      key: 'gkk',
-      label: 'Güvenlik Kuvvetlerini Güçlendirme Kurumu payı',
-      base: cif,
-      rate: rates.gkkShare,
-      amount: percentOf(cif, rates.gkkShare),
-    },
-    exemptions.gkk,
-  );
+    push(
+      {
+        key: 'gkk',
+        label: 'Güvenlik Kuvvetlerini Güçlendirme Kurumu payı',
+        base: cif,
+        rate: rates.gkkShare,
+        amount: percentOf(cif, rates.gkkShare),
+      },
+      exemptions.gkk,
+    );
+  }
 
   /* KDV section 21(2): everything paid on import except the 31(4) withholding. */
   const vatBase = round(cif + lines.reduce((sum, line) => sum + line.amount, 0));
@@ -639,7 +682,8 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     });
   }
 
-  const vatRate = newWorkVehicle
+  const vatRate =
+    newWorkVehicle || temporary
     ? 0
     : electric
       ? rates.vat.electric
@@ -648,32 +692,45 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
         : vehicleType === 'motorcycle' && (input.engineCc ?? 0) > 200
           ? rates.vat.motorcycleOver200
           : rates.vat.other;
-  lines.push({
-    key: 'vat',
-    label: 'KDV',
-    base: vatBase,
-    rate: vatRate,
-    amount: percentOf(vatBase, vatRate),
-    note: newWorkVehicle
-      ? 'Yeni iş aracı: KDV Oranları Tüzüğü Cetvel I madde 23, %0.'
-      : 'Matrah: CİF ile ithalatta ödenen vergi, harç, pay ve fonların toplamı.',
-  });
+  push(
+    {
+      key: 'vat',
+      label: 'KDV',
+      base: vatBase,
+      rate: vatRate,
+      amount: percentOf(vatBase, vatRate),
+      note: newWorkVehicle
+        ? 'Yeni iş aracı: KDV Oranları Tüzüğü Cetvel I madde 23, %0.'
+        : 'Matrah: CİF ile ithalatta ödenen vergi, harç, pay ve fonların toplamı.',
+    },
+    temporary,
+    'Geçici ithal (KDV Yasası madde 16(1)(Ç)).',
+  );
 
   const customsTotal = round(lines.reduce((sum, line) => sum + line.amount, 0));
 
   const registrationRate =
     electric || input.fuel === 'hybrid' ? rates.registration.electricOrHybrid : rates.registration.standard;
-  push(
-    {
+  if (temporary) {
+    lines.push({
       key: 'registration',
-      label: 'Araç kayıt harcı',
-      base: cif,
-      rate: registrationRate,
-      amount: percentOf(cif, registrationRate),
-      note: 'Gümrük vergisinin alındığı matrah üzerinden, ilk kayıtta ödenir.',
-    },
-    exemptions.registration,
-  );
+      label: 'Geçici kayıt harcı',
+      amount: rates.temporaryRegistrationTl,
+      note: 'Sabit tutar (Kayıt ve Ruhsat Harçları Tüzüğü, Kısım I II(1)(f)(i)).',
+    });
+  } else {
+    push(
+      {
+        key: 'registration',
+        label: 'Araç kayıt harcı',
+        base: cif,
+        rate: registrationRate,
+        amount: percentOf(cif, registrationRate),
+        note: 'Gümrük vergisinin alındığı matrah üzerinden, ilk kayıtta ödenir.',
+      },
+      exemptions.registration,
+    );
+  }
 
   let roadTaxUnavailable: string | null = null;
   if (input.roadTax) {
@@ -731,6 +788,8 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     classic,
     classicUnavailable,
     newWorkVehicle,
+    temporary,
+    temporaryGkkIfCharged: temporary ? percentOf(cif, rates.gkkShare) : null,
   };
 }
 

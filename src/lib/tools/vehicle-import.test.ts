@@ -374,3 +374,39 @@ describe('classic cars', () => {
     expect(line(full, 'road-tax')).toBeCloseTo(4_320 + share, 2);
   });
 });
+
+describe('temporary "ZZ" registration', () => {
+  const zzCar = {
+    cifTl: 600_000,
+    fuel: 'petrol' as const,
+    engineCc: 1_500,
+    origin: 'other' as const,
+    temporary: true,
+  };
+
+  it('waives customs and VAT, halves the FİF and charges the fixed temporary registration fee', () => {
+    const result = calculateVehicleImport(zzCar);
+    expect(result.temporary).toBe(true);
+    expect(line(result, 'customs')).toBe(0);
+    expect(result.lines.find((entry) => entry.key === 'fif')?.rate).toBe(1.5);
+    expect(line(result, 'fif')).toBe(9_000);
+    expect(line(result, 'wharf')).toBeUndefined();
+    expect(line(result, 'gkk')).toBeUndefined();
+    expect(line(result, 'vat')).toBe(0);
+    expect(line(result, 'registration')).toBe(18_725);
+    expect(result.total).toBe(27_725);
+    expect(result.temporaryGkkIfCharged).toBe(15_000);
+  });
+
+  it('adds 6% when the car is not registered in the owner’s name abroad', () => {
+    const result = calculateVehicleImport({ ...zzCar, notOwnName: true });
+    expect(result.lines.find((entry) => entry.key === 'fif')?.rate).toBe(7.5);
+    expect(result.total).toBe(63_725);
+  });
+
+  it('applies to cars only', () => {
+    const result = calculateVehicleImport({ ...zzCar, vehicleType: 'pickup' });
+    expect(result.temporary).toBe(false);
+    expect(result.temporaryGkkIfCharged).toBeNull();
+  });
+});
