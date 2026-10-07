@@ -21,12 +21,16 @@ import { formatDate, toDateInputValue } from '@/lib/tools/duration';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/tools/format';
 import { optionalAmount, optionalDate, requiredAmount, requiredDate } from '@/lib/tools/validation';
 import {
+  AGE_LIMITS,
   ageCheck,
   calculateVehicleImport,
-  MAX_AGE_YEARS,
+  DISABILITY_LIMITS,
+  VEHICLE_IMPORT_RATES,
+  type DisabilityGroup,
   type Fuel,
   type ImportLine,
   type Origin,
+  type VehicleType,
 } from '@/lib/tools/vehicle-import';
 
 type Currency = 'TRY' | 'GBP' | 'EUR' | 'USD' | 'JPY';
@@ -39,11 +43,22 @@ const CURRENCIES: ReadonlyArray<{ value: Currency; label: string; symbol: string
   { value: 'TRY', label: 'Türk lirası (TL)', symbol: 'TL' },
 ];
 
+const VEHICLE_TYPES: ReadonlyArray<{ value: VehicleType; label: string }> = [
+  { value: 'car', label: 'Binek otomobil' },
+  { value: 'pickup', label: 'Pikap / kamyonet (5 tona kadar)' },
+  { value: 'motorcycle', label: 'Motosiklet' },
+];
+
 const FUELS: ReadonlyArray<{ value: Fuel; label: string }> = [
   { value: 'petrol', label: 'Benzinli' },
   { value: 'diesel', label: 'Dizel' },
   { value: 'hybrid', label: 'Hibrit (şarj edilebilir dahil)' },
   { value: 'electric', label: 'Tamamen elektrikli' },
+];
+
+const MOTORCYCLE_FUELS: ReadonlyArray<{ value: Fuel; label: string }> = [
+  { value: 'petrol', label: 'Benzinli' },
+  { value: 'electric', label: 'Elektrikli' },
 ];
 
 const ORIGINS: ReadonlyArray<{ value: Origin; label: string }> = [
@@ -52,8 +67,17 @@ const ORIGINS: ReadonlyArray<{ value: Origin; label: string }> = [
   { value: 'tc', label: 'Türkiye (menşe belgesiyle)' },
 ];
 
+const DISABILITY: ReadonlyArray<{ value: DisabilityGroup | 'none'; label: string }> = [
+  { value: 'none', label: 'Yok' },
+  { value: 'orthopaedic', label: 'Ortopedik engelli (%50 ve üzeri), kendisi ithal ediyor' },
+  { value: 'cerebral-palsy-down', label: 'Spastik veya Down sendromlu kişinin ailesi' },
+  { value: 'visual-mental', label: 'Görme engelli (%50 ve üzeri) veya görme/zihinsel engellinin ailesi' },
+  { value: 'neurological', label: 'Nörolojik kaynaklı fiziksel engelli (%45 ve üzeri) veya ailesi' },
+];
+
 const schema = z
   .object({
+    vehicleType: z.enum(['car', 'pickup', 'motorcycle']),
     currency: z.enum(['TRY', 'GBP', 'EUR', 'USD', 'JPY']),
     exchangeRate: optionalAmount('kur'),
     price: requiredAmount('Fatura bedelini girin.'),
@@ -62,9 +86,17 @@ const schema = z
     fuel: z.enum(['petrol', 'diesel', 'hybrid', 'electric']),
     engineCc: optionalAmount('silindir hacmi'),
     origin: z.enum(['tc', 'eu', 'other']),
+    doubleCab: z.boolean(),
+    weightKg: optionalAmount('ağırlık'),
+    motorKw: optionalAmount('motor gücü'),
     commercial: z.boolean(),
+    roadTax: z.boolean(),
     firstRegistration: optionalDate(),
     arrival: requiredDate('Limana varış tarihini girin.'),
+    resettling: z.boolean(),
+    disability: z.enum(['none', 'orthopaedic', 'cerebral-palsy-down', 'visual-mental', 'neurological']),
+    adapted: z.boolean(),
+    gbpRate: optionalAmount('kur'),
   })
   .superRefine((values, ctx) => {
     if (values.currency !== 'TRY' && !values.exchangeRate) {
@@ -75,15 +107,19 @@ const schema = z
     }
   });
 
-function lineHint(line: ImportLine): string {
-  const parts = [`${formatCurrency(line.base)} × ${formatPercent(line.rate)}`];
+function lineHint(line: ImportLine): string | undefined {
+  const parts: string[] = [];
+  if (line.base !== undefined && line.rate !== undefined && !line.exempt) {
+    parts.push(`${formatCurrency(line.base)} × ${formatPercent(line.rate)}`);
+  }
   if (line.note) parts.push(line.note);
-  return parts.join(' — ');
+  return parts.length ? parts.join(' — ') : undefined;
 }
 
 export function VehicleImportForm() {
   const today = toDateInputValue(new Date());
 
+  const [vehicleType, setVehicleType] = useState<VehicleType>('car');
   const [currency, setCurrency] = useState<Currency>('GBP');
   const [exchangeRate, setExchangeRate] = useState('');
   const [price, setPrice] = useState('');
@@ -92,14 +128,34 @@ export function VehicleImportForm() {
   const [fuel, setFuel] = useState<Fuel>('petrol');
   const [engineCc, setEngineCc] = useState('');
   const [origin, setOrigin] = useState<Origin>('other');
+  const [doubleCab, setDoubleCab] = useState(true);
+  const [weightKg, setWeightKg] = useState('');
+  const [motorKw, setMotorKw] = useState('');
   const [commercial, setCommercial] = useState(false);
+  const [roadTax, setRoadTax] = useState(false);
   const [firstRegistration, setFirstRegistration] = useState('');
   const [arrival, setArrival] = useState(today);
+  const [resettling, setResettling] = useState(false);
+  const [disability, setDisability] = useState<DisabilityGroup | 'none'>('none');
+  const [adapted, setAdapted] = useState(false);
+  const [gbpRate, setGbpRate] = useState('');
 
+  const car = vehicleType === 'car';
+  const pickup = vehicleType === 'pickup';
+  const motorcycle = vehicleType === 'motorcycle';
   const symbol = CURRENCIES.find((entry) => entry.value === currency)?.symbol ?? 'TL';
+  const showWeight = (car && roadTax) || (pickup && doubleCab);
+  const disabled = car && disability !== 'none';
+
+  /* A motorcycle is petrol or electric; keep the fuel within its list. */
+  const changeVehicleType = (next: VehicleType) => {
+    setVehicleType(next);
+    if (next === 'motorcycle' && (fuel === 'diesel' || fuel === 'hybrid')) setFuel('petrol');
+  };
 
   const { errors, result, stale, onSubmit, resultRef } = useCalculator({
     values: {
+      vehicleType,
       currency,
       exchangeRate,
       price,
@@ -108,26 +164,55 @@ export function VehicleImportForm() {
       fuel,
       engineCc,
       origin,
+      doubleCab,
+      weightKg,
+      motorKw,
       commercial,
+      roadTax,
       firstRegistration,
       arrival,
+      resettling,
+      disability,
+      adapted,
+      gbpRate,
     },
     schema,
     calculate: (values) => {
       const rate = values.currency === 'TRY' ? 1 : values.exchangeRate ?? 1;
       const cifForeign = values.price + (values.freight ?? 0) + (values.insurance ?? 0);
+      const cifTl = cifForeign * rate;
+      const isPickup = values.vehicleType === 'pickup';
+      const limitYears = isPickup && !values.doubleCab ? AGE_LIMITS.work : AGE_LIMITS.passenger;
+      const age = values.firstRegistration ? ageCheck(values.firstRegistration, values.arrival, limitYears) : null;
+      const gbp = values.currency === 'GBP' ? rate : values.gbpRate;
+      const disabilityGroup = values.vehicleType === 'car' && values.disability !== 'none' ? values.disability : null;
+
       const calculation = calculateVehicleImport({
-        cifTl: cifForeign * rate,
+        vehicleType: values.vehicleType,
+        cifTl,
         fuel: values.fuel,
         engineCc: values.fuel === 'electric' ? null : values.engineCc,
         origin: values.origin,
         commercial: values.commercial,
+        ageYears: age ? age.ageYears : null,
+        doubleCab: isPickup && values.doubleCab,
+        weightKg: values.weightKg,
+        roadTax: values.roadTax,
+        motorKw: values.motorKw,
+        disability: disabilityGroup
+          ? { group: disabilityGroup, adapted: values.adapted, cifGbp: gbp ? cifTl / gbp : null }
+          : null,
       });
       return {
         ...calculation,
+        vehicleType: values.vehicleType,
+        origin: values.origin,
         currency: values.currency,
         rate,
-        age: values.firstRegistration ? ageCheck(values.firstRegistration, values.arrival) : null,
+        age,
+        limitYears,
+        resettling: values.resettling,
+        disabled: disabilityGroup !== null,
         missingFreight: values.freight === null || values.insurance === null,
       };
     },
@@ -144,11 +229,23 @@ export function VehicleImportForm() {
     <>
       <ToolForm onSubmit={onSubmit}>
         <Fieldset legend="Araç">
-          <SelectField label="Yakıt türü" value={fuel} onChange={setFuel} options={FUELS} />
+          <SelectField label="Araç türü" value={vehicleType} onChange={changeVehicleType} options={VEHICLE_TYPES} />
+          <SelectField
+            label="Yakıt türü"
+            value={fuel}
+            onChange={setFuel}
+            options={motorcycle ? MOTORCYCLE_FUELS : FUELS}
+          />
           {fuel !== 'electric' ? (
             <NumberField
               label="Silindir hacmi"
-              hint="Ruhsattaki motor hacmi. Fon oranı 2000 ve 3000 cm³’ü geçince artıyor; gümrük vergisi muafiyeti benzinlide 2000, dizelde 2500 cm³’e kadar."
+              hint={
+                car
+                  ? 'Ruhsattaki motor hacmi. Fon oranı 2000 ve 3000 cm³’ü geçince artıyor; gümrük vergisi muafiyeti benzinlide 2000, dizelde 2500 cm³’e kadar.'
+                  : pickup
+                    ? 'Genel sütunda gümrük vergisi dizelde 2500, benzinlide 2800 cm³’ü geçince %10’dan %22’ye çıkıyor.'
+                    : 'Fon 80 ve 125 cm³’te, gümrük vergisi 250 cm³’te, KDV 200 cm³’te değişiyor.'
+              }
               error={errors.engineCc}
               value={engineCc}
               onChange={setEngineCc}
@@ -163,6 +260,25 @@ export function VehicleImportForm() {
             options={ORIGINS}
             wide
           />
+          {pickup ? (
+            <CheckboxField
+              label="Çift kabin (yolcu da taşıyor)"
+              hint={`Çift kabin ${AGE_LIMITS.passenger} yaş, yalnızca yük taşıyan tek kabin ${AGE_LIMITS.work} yaş sınırına tabi; ${VEHICLE_IMPORT_RATES.pickupFif.doubleCabMaxKg} kg’a kadar çift kabinde ${formatCurrency(VEHICLE_IMPORT_RATES.pickupFif.doubleCabSpecificTl)} ek fon alınır.`}
+              checked={doubleCab}
+              onChange={setDoubleCab}
+              wide
+            />
+          ) : null}
+          {showWeight ? (
+            <NumberField
+              label="Boş ağırlık"
+              hint={car ? 'Seyrüsefer ağırlığa göre hesaplanır.' : 'Çift kabin ek fonunun ağırlık sınırı için.'}
+              error={errors.weightKg}
+              value={weightKg}
+              onChange={setWeightKg}
+              suffix="kg"
+            />
+          ) : null}
         </Fieldset>
 
         <Fieldset legend="Değer (CİF)">
@@ -177,13 +293,7 @@ export function VehicleImportForm() {
               suffix="TL"
             />
           ) : null}
-          <NumberField
-            label="Fatura bedeli"
-            error={errors.price}
-            value={price}
-            onChange={setPrice}
-            suffix={symbol}
-          />
+          <NumberField label="Fatura bedeli" error={errors.price} value={price} onChange={setPrice} suffix={symbol} />
           <NumberField
             label="Navlun (nakliye)"
             hint="Limana kadar taşıma bedeli. Vergiler navlun ve sigorta dahil değer (CİF) üzerinden alınır."
@@ -192,30 +302,79 @@ export function VehicleImportForm() {
             onChange={setFreight}
             suffix={symbol}
           />
-          <NumberField
-            label="Sigorta"
-            error={errors.insurance}
-            value={insurance}
-            onChange={setInsurance}
-            suffix={symbol}
-          />
+          <NumberField label="Sigorta" error={errors.insurance} value={insurance} onChange={setInsurance} suffix={symbol} />
         </Fieldset>
 
-        <Fieldset legend="Yaş sınırı ve ithalatçı">
+        <Fieldset legend="Yaş sınırı">
           <DateField
-            label="İlk kayıt tarihi (kullanılmış araçta)"
-            hint={`Binek otomobil, limana vardığında ilk kayıt tarihinden itibaren ${MAX_AGE_YEARS} yaşını doldurmuşsa ithal izni verilmez.`}
+            label="İlk kayıt tarihi (kullanılmışsa)"
+            hint="Boş bırakılırsa yeni araç sayılır. Araç, limana vardığında ilk kayıttan itibaren yaş sınırını doldurmuşsa ithal izni verilmez."
             error={errors.firstRegistration}
             value={firstRegistration}
             onChange={setFirstRegistration}
             max={today}
           />
-          <DateField
-            label="Limana varış tarihi"
-            error={errors.arrival}
-            value={arrival}
-            onChange={setArrival}
+          <DateField label="Limana varış tarihi" error={errors.arrival} value={arrival} onChange={setArrival} />
+          <CheckboxField
+            label="Yerleşmeye geliyorum; araç benim adıma kayıtlı"
+            hint="Yerleşmeye gelen kişi, gümrüğe gelmeden önce kendi adına kayıtlı aracını bir defaya mahsus yaş sınırı olmadan getirebilir (Yaş Sınırlandırılması Tüzüğü madde 6). Vergiler değişmez."
+            checked={resettling}
+            onChange={setResettling}
+            wide
           />
+        </Fieldset>
+
+        <Fieldset legend="Muafiyet ve diğer">
+          {car ? (
+            <>
+              <SelectField
+                label="Engelli muafiyeti"
+                hint={`Devlet Sağlık Kurulu raporu gerekir. Gümrük vergisi muafiyeti ${DISABILITY_LIMITS.customsMaxCc} cm³’e ve ${DISABILITY_LIMITS.customsMaxCifGbp.toLocaleString('tr-TR')} £ CİF’e kadar; fon ve kayıt harcı muafiyeti ${DISABILITY_LIMITS.smallCarMaxCc} cm³’e kadar.`}
+                value={disability}
+                onChange={setDisability}
+                options={DISABILITY}
+                wide
+              />
+              {disabled ? (
+                <>
+                  <CheckboxField
+                    label="Araç engelliye özel imal veya donanımlı (özel teçhizat, rampa, vinç) ve onun adına gümrükleniyor"
+                    hint="Güçlendirme Kurumu payı muafiyeti ve bazı gruplarda kayıt harcı muafiyeti bu koşula bağlı."
+                    checked={adapted}
+                    onChange={setAdapted}
+                    wide
+                  />
+                  {currency !== 'GBP' ? (
+                    <NumberField
+                      label="1 £ kaç TL (30.000 £ sınırı için)"
+                      hint="Girilmezse CİF sınırı kontrol edilmez."
+                      error={errors.gbpRate}
+                      value={gbpRate}
+                      onChange={setGbpRate}
+                      suffix="TL"
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : null}
+          <CheckboxField
+            label="İlk yıl seyrüseferi (yol vergisi) ekle"
+            hint="Yıllık ruhsat harcı; ithalat vergisi değil ama ilk kayıtta ödenir."
+            checked={roadTax}
+            onChange={setRoadTax}
+            wide
+          />
+          {roadTax && motorcycle && fuel === 'electric' ? (
+            <NumberField
+              label="Motor gücü"
+              hint="Elektrikli motosikletin seyrüseferi güce göre."
+              error={errors.motorKw}
+              value={motorKw}
+              onChange={setMotorKw}
+              suffix="kW"
+            />
+          ) : null}
           <CheckboxField
             label="Ticari ithalat (galeri, satış amacıyla)"
             hint="Kişisel kullanım için getirilen araçta yapılmayan %4 gelir vergisi stopajını ekler."
@@ -231,33 +390,62 @@ export function VehicleImportForm() {
 
         {result ? (
           <>
-            {result.age && !result.age.allowed ? (
+            {result.age && !result.age.allowed && !result.resettling ? (
               <ToolNotice tone="danger">
-                Bu araç {formatDate(result.age.limitDate)} tarihinde {MAX_AGE_YEARS} yaşını dolduruyor; girdiğiniz
-                varış tarihinde ithal izni verilmez. Sağ direksiyon zorunluluğu da ayrıca aranır. Yerleşmeye
-                gelenlerin kendi adına kayıtlı aracı gibi istisnalar için Yaş Sınırlandırılması Tüzüğü’ne bakın.
+                Bu araç {formatDate(result.age.limitDate)} tarihinde {result.limitYears} yaşını dolduruyor; girdiğiniz
+                varış tarihinde ithal izni verilmez. Yerleşmeye gelenlerin kendi adına kayıtlı aracı gibi istisnalar
+                için Yaş Sınırlandırılması Tüzüğü’ne bakın.
               </ToolNotice>
             ) : null}
-            {result.age && result.age.allowed ? (
+            {result.age && (result.age.allowed || result.resettling) ? (
               <ToolNotice tone="info">
-                Yaş sınırı: araç {formatDate(result.age.limitDate)} tarihinde {MAX_AGE_YEARS} yaşını dolduruyor;
-                bu tarihten önce limana varmalı. Sol direksiyon araçlara ithal izni verilmez.
+                {result.resettling
+                  ? 'Yerleşmeye gelen kişinin kendi adına kayıtlı aracı için yaş sınırı bir defaya mahsus uygulanmaz.'
+                  : `Yaş sınırı: araç ${formatDate(result.age.limitDate)} tarihinde ${result.limitYears} yaşını dolduruyor; bu tarihten önce limana varmalı.`}{' '}
+                Sol direksiyon araçlara ithal izni verilmez.
               </ToolNotice>
             ) : null}
+            {result.disabled ? (
+              <ToolNotice tone="notice">
+                {result.disabilityNotes.length ? `${result.disabilityNotes.join(' ')} ` : ''}
+                Muaf ithal edilen araç {DISABILITY_LIMITS.resaleYears} yıl dolmadan satılırsa vergiler aracın son
+                değeri üzerinden alınır; hak, araç kaydedildikten {DISABILITY_LIMITS.renewYears} yıl sonra yeniden
+                kullanılabilir. Rıhtım harcı için muafiyet yok; KDV’nin alınıp alınmadığını Gümrük’e sorun (KDV Yasası
+                madde 16(1)(I)).
+              </ToolNotice>
+            ) : null}
+            {result.vehicleType === 'motorcycle' ? (
+              <ToolNotice tone="notice">
+                Motosiklet fon oranları bulunabilen en son değişiklikten (A.E. 624, 14.10.2010). 2020–2026 fon
+                emirnamelerinin hiçbiri motosiklete dokunmuyor, ancak 2013–2017 arasındaki bazı sayılar
+                indirilemediği için sonraki bir değişiklik dışlanamıyor.
+              </ToolNotice>
+            ) : null}
+            {result.vehicleType === 'pickup' && result.origin === 'tc' && !result.age ? (
+              <ToolNotice tone="info">
+                Fon emirnamesinin istisna sütunu TC menşeli yeni pikaplara %7 uyguluyor; tablonun AB-EFTA-TC sütunundaki
+                oran %5. Hesapta özel kural (%7) kullanıldı.
+              </ToolNotice>
+            ) : null}
+            {result.roadTaxUnavailable ? <ToolNotice tone="info">{result.roadTaxUnavailable}</ToolNotice> : null}
 
             <ResultPanel
               title="Sonuç"
-              note="Kesin tutarı Gümrük ve Rüsumat Dairesi belirler: kıymeti faturadan farklı saptayabilir. Fon oranları yılda birkaç kez değişiyor; yıllık seyrüsefer (yol vergisi) ayrıca ödenir."
+              note="Kesin tutarı Gümrük ve Rüsumat Dairesi belirler: kıymeti faturadan farklı saptayabilir. Fon oranları yılda birkaç kez değişiyor."
             >
               <ResultRow
                 label="CİF değeri"
                 value={formatCurrency(result.cifTl)}
-                hint={result.missingFreight ? 'Navlun veya sigorta girilmedi; gümrük bunları da değere ekler.' : inCurrency(result.cifTl)}
+                hint={
+                  result.missingFreight
+                    ? 'Navlun veya sigorta girilmedi; gümrük bunları da değere ekler.'
+                    : inCurrency(result.cifTl)
+                }
               />
               {result.lines.map((line) => (
                 <ResultRow
                   key={line.key}
-                  label={line.label}
+                  label={line.exempt ? `${line.label} (muaf)` : line.label}
                   value={formatCurrency(line.amount)}
                   hint={lineHint(line)}
                 />
