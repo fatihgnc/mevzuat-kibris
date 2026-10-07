@@ -82,7 +82,8 @@ describe('calculateTitleDeedFee — sale', () => {
     });
     expect(line(result, 'fee-contract')?.amount).toBe(600_000);
     expect(line(result, 'fee-transfer')?.amount).toBe(300_000);
-    expect(result.landOfficeTotal).toBe(900_000);
+    // Plus the 0.1% Güçlendirme Kurumu share on a foreign buyer's price.
+    expect(result.landOfficeTotal).toBe(910_000);
   });
 
   it('exempts the part of the value up to £100,000 for a first home', () => {
@@ -120,7 +121,7 @@ describe('calculateTitleDeedFee — sale', () => {
       mortgageAmount: 3_000_000,
     });
     expect(line(result, 'mortgage')?.amount).toBe(30_000);
-    expect(result.landOfficeTotal).toBe(330_000);
+    expect(result.landOfficeTotal).toBe(332_500);
   });
 
   it('adds stamp duty and VAT on the contract price, outside the land office total', () => {
@@ -134,8 +135,8 @@ describe('calculateTitleDeedFee — sale', () => {
     });
     expect(line(result, 'stamp')?.amount).toBe(25_000);
     expect(line(result, 'vat')?.amount).toBe(250_000);
-    expect(result.landOfficeTotal).toBe(360_000);
-    expect(result.total).toBe(635_000);
+    expect(result.landOfficeTotal).toBe(362_500);
+    expect(result.total).toBe(637_500);
   });
 });
 
@@ -227,7 +228,7 @@ describe('calculateTitleDeedFee — other transactions (A.E. 217/2024)', () => {
   it('adds the fixed petition and certificate fees to the land office total', () => {
     const result = calculateTitleDeedFee({ transaction: 'sale', buyer: 'kktc', amount: 1_000_000, fixedFees: true });
     expect(line(result, 'fixed')?.amount).toBe(220);
-    expect(result.landOfficeTotal).toBe(60_220);
+    expect(result.landOfficeTotal).toBe(60_720);
   });
 });
 
@@ -248,7 +249,7 @@ describe('seller income tax (24/1982 sections 4(5), 6(12), 31(1)(i)-(j))', () =>
     });
     expect(line(result, 'seller-tax')?.amount).toBe(140_000);
     expect(result.sellerTotal).toBe(140_000);
-    expect(result.total).toBe(300_000);
+    expect(result.total).toBe(302_000);
   });
 
   it('is not charged on a gift to a spouse or child, but is on a gift to a grandchild', () => {
@@ -272,7 +273,23 @@ describe('purchase permit service fee (52/2008 section 8(4))', () => {
 
   it('is not part of the land office total', () => {
     const result = calculateTitleDeedFee({ transaction: 'sale', buyer: 'foreign', amount: 1_000_000 });
-    expect(result.landOfficeTotal).toBe(90_000);
-    expect(result.total).toBe(90_000 + purchasePermitFee());
+    expect(result.landOfficeTotal).toBe(91_000);
+    expect(result.total).toBe(91_000 + purchasePermitFee());
+  });
+});
+
+describe('Güçlendirme Kurumu share (13/1981 section 6(3)(ğ), 21/2025)', () => {
+  it('takes 0.05% of the price from citizens and 0.1% from foreign buyers', () => {
+    const share = (buyer: 'kktc' | 'tc' | 'foreign') =>
+      line(calculateTitleDeedFee({ transaction: 'sale', buyer, amount: 4_000_000, marketValue: 5_000_000 }), 'gkk')
+        ?.amount;
+    expect(share('kktc')).toBe(2_000);
+    expect(share('tc')).toBe(4_000);
+    expect(share('foreign')).toBe(4_000);
+  });
+
+  it('is charged only on sales', () => {
+    const gift = calculateTitleDeedFee({ transaction: 'gift', buyer: 'kktc', amount: 1_000_000, giftRelation: 'child' });
+    expect(line(gift, 'gkk')).toBeUndefined();
   });
 });

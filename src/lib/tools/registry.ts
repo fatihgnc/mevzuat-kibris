@@ -128,6 +128,11 @@ export const TOOLS: readonly Tool[] = [
         href: '/karar/2026-ae-186-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi-tapu-ve-kadastro',
       },
       {
+        label: 'Güvenlik Kuvvetlerini Güçlendirme Kurumu (Değişiklik) Yasası — 21/2025',
+        href: '/karar/2025-x-97-2-kktc-guvenlik-kuvvetlerini-guclendirme-kurumu-degisiklik-yasasi',
+        note: 'Taşınmaz devrinde binde 0,5 / binde 1 pay',
+      },
+      {
         label: 'Pul (Değişiklik) Yasası — 2/2026',
         href: '/karar/2026-x-23-13-pul-degisiklik-yasasi',
         note: 'Sözleşme pul vergisi eşiği 89.000.000 TL',
@@ -196,6 +201,12 @@ export const TOOLS: readonly Tool[] = [
           'Taşınmaz satış kazancı, Tapu’nun saptadığı rayiç değer ile satış bedelinden yüksek olanın %20’si sayılır. Kişilerde bu kazancın %30’u vergiden muaftır (Bakanlar Kurulu her Ocak’ta %60’a kadar artırabilir); alım-satımla uğraşanlarda ve şirketlerde indirim yoktur. Tapu, devir anında kalan kazancın %20’sini keser: bedelin %2,8’i veya %4’ü. Eşe veya çocuklara bağışta ve yabancılar ile alım-satımla uğraşanlar hariç bir defaya mahsus bir ev ve bir arsanın elden çıkarılmasında kazanç aranmaz (madde 4(1)(f)(i), 31/2025 ile değişik).',
       },
       {
+        law: '13/1981 Güvenlik Kuvvetlerini Güçlendirme Kurumu Yasası',
+        article: 'Madde 6(3)(ğ)',
+        summary:
+          'Tüm taşınmaz mal devir işlemlerinde alıcı, yabancı uyruklu ise satış bedelinin binde biri, yurttaş ise binde 0,5’i oranında Güçlendirme Kurumu payı öder; Tapu tahsil eder (21/2025 ile eklendi, 9 Mayıs 2025).',
+      },
+      {
         law: '52/2008 Taşınmaz Mal Edinme ve Uzun Vadeli Kiralama (Yabancılar) Yasası',
         article: 'Madde 8(1) ve 8(4)',
         summary:
@@ -258,7 +269,7 @@ export const TOOLS: readonly Tool[] = [
       {
         question: 'KKTC’de tapu harcı yüzde kaç?',
         answer:
-          'Alıcının uyruğuna göre değişiyor. KKTC vatandaşları %6 öder; ömürde bir kez bir ev ve bir arsa için %3. TC vatandaşları ilk taşınmazda %6, ikincide %8, üçüncüde %9 öder. Diğer yabancılar her üç taşınmazda %9 öder. Oranlar A.E. 540/2024 ve A.E. 385/2025 sayılı tüzük değişikliklerinden.',
+          'Alıcının uyruğuna göre değişiyor. KKTC vatandaşları %6 öder; ömürde bir kez bir ev ve bir arsa için %3. TC vatandaşları ilk taşınmazda %6, ikincide %8, üçüncüde %9 öder. Diğer yabancılar her üç taşınmazda %9 öder. Oranlar A.E. 540/2024 ve A.E. 385/2025 sayılı tüzük değişikliklerinden. Satışta buna ek olarak, 21/2025 ile getirilen Güçlendirme Kurumu payı alınıyor: yurttaşlardan satış bedelinin binde 0,5’i, yabancılardan binde biri.',
       },
       {
         question: 'Tapu harcını alıcı mı satıcı mı öder?',

@@ -169,6 +169,17 @@ export const FIXED_FEES = {
   certificate: 149,
 } as const;
 
+/**
+ * 13/1981 Güvenlik Kuvvetlerini Güçlendirme Kurumu Yasası, section 6(3)(ğ),
+ * added by 21/2025 (RG 97, 09.05.2025): on every property transfer the buyer
+ * pays one per thousand of the sale price if foreign, half that if a citizen.
+ * Collected by the land office. Turkish citizens are foreign under KKTC law.
+ */
+export const GKK_SHARE = {
+  citizen: 0.05,
+  foreign: 0.1,
+} as const;
+
 export const MAX_PROPERTIES: Record<Exclude<Buyer, 'kktc'>, number> = {
   tc: TITLE_DEED_RATES.tc.direct.length,
   foreign: TITLE_DEED_RATES.foreign.direct.length,
@@ -275,6 +286,7 @@ export type FeeKey =
   | 'fee-contract'
   | 'fee-transfer'
   | 'exchange-difference'
+  | 'gkk'
   | 'mortgage'
   | 'fixed'
   | 'stamp'
@@ -509,6 +521,19 @@ export function calculateTitleDeedFee(input: TitleDeedInput): TitleDeedResult {
       rate: TITLE_DEED_RATES.mortgage,
       amount: percentOf(chargeable, TITLE_DEED_RATES.mortgage),
       note: 'İpotekli borçlu öder.',
+      payer: 'buyer',
+    });
+  }
+
+  if (sale && amount > 0) {
+    const shareRate = input.buyer === 'kktc' ? GKK_SHARE.citizen : GKK_SHARE.foreign;
+    lines.push({
+      key: 'gkk',
+      label: 'Güvenlik Kuvvetlerini Güçlendirme Kurumu payı',
+      base: amount,
+      rate: shareRate,
+      amount: percentOf(amount, shareRate),
+      note: 'Satış bedeli üzerinden, alıcı öder.',
       payer: 'buyer',
     });
   }
