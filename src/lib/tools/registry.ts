@@ -69,6 +69,17 @@ export interface Tool {
   intro: string;
   legal: readonly LegalReference[];
   sources: readonly ToolSource[];
+  /**
+   * Who to ask in a concrete case, in the dative ("Çalışma Dairesi’ne"). The
+   * disclaimer used to name the Labour Department for every tool, which was
+   * wrong advice for a land registry fee.
+   */
+  authority?: string;
+  /**
+   * The share card's bottom line, when listing every article of the first law
+   * would not fit — the title deed tool cites six parts of one Cetvel.
+   */
+  ogFooter?: string;
   /** Araca özel varsayımlar — ortak feragatnamenin içine giriyor. */
   assumptions: readonly string[];
   limitations: readonly string[];
@@ -91,6 +102,308 @@ const LABOUR_LAW_SOURCE: ToolSource = {
 };
 
 export const TOOLS: readonly Tool[] = [
+  {
+    slug: 'tapu-harci-hesaplayici',
+    updatedAt: '2026-10-07',
+    related: [],
+    authority: 'İlçe Tapu Amirliği’ne',
+    ogFooter: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü  ·  Pul Yasası  ·  Gelir Vergisi Yasası',
+    records: [
+      {
+        label: 'Tapu harç cetvelinin tamamı — A.E. 217 (2024)',
+        href: '/karar/2024-ae-217-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi-tapu-ve-kadastro',
+        note: 'Bağış, ipotek ve diğer işlemlerin oranları',
+      },
+      {
+        label: 'KKTC vatandaşları %6 ve bir defalık %3 — A.E. 540 (2024)',
+        href: '/karar/2024-ae-540-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi-tapu-ve-kadastro',
+      },
+      {
+        label: 'TC vatandaşları ve yabancılar için oranlar — A.E. 385 (2025)',
+        href: '/karar/2025-ae-385-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi-tapu-ve-kadastro',
+        note: 'Sözleşme kaydı ve devir aşamalarının tablosu',
+      },
+      {
+        label: 'İlk konut muafiyetinin 2026 sonuna uzatılması — A.E. 186 (2026)',
+        href: '/karar/2026-ae-186-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi-tapu-ve-kadastro',
+      },
+      {
+        label: 'Pul (Değişiklik) Yasası — 2/2026',
+        href: '/karar/2026-x-23-13-pul-degisiklik-yasasi',
+        note: 'Sözleşme pul vergisi eşiği 89.000.000 TL',
+      },
+      {
+        label: '2025 Yılı Katma Değer Vergisi Oranları Tüzüğü — A.E. 1127 (2024)',
+        href: '/karar/2024-ae-1127-katma-deger-vergisi-yasasi-2025-yili-katma-deger-vergisi-oranlar',
+      },
+    ],
+    name: 'Tapu harcı hesaplayıcı',
+    heading: 'Tapu harcı hesaplayıcı',
+    title: 'KKTC Tapu Harcı Hesaplama 2026',
+    summary:
+      'Satış, bağış, ipotek ve takasta tapu harcını; pul vergisi, KDV ve satıcı stopajıyla birlikte hesaplar.',
+    description:
+      'KKTC’de tapu harcı: KKTC vatandaşı, TC vatandaşı ve yabancı alıcılar için satış harcını, bir defalık %3 hakkını, ilk konut muafiyetini, bağış, ipotek, takas, zamanaşımı ve kamulaştırma harcını, sözleşme pul vergisini, yeni konutta KDV’yi ve satıcının gelir vergisi stopajını Resmî Gazete’deki güncel oranlarla hesaplayın.',
+    intro:
+      'Tapu harcı oranları yasada değil, Bakanlar Kurulu’nun sık sık değiştirdiği harç cetvelinde. Bu yüzden internetteki tabloların çoğu eski oranları gösteriyor. Bu araç oranları doğrudan Resmî Gazete’deki son değişikliklerden alıyor; alıcının uyruğu ve kaçıncı taşınmazı olduğu oranı değiştiriyor.',
+    legal: [
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'Cetvel madde 3(1)(B)',
+        summary:
+          'Satışta harcı alıcı öder; satış bedeli ile İlçe Tapu Amirliği’nin belirlediği rayiç değerden yüksek olanı üzerinden alınır. KKTC vatandaşları %6 (A.E. 540/2024). TC vatandaşları ilk taşınmazda %6, ikincide %8, üçüncüde %9; ilk üçü apartman dairesiyse dördüncü–altıncı daire %9. Diğer yabancılar ilk üç taşınmazda %9 (A.E. 385/2025).',
+      },
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'A.E. 385/2025 ek cetvel',
+        summary:
+          'TC vatandaşı ve yabancı alıcıda satış sözleşmesi önce Tapu’ya kaydedilirse harcın bir kısmı kayıtta, kalanı devirde alınır: yabancılarda 6+3, 3+6, 3+6; TC vatandaşlarında 3+3, 2+6, 3+6. Harç ödenmeden kaydedilmiş sözleşmenin devrinde toplamın tamamı alınır.',
+      },
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'Cetvel madde 3(1)(D)',
+        summary:
+          'Bağışta anne veya babadan çocuğa %0,2; eşler arasında ve büyükanne/büyükbabadan toruna %0,4; diğer bağışlarda %6. Harç, devralanın işlem günü bildirdiği rayiç değer üzerinden alınır. KKTC vatandaşları bir defaya mahsus bir ev (bir dönüm alanıyla) ve bir arsa — ya da arsa yerine bir dönüm tarla veya 300 m²’ye kadar işyeri — için satışta veya bağışta %3 öder (A.E. 540/2024).',
+      },
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'Cetvel madde 3(1)(A), (C), (Ç) ve 3(2)',
+        summary:
+          'Zamanaşımı yoluyla kazanılan hakkın kaydı %5. Değiştirmede (takas) her kişinin aldığı mal üzerinden %3, eşit değerli olmayan mallarda ek olarak fark üzerinden %4. Kamulaştırma ve geçit istimlakında tazminat üzerinden Devlet dışındaki kamu kuruluşlarında %4, özel kişi ve kuruluşlarda %6. Mal Değer Belgeli puanlarda satış %6, çocuğa bağış %0,2, eşe ve toruna %0,4, diğer bağış %6 (A.E. 217/2024).',
+      },
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'Cetvel madde 4',
+        summary:
+          'İpotek kaydında borçlu, ipotekle güvence altına alınan miktarın %1’ini öder. İpotek devrinde harç %0; ipoteğin kaldırılması 149 TL (A.E. 217/2024).',
+      },
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'Geçici madde 1',
+        summary:
+          'Adına kayıtlı evi olmayan ve Merkez Bankası koşullarındaki düşük faizli TL konut kredisi başvurusu bankaca uygun görülen KKTC vatandaşı, satış ve ipotek harcının 100.000 £ karşılığı TL’ye kadar olan kısmından 31.12.2026’ya kadar muaftır. Devir günündeki Merkez Bankası efektif satış kuru esas alınır; aşan kısım için harç ödenir (A.E. 186/2026).',
+      },
+      {
+        law: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü',
+        article: 'Cetvel madde 2 ve 11',
+        summary:
+          'Yerel araştırma istemeyen ve kayıt gerektiren dilekçe 71 TL; her koçan, ipotek sertifikası ve haciz belgesi 149 TL (A.E. 217/2024).',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 4(5), 6(12) ve 31(1)(i)-(j)',
+        summary:
+          'Taşınmaz satış kazancı, Tapu’nun saptadığı rayiç değer ile satış bedelinden yüksek olanın %20’si sayılır. Kişilerde bu kazancın %30’u vergiden muaftır (Bakanlar Kurulu her Ocak’ta %60’a kadar artırabilir); alım-satımla uğraşanlarda ve şirketlerde indirim yoktur. Tapu, devir anında kalan kazancın %20’sini keser: bedelin %2,8’i veya %4’ü. Eşe veya çocuklara bağışta ve yabancılar ile alım-satımla uğraşanlar hariç bir defaya mahsus bir ev ve bir arsanın elden çıkarılmasında kazanç aranmaz (madde 4(1)(f)(i), 31/2025 ile değişik).',
+      },
+      {
+        law: '52/2008 Taşınmaz Mal Edinme ve Uzun Vadeli Kiralama (Yabancılar) Yasası',
+        article: 'Madde 8(1) ve 8(4)',
+        summary:
+          'Yabancılar Bakanlar Kurulu izniyle kural olarak 1 taşınmaz alabilir; KKTC’yi tanıyan ve aynı hakkı KKTC yurttaşlarına veren ülkelerin vatandaşlarına 3 apartman dairesine kadar izin verilebilir. İzin başvurusunda yürürlükteki aylık brüt asgari ücretin yarısı tutarında hizmet harcı ödenir (39/2024 ile değişik).',
+      },
+      {
+        law: '19/1963 Pul Yasası',
+        article: 'Birinci Cetvel madde 3(1)',
+        summary:
+          'Belli bir para tutarını koşula bağlayan anlaşmalarda tutarın ilk 89.000.000 TL’si binde beş, aşan kısmı binde bir pul vergisine tabidir (2/2026 ile değişik).',
+      },
+      {
+        law: '2025 Yılı Katma Değer Vergisi Oranları Tüzüğü',
+        article: 'Cetvel II madde 17, Cetvel III madde 23',
+        summary:
+          'Her türlü taşınmaz ve kapalı alanı 300 m²’ye kadar olan konut %5; 300 m² ve üzeri kapalı alanlı konut %10 KDV’ye tabidir.',
+      },
+    ],
+    sources: [
+      {
+        label: 'Fasıl 219 Tapu ve Kadastro Dairesi (Harç ve Ücretler) Yasası',
+        href: '/yasa/fasil-219-tapu-ve-kadastro-dairesi-harc-ve-ucretler-yasasi',
+        note: 'Esas yasa; oranlar bu metinde değil, yukarıdaki tüzük kayıtlarında',
+      },
+      {
+        label: '19/1963 Pul Yasası (birleştirilmiş metin)',
+        href: '/yasa/19-1963-pul-yasasi',
+        note: '2/2026 değişikliğiyle',
+      },
+      {
+        label: '47/1992 Katma Değer Vergisi Yasası',
+        href: '/yasa/47-1992-katma-deger-vergisi-yasasi',
+      },
+      {
+        label: '24/1982 Gelir Vergisi Yasası (birleştirilmiş metin)',
+        href: '/yasa/24-1982-gelir-vergisi-yasasi',
+        note: '31/2025 ve 25/2026 değişiklikleriyle',
+      },
+      {
+        label: '52/2008 Taşınmaz Mal Edinme ve Uzun Vadeli Kiralama (Yabancılar) Yasası',
+        href: '/yasa/52-2008-tasinmaz-mal-edinme-ve-uzun-vadeli-kiralama-yabancilar',
+        note: '39/2024 değişikliğiyle',
+      },
+    ],
+    assumptions: [
+      'Rayiç değeri girmezseniz harç satış bedeli üzerinden hesaplanır. Tapu’nun saptayacağı rayiç değer daha yüksekse harç da yükselir.',
+      'Yabancı para cinsinden tutarlar girdiğiniz kurla TL’ye çevrilir; Tapu işlem günündeki kuru esas alır.',
+      'İlk konut muafiyeti satış harcına ve aynı işlemde konan ipoteğin harcına ayrı ayrı uygulanır; her birinde tutarın 100.000 £ karşılığına kadar olan kısmı muaf sayılır.',
+      'Pul vergisi ve KDV sözleşmedeki satış bedeli üzerinden hesaplanır.',
+      'Takasta değer farkı harcını, daha değerli taşınmazı alan tarafın ödediği varsayılır.',
+      'Sabit harçlar olarak yalnızca bir kayıt dilekçesi ve bir koçan (ya da ipotek sertifikası) eklenir.',
+      'Satın alma izni hizmet harcı, yürürlükteki aylık brüt asgari ücret üzerinden hesaplanır.',
+    ],
+    limitations: [
+      'Ortağı olduğu şirkete taşınmaz devri (Cetvel madde 3(1)(E)) hesaplanmaz: A.E. 217/2024 bu bendin oranını basmamış, sonraki değişiklikler de eklememiş. Oranı İlçe Tapu Amirliği’nden öğrenin.',
+      'Takas ve kamulaştırma yoluyla elden çıkarmada da satıcı stopajı doğabilir; araç stopajı yalnızca satış ve bağış için hesaplar.',
+      'Avukat ve emlakçı ücretleri gibi resmî olmayan masraflar dahil değildir.',
+    ],
+    faq: [
+      {
+        question: 'KKTC’de tapu harcı yüzde kaç?',
+        answer:
+          'Alıcının uyruğuna göre değişiyor. KKTC vatandaşları %6 öder; ömürde bir kez bir ev ve bir arsa için %3. TC vatandaşları ilk taşınmazda %6, ikincide %8, üçüncüde %9 öder. Diğer yabancılar her üç taşınmazda %9 öder. Oranlar A.E. 540/2024 ve A.E. 385/2025 sayılı tüzük değişikliklerinden.',
+      },
+      {
+        question: 'Tapu harcını alıcı mı satıcı mı öder?',
+        answer:
+          'Alıcı. Harç cetvelinin 3’üncü maddesi, kayıt harçlarının “adına kayıt yaptıracak kişi tarafından” ödeneceğini söylüyor. İpotek harcını ise madde 4 uyarınca ipotekli borçlu öder.',
+      },
+      {
+        question: 'Tapu harcı satış bedeli üzerinden mi alınır?',
+        answer:
+          'Satış bedeli ile İlçe Tapu Amirliği’nin belirlediği rayiç değerden hangisi yüksekse onun üzerinden. Sözleşmeye düşük bedel yazmak harcı düşürmez; Tapu rayiç değeri esas alır.',
+      },
+      {
+        question: 'Bir defalık %3 indiriminden kimler yararlanabilir?',
+        answer:
+          'Yalnızca KKTC vatandaşları. A.E. 540/2024, indirimi bir ev (bir dönüm alanıyla birlikte) ve bir arsa — ya da arsa yerine bir dönüm tarla veya 300 m²’ye kadar işyeri — için, satışta veya bağışla alındığında bir defaya mahsus tanıyor. Önceki metin TC vatandaşlarını da kapsıyordu; 14 Haziran 2024’ten beri kapsamıyor.',
+      },
+      {
+        question: 'İlk evini alanlar tapu harcı öder mi?',
+        answer:
+          'Merkez Bankası koşullarındaki düşük faizli TL konut kredisini kullanan ve adına kayıtlı evi olmayan KKTC vatandaşları, satış ve ipotek harcının 100.000 £ karşılığı TL’ye kadar olan kısmından muaf. Muafiyet A.E. 186/2026 ile 31 Aralık 2026’ya kadar uzatıldı. Değerin 100.000 £’u aşan kısmı için harç ödenir.',
+      },
+      {
+        question: 'Yabancılar için tapu harcı ne kadar?',
+        answer:
+          'A.E. 385/2025’ten beri %9; önceden %12’ydi. Satış sözleşmesi önce Tapu’ya kaydedilirse ilk taşınmazda %6 kayıtta, %3 devirde ödenir; doğrudan devirde %9 bir seferde alınır.',
+      },
+      {
+        question: 'Çocuğuma ev bağışlarsam ne kadar harç öderim?',
+        answer:
+          'Anne veya babadan çocuğa bağışta rayiç değerin binde ikisi (%0,2). Eşler arasında ve büyükanne/büyükbabadan toruna binde dört (%0,4), diğer bağışlarda %6. Harç, devralanın işlem günü bildirdiği rayiç değer üzerinden alınır.',
+      },
+      {
+        question: 'Yeni konut alırken KDV ödenir mi?',
+        answer:
+          'Satıcı KDV mükellefiyse, örneğin müteahhitten alınan yeni konutta, evet. 2025 Yılı KDV Oranları Tüzüğü’ne göre kapalı alanı 300 m²’ye kadar olan konut ve diğer taşınmazlar %5, 300 m² ve üzeri konut %10. İki kişi arasındaki ikinci el satışta KDV yoktur.',
+      },
+      {
+        question: 'Ev satan kişi ne kadar vergi öder?',
+        answer:
+          'Tapu, devir sırasında satıcıdan gelir vergisi stopajı keser. Gelir Vergisi Yasası’na göre kazanç, rayiç değer ile satış bedelinden yüksek olanın %20’si sayılıyor; alım-satımla uğraşmayan kişilerde bunun %30’u indiriliyor ve kalan üzerinden %20 kesiliyor. Sonuç bedelin %2,8’i. Şirketlerde ve alım-satımla uğraşanlarda indirim olmadığı için %4. Yabancılar dışındaki kişiler bir defaya mahsus bir ev ve bir arsayı stopajsız satabilir.',
+      },
+      {
+        question: 'Takasta tapu harcı nasıl hesaplanır?',
+        answer:
+          'Harç cetvelinin 3(1)(C) bendine göre her taraf, aldığı taşınmazın değeri üzerinden %3 öder. Değerler eşit değilse fark üzerinden ayrıca %4 alınır.',
+      },
+      {
+        question: 'Yabancılar KKTC’de kaç taşınmaz alabilir?',
+        answer:
+          '52/2008 sayılı Yasa’nın 39/2024 ile değişik 8’inci maddesine göre Bakanlar Kurulu izniyle kural olarak bir taşınmaz: en çok 1.338 m² arsa, arazisi 3.300 m²’yi geçmeyen bir müstakil ev ya da bir apartman dairesi. KKTC’yi tanıyan ve aynı hakkı KKTC yurttaşlarına veren ülkelerin vatandaşlarına üç apartman dairesine kadar izin verilebilir. İzin başvurusunda aylık brüt asgari ücretin yarısı kadar hizmet harcı ödenir.',
+      },
+    ],
+  },
+  {
+    slug: 'ihtiyat-sandigi-hesaplayici',
+    updatedAt: '2026-09-10',
+    related: [
+      {
+        slug: 'net-brut-maas-hesaplayici',
+        reason: 'Aylık İhtiyat Sandığı kesintisinin maaş bordronuzdaki yerini görün.',
+      },
+      {
+        slug: 'toplu-isten-cikarma-hesaplayici',
+        reason: 'İşten çıkarılıyorsanız tazminat ve ihbar sürenizi hesaplayın.',
+      },
+    ],
+    records: [
+      {
+        label: 'İhtiyat Sandığı faiz oranları (1 Nisan 2026) — Ü(K-I) 597-2026',
+        href: '/karar/2026-uki-597-2026-1-nisan-2026-tarihi-itibariyla-ihtiyat-sandigi-dairesi-istirakci',
+        note: 'Yıllık faiz %37, cari faiz %30',
+      },
+    ],
+    name: 'İhtiyat Sandığı hesaplayıcı',
+    heading: 'İhtiyat Sandığı birikim ve avans hesaplayıcı',
+    title: 'KKTC İhtiyat Sandığı Birikim ve Avans Hesaplama',
+    summary: 'Tahmini birikimi, çekilebilecek azami avansı ve 15 yıl dörtte bir hakkını gösterir.',
+    description:
+      'KKTC İhtiyat Sandığı: 34/1993 sayılı Yasa’nın 74/2007 ile değişik madde 8, 9 ve 10 kurallarına göre tahmini birikiminizi, avans üst sınırınızı ve on beş yıllık dörtte bir hakkınızı hesaplayın.',
+    intro:
+      'Sandıktaki gerçek bakiye, her ay yatırılan primlerin yıldan yıla değişen faiz oranlarıyla işletilmesinden çıkıyor. Bu araç tek bir oranı bütün geçmişe uyguladığı için sonucu bir tahmindir, hesap dökümü değil.',
+    legal: [
+      {
+        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
+        article: 'Madde 8',
+        summary:
+          'İştirak sahibinin primi brüt ücretin %5’inden, işveren depoziti de %5’inden az olamaz. Sosyal Güvenlik Yasası’nın yürürlüğe girdiği tarihten sonra ilk defa kapsama girenlerde prim ve depozit %4’tür; oranlar iki katını aşmamak ve eşit olmak koşuluyla hizmet akdi veya toplu iş sözleşmesiyle artırılabilir.',
+      },
+      {
+        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
+        article: 'Madde 10',
+        summary:
+          '(1) İştirak sahibi, Yönetim Kurulu onayıyla prim ve depozitlerin toplamının en fazla yarısını avans olarak çekebilir. (3) Sandığa en az on beş yıl yatırım yapmış iştirakçiye, talebi halinde bir defaya mahsus birikiminin dörtte biri ödenir; bu hakkı kullanan iki yıl avans alamaz.',
+      },
+      {
+        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
+        article: 'Madde 9',
+        summary:
+          '(9) Sosyal Güvenlik Yasası kapsamında 60, diğer sosyal güvenlik kurumlarına tabi olanlardan 55 yaşını aşanlar ile emeklilik veya yaşlılık aylığı almaya başlayanların başvurusu halinde prim ve depozitlerin tümü faizleriyle ödenir.',
+      },
+    ],
+    sources: [
+      {
+        label: '34/1993 İhtiyat Sandığı Yasası',
+        href: '/yasa/34-1993-ihtiyat-sandigi-yasasi',
+        note: '74/2007 değişikliğiyle',
+      },
+    ],
+    assumptions: [
+      'Faiz, girdiğiniz yıllık oranın aylık bileşiği olarak bütün döneme uygulanır.',
+      'Ücret artışı girilirse geçmiş aylardaki ücret bugünkü ücretten geriye doğru indirgenerek bulunur.',
+    ],
+    limitations: [
+      'Faiz oranı Bakanlar Kurulu kararıyla ve yıldan yıla değişir; tek bir oranla yapılan projeksiyon gerçek bakiyeyi tutturmaz.',
+      'Kesin bakiye için İhtiyat Sandığı Dairesi’nden hesap dökümü isteyin.',
+      'Ücretsiz izin, işsiz geçen dönem ve eksik yatırılan aylar hesaba katılmaz.',
+    ],
+    faq: [
+      {
+        question: 'İhtiyat Sandığı primi yüzde kaç?',
+        answer:
+          'İki oran var. 74/2007 ile değişik madde 8(1) ve (3): iştirak sahibinin primi brüt ücretin %5’inden, işveren depoziti de %5’inden az olamaz. Madde 8(6) ise Sosyal Güvenlik Yasası’nın yürürlüğe girdiği tarihten sonra ilk defa kapsama girenler için prim ve depoziti %4 olarak belirliyor. Oranlar iki katını aşmamak ve eşit olmak koşuluyla sözleşmeyle artırılabiliyor.',
+      },
+      {
+        question: 'Birikimimin ne kadarını avans olarak çekebilirim?',
+        answer:
+          'Madde 10(1)(A): iştirak sahibi, başvurusu üzerine ve Yönetim Kurulunun onayıyla prim ve depozitlerin toplamının en fazla yarısını avans olarak çekebilir. Yönetim Kurulu bu yetkisini kısmen veya tamamen Müdüre devredebiliyor.',
+      },
+      {
+        question: 'On beş yıl dolunca ne oluyor?',
+        answer:
+          'Madde 10(3): Sandığa en az on beş yıl yatırım yapmış iştirakçilere, talepleri halinde bir defaya mahsus olmak üzere birikimlerinin dörtte biri ödenir. Bu hakkı kullanan iştirakçi, o tarihten başlayarak iki yıl süreyle avans alamıyor.',
+      },
+      {
+        question: 'Birikimin tamamını ne zaman çekebilirim?',
+        answer:
+          'Madde 9(9): Sosyal Güvenlik Yasası kapsamında bulunup 60 yaşını aşanlar, diğer sosyal güvenlik kurumlarına tabi olanlardan 55 yaşını aşanlar ve emeklilik veya yaşlılık aylığı almaya başlayanlar başvurdukları takdirde hesaplarına yatırılan prim ve depozitlerin tümü faizleriyle birlikte ödenir.',
+      },
+      {
+        question: 'Faiz oranı ne kadar?',
+        answer:
+          'Sabit değil, Bakanlar Kurulu kararıyla belirleniyor. Ü(K-I) 597-2026 sayılı karara göre 1 Nisan 2026’dan itibaren iştirakçi hesaplarına yıllık %37 faiz, cari hesaplara %30 faiz uygulanıyor. Oran yıldan yıla değiştiği için araçta sabit kodlanmadı; projeksiyon için oranı kendiniz giriyorsunuz. Tek bir oranla yapılan projeksiyon geçmiş yılların farklı oranlarını tutturmaz; kesin tutar için Daire’den hesap dökümü isteyin.',
+      },
+    ],
+  },
   {
     slug: 'net-brut-maas-hesaplayici',
     updatedAt: '2026-09-10',
@@ -736,98 +1049,6 @@ export const TOOLS: readonly Tool[] = [
         question: 'Çalışma izinli yabancı işçinin sigorta primi ne kadar?',
         answer:
           '29 Temmuz 2026’dan itibaren YGK 83/2026 uyarınca, KKTC ile işlem eşitliği sağlayan sosyal güvenlik anlaşması bulunan ülke vatandaşı olmayan sigortalıların sigortalı hissesi %13, işveren hissesi %9,75 artı iş kazası primi; işsizlik primi uygulanmıyor. TC vatandaşları KKTC vatandaşlarıyla aynı oranlara (%9) tabi. Net–brüt maaş aracı bu ayrımı hesaba katıyor.',
-      },
-    ],
-  },
-  {
-    slug: 'ihtiyat-sandigi-hesaplayici',
-    updatedAt: '2026-09-10',
-    related: [
-      {
-        slug: 'net-brut-maas-hesaplayici',
-        reason: 'Aylık İhtiyat Sandığı kesintisinin maaş bordronuzdaki yerini görün.',
-      },
-      {
-        slug: 'toplu-isten-cikarma-hesaplayici',
-        reason: 'İşten çıkarılıyorsanız tazminat ve ihbar sürenizi hesaplayın.',
-      },
-    ],
-    records: [
-      {
-        label: 'İhtiyat Sandığı faiz oranları (1 Nisan 2026) — Ü(K-I) 597-2026',
-        href: '/karar/2026-uki-597-2026-1-nisan-2026-tarihi-itibariyla-ihtiyat-sandigi-dairesi-istirakci',
-        note: 'Yıllık faiz %37, cari faiz %30',
-      },
-    ],
-    name: 'İhtiyat Sandığı hesaplayıcı',
-    heading: 'İhtiyat Sandığı birikim ve avans hesaplayıcı',
-    title: 'KKTC İhtiyat Sandığı Birikim ve Avans Hesaplama',
-    summary: 'Tahmini birikimi, çekilebilecek azami avansı ve 15 yıl dörtte bir hakkını gösterir.',
-    description:
-      'KKTC İhtiyat Sandığı: 34/1993 sayılı Yasa’nın 74/2007 ile değişik madde 8, 9 ve 10 kurallarına göre tahmini birikiminizi, avans üst sınırınızı ve on beş yıllık dörtte bir hakkınızı hesaplayın.',
-    intro:
-      'Sandıktaki gerçek bakiye, her ay yatırılan primlerin yıldan yıla değişen faiz oranlarıyla işletilmesinden çıkıyor. Bu araç tek bir oranı bütün geçmişe uyguladığı için sonucu bir tahmindir, hesap dökümü değil.',
-    legal: [
-      {
-        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
-        article: 'Madde 8',
-        summary:
-          'İştirak sahibinin primi brüt ücretin %5’inden, işveren depoziti de %5’inden az olamaz. Sosyal Güvenlik Yasası’nın yürürlüğe girdiği tarihten sonra ilk defa kapsama girenlerde prim ve depozit %4’tür; oranlar iki katını aşmamak ve eşit olmak koşuluyla hizmet akdi veya toplu iş sözleşmesiyle artırılabilir.',
-      },
-      {
-        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
-        article: 'Madde 10',
-        summary:
-          '(1) İştirak sahibi, Yönetim Kurulu onayıyla prim ve depozitlerin toplamının en fazla yarısını avans olarak çekebilir. (3) Sandığa en az on beş yıl yatırım yapmış iştirakçiye, talebi halinde bir defaya mahsus birikiminin dörtte biri ödenir; bu hakkı kullanan iki yıl avans alamaz.',
-      },
-      {
-        law: 'İhtiyat Sandığı Yasası (34/1993, 74/2007 ile değişik)',
-        article: 'Madde 9',
-        summary:
-          '(9) Sosyal Güvenlik Yasası kapsamında 60, diğer sosyal güvenlik kurumlarına tabi olanlardan 55 yaşını aşanlar ile emeklilik veya yaşlılık aylığı almaya başlayanların başvurusu halinde prim ve depozitlerin tümü faizleriyle ödenir.',
-      },
-    ],
-    sources: [
-      {
-        label: '34/1993 İhtiyat Sandığı Yasası',
-        href: '/yasa/34-1993-ihtiyat-sandigi-yasasi',
-        note: '74/2007 değişikliğiyle',
-      },
-    ],
-    assumptions: [
-      'Faiz, girdiğiniz yıllık oranın aylık bileşiği olarak bütün döneme uygulanır.',
-      'Ücret artışı girilirse geçmiş aylardaki ücret bugünkü ücretten geriye doğru indirgenerek bulunur.',
-    ],
-    limitations: [
-      'Faiz oranı Bakanlar Kurulu kararıyla ve yıldan yıla değişir; tek bir oranla yapılan projeksiyon gerçek bakiyeyi tutturmaz.',
-      'Kesin bakiye için İhtiyat Sandığı Dairesi’nden hesap dökümü isteyin.',
-      'Ücretsiz izin, işsiz geçen dönem ve eksik yatırılan aylar hesaba katılmaz.',
-    ],
-    faq: [
-      {
-        question: 'İhtiyat Sandığı primi yüzde kaç?',
-        answer:
-          'İki oran var. 74/2007 ile değişik madde 8(1) ve (3): iştirak sahibinin primi brüt ücretin %5’inden, işveren depoziti de %5’inden az olamaz. Madde 8(6) ise Sosyal Güvenlik Yasası’nın yürürlüğe girdiği tarihten sonra ilk defa kapsama girenler için prim ve depoziti %4 olarak belirliyor. Oranlar iki katını aşmamak ve eşit olmak koşuluyla sözleşmeyle artırılabiliyor.',
-      },
-      {
-        question: 'Birikimimin ne kadarını avans olarak çekebilirim?',
-        answer:
-          'Madde 10(1)(A): iştirak sahibi, başvurusu üzerine ve Yönetim Kurulunun onayıyla prim ve depozitlerin toplamının en fazla yarısını avans olarak çekebilir. Yönetim Kurulu bu yetkisini kısmen veya tamamen Müdüre devredebiliyor.',
-      },
-      {
-        question: 'On beş yıl dolunca ne oluyor?',
-        answer:
-          'Madde 10(3): Sandığa en az on beş yıl yatırım yapmış iştirakçilere, talepleri halinde bir defaya mahsus olmak üzere birikimlerinin dörtte biri ödenir. Bu hakkı kullanan iştirakçi, o tarihten başlayarak iki yıl süreyle avans alamıyor.',
-      },
-      {
-        question: 'Birikimin tamamını ne zaman çekebilirim?',
-        answer:
-          'Madde 9(9): Sosyal Güvenlik Yasası kapsamında bulunup 60 yaşını aşanlar, diğer sosyal güvenlik kurumlarına tabi olanlardan 55 yaşını aşanlar ve emeklilik veya yaşlılık aylığı almaya başlayanlar başvurdukları takdirde hesaplarına yatırılan prim ve depozitlerin tümü faizleriyle birlikte ödenir.',
-      },
-      {
-        question: 'Faiz oranı ne kadar?',
-        answer:
-          'Sabit değil, Bakanlar Kurulu kararıyla belirleniyor. Ü(K-I) 597-2026 sayılı karara göre 1 Nisan 2026’dan itibaren iştirakçi hesaplarına yıllık %37 faiz, cari hesaplara %30 faiz uygulanıyor. Oran yıldan yıla değiştiği için araçta sabit kodlanmadı; projeksiyon için oranı kendiniz giriyorsunuz. Tek bir oranla yapılan projeksiyon geçmiş yılların farklı oranlarını tutturmaz; kesin tutar için Daire’den hesap dökümü isteyin.',
       },
     ],
   },

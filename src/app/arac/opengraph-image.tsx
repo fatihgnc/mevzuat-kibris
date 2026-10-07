@@ -36,6 +36,6 @@ export default function Image() {
         ))}
       </div>
     ),
-    footer: 'Yıllık izin  ·  fazla mesai  ·  tazminat  ·  doğum izni  ·  net maaş',
+    footer: 'Tapu harcı  ·  yıllık izin  ·  fazla mesai  ·  tazminat  ·  net maaş',
   });
 }

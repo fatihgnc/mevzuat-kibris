@@ -276,7 +276,7 @@ export function LimitationsFooter({ tool }: { tool: Tool }) {
 
       <p className="mt-3 text-base leading-[1.6]">
         Bu hesaplayıcı yalnızca bilgilendirme amaçlıdır, hukuki tavsiye değildir. Somut bir
-        uyuşmazlıkta Çalışma Dairesi&apos;ne veya bir avukata danışın.
+        durumda {tool.authority ?? 'Çalışma Dairesi’ne'} veya bir avukata danışın.
       </p>
 
       <h3 className="mb-2 mt-4 text-xs uppercase tracking-tight opacity-80">Varsayımlar</h3>

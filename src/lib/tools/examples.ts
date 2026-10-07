@@ -19,6 +19,13 @@ import { maternityTimeline } from './parental-leave';
 import { calculatePayroll } from './payroll';
 import { calculateProvidentFund } from './provident-fund';
 import { calculateSeverance } from './severance';
+import {
+  calculateTitleDeedFee,
+  sellerTaxRate,
+  stampDuty,
+  type TitleDeedInput,
+  type TitleDeedResult,
+} from './title-deed-fee';
 import { calculateWorkPermitPenalty } from './work-permit-penalty';
 
 export interface ToolExample {
@@ -161,6 +168,32 @@ const EXAMPLES: Record<string, () => ToolExample> = {
       ],
       outcome: [
         `Aylık toplam yatırım ${formatCurrency(result.monthlyContribution)}; on yılda faiz hariç ${formatCurrency(result.contributionsTotal)} birikir. Bunun yarısı, ${formatCurrency(result.maxAdvance)}, avans olarak çekilebilir. On beş yıl dolmadığı için dörtte bir hakkına ${formatNumber(result.quarter.monthsRemaining)} ay kalmıştır.`,
+      ],
+    };
+  },
+
+  'tapu-harci-hesaplayici': () => {
+    const price = 6_000_000;
+    const marketValue = 6_500_000;
+    const sale = (buyer: 'kktc' | 'tc' | 'foreign', extra: Partial<TitleDeedInput> = {}) =>
+      calculateTitleDeedFee({ transaction: 'sale', buyer, amount: price, marketValue, ...extra });
+    const fee = (result: TitleDeedResult) => formatCurrency(result.landOfficeTotal);
+
+    const kktc = sale('kktc');
+    const kktcWithSeller = sale('kktc', { seller: 'individual' });
+    const oneOff = sale('kktc', { oneOff: true });
+    const tcSecond = sale('tc', { propertyNumber: 2 });
+    const foreign = sale('foreign', { propertyNumber: 1, route: 'contract' });
+    const [foreignContract, foreignTransfer] = foreign.lines;
+    return {
+      inputs: [
+        `Satış bedeli: ${formatCurrency(price)}`,
+        `İlçe Tapu Amirliği’nin rayiç değeri: ${formatCurrency(marketValue)}`,
+      ],
+      outcome: [
+        `Rayiç değer daha yüksek olduğu için harç ${formatCurrency(marketValue)} üzerinden alınır. KKTC vatandaşı alıcı %6 ile ${fee(kktc)} öder; bir defalık %3 hakkını kullanıyorsa ${fee(oneOff)}. İkinci taşınmazını alan TC vatandaşı %8 ile ${fee(tcSecond)} öder.`,
+        `İlk taşınmazını alan bir yabancı %9 öder: toplam ${fee(foreign)}. Satış sözleşmesini önce Tapu’ya kaydettirirse bunun ${formatCurrency(foreignContract?.amount ?? 0)} kısmı kayıtta, ${formatCurrency(foreignTransfer?.amount ?? 0)} kısmı devirde ödenir.`,
+        `Yazılı satış sözleşmesinin pul vergisi, satış bedelinin binde beşi olan ${formatCurrency(stampDuty(price))}. Alım-satımla uğraşmayan satıcıdan Tapu, rayiç değerin %${formatNumber(sellerTaxRate('individual'))}’i olan ${formatCurrency(kktcWithSeller.sellerTotal)} gelir vergisi stopajı keser.`,
       ],
     };
   },

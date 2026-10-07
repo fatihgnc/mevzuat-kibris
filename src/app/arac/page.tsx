@@ -13,7 +13,7 @@ import { TOOLS, toolPath } from '@/lib/tools/registry';
 export const metadata: Metadata = buildMetadata({
   title: 'Araçlar',
   description:
-    'KKTC iş mevzuatına göre yıllık izin, fazla mesai, ihbar ve toplu işten çıkarma tazminatı, doğum izni, İhtiyat Sandığı ve net maaş hesaplayıcıları. Her sonucun altında dayandığı madde yazılı.',
+    'KKTC mevzuatına göre tapu harcı, yıllık izin, fazla mesai, ihbar ve toplu işten çıkarma tazminatı, doğum izni, İhtiyat Sandığı ve net maaş hesaplayıcıları. Her sonucun altında dayandığı madde yazılı.',
   path: '/arac',
 });
 
@@ -31,9 +31,10 @@ export default function ToolsPage() {
           Araçlar
         </h1>
         <p className="mt-3 max-w-[60em] text-xl leading-[1.6] text-ink-body">
-          İş mevzuatı, haklarınızı sayılarla belirler: kaç gün izniniz var, kaç haftalık ücret
-          alacaksınız, hangi zam oranı gibi. Bu araçlar bu sayıları hesaplar ve her birinin
-          dayandığı maddeyi/yasayı da gösterir — sonuca bakmadan önce kaynağını okuyabilirsiniz.
+          Mevzuat, haklarınızı ve borçlarınızı sayılarla belirler: kaç gün izniniz var, kaç
+          haftalık ücret alacaksınız, tapuda yüzde kaç harç ödeyeceksiniz gibi. Bu araçlar bu
+          sayıları hesaplar ve her birinin dayandığı maddeyi/yasayı da gösterir — sonuca bakmadan
+          önce kaynağını okuyabilirsiniz.
         </p>
 
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -69,8 +70,8 @@ export default function ToolsPage() {
 
         <p className="mt-4 max-w-[60em] text-base leading-[1.6] text-ink-muted">
           Hesaplayıcılar yalnızca bilgilendirme amaçlıdır, hukuki tavsiye değildir. Bağlayıcı olan,
-          Resmî Gazete&apos;de yayımlanan yasa metnidir; somut bir uyuşmazlıkta Çalışma
-          Dairesi&apos;ne veya bir avukata danışın.
+          Resmî Gazete&apos;de yayımlanan yasa metnidir; somut bir durumda ilgili daireye veya bir
+          avukata danışın.
         </p>
       </main>
 

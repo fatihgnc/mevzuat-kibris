@@ -45,7 +45,7 @@ export function toolOgImage(slug: string) {
     kicker: 'hesaplayıcı',
     heading,
     summary,
-    footer: primaryLaw ? primaryLaw + '  ·  ' + articles : 'KKTC iş mevzuatı',
+    footer: tool?.ogFooter ?? (primaryLaw ? primaryLaw + '  ·  ' + articles : 'KKTC mevzuatı'),
     /* Uzun başlıklarda punto düşüyor; kayıt kartındaki eşikle aynı mantık. */
     headingSize: heading.length > 40 ? 54 : 64,
   });
