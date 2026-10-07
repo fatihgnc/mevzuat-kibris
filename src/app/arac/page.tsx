@@ -13,7 +13,7 @@ import { TOOLS, toolPath } from '@/lib/tools/registry';
 export const metadata: Metadata = buildMetadata({
   title: 'Araçlar',
   description:
-    'KKTC mevzuatına göre tapu harcı, yıllık izin, fazla mesai, ihbar ve toplu işten çıkarma tazminatı, doğum izni, İhtiyat Sandığı ve net maaş hesaplayıcıları. Her sonucun altında dayandığı madde yazılı.',
+    'KKTC mevzuatına göre tapu harcı, ithal araç vergisi, yıllık izin, fazla mesai, ihbar ve toplu işten çıkarma tazminatı, doğum izni, İhtiyat Sandığı ve net maaş hesaplayıcıları. Her sonucun altında dayandığı madde yazılı.',
   path: '/arac',
 });
 
@@ -32,7 +32,7 @@ export default function ToolsPage() {
         </h1>
         <p className="mt-3 max-w-[60em] text-xl leading-[1.6] text-ink-body">
           Mevzuat, haklarınızı ve borçlarınızı sayılarla belirler: kaç gün izniniz var, kaç
-          haftalık ücret alacaksınız, tapuda yüzde kaç harç ödeyeceksiniz gibi. Bu araçlar bu
+          haftalık ücret alacaksınız, tapuda ya da gümrükte ne kadar ödeyeceksiniz gibi. Bu araçlar bu
           sayıları hesaplar ve her birinin dayandığı maddeyi/yasayı da gösterir — sonuca bakmadan
           önce kaynağını okuyabilirsiniz.
         </p>

@@ -324,6 +324,183 @@ export const TOOLS: readonly Tool[] = [
     ],
   },
   {
+    slug: 'ithal-arac-vergisi-hesaplayici',
+    updatedAt: '2026-10-07',
+    related: [],
+    authority: 'Gümrük ve Rüsumat Dairesi’ne',
+    ogFooter: 'Gümrük vergisi  ·  Fiyat İstikrar Fonu  ·  rıhtım harcı  ·  KDV  ·  kayıt harcı',
+    records: [
+      {
+        label: 'Fiyat İstikrar Fonu oranları (5 Ekim 2026) — A.E. 938',
+        href: '/karar/2026-ae-938-fiyat-istikrar-fonu-yasasi-2026-fiyat-istikrar-fonu-akaryakit',
+        note: 'Binek otomobilde motor hacmine göre %3–12, elektrikli %5',
+      },
+      {
+        label: 'Gümrük Vergi Oranları (Değişiklik) Tüzüğü — A.E. 464 (2026)',
+        href: '/karar/2026-ae-464-gumruk-vergileri-tarife-yasasi-gumruk-vergi-oranlari-degisiklik-tuzugu',
+        note: '87.03 pozisyonu, AB-EFTA ve genel sütunlar',
+      },
+      {
+        label: '2025 Yılı Katma Değer Vergisi Oranları Tüzüğü — A.E. 1127 (2024)',
+        href: '/karar/2024-ae-1127-katma-deger-vergisi-yasasi-2025-yili-katma-deger-vergisi-oranlar',
+      },
+      {
+        label: 'Motorlu araç kayıt ve ruhsat harçları — A.E. 388 (2026)',
+        href: '/karar/2026-ae-388-motorlu-araclar-ve-yol-trafik-yasasi-motorlu-araclar-kayit-ve-ruhsat',
+      },
+      {
+        label: '2026 gelir vergisi stopaj oranları (ithalat) — A.E. 409',
+        href: '/karar/2026-ae-409-gelir-vergisi-yasasi-gelir-vergisi-stopaj-oranlari',
+      },
+      {
+        label: '2021 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü — A.E. 479',
+        href: '/karar/2021-ae-479-rihtim-harclari-yasasi-2021-rihtim-harclarinin-oranlari-degisiklik',
+        note: 'Değişiklik zincirinin son halkası; oranlara dokunmuyor',
+      },
+    ],
+    name: 'İthal araç vergisi hesaplayıcı',
+    heading: 'İthal araç vergisi hesaplayıcı',
+    title: 'KKTC Araç İthalatı Vergi Hesaplama 2026',
+    summary:
+      'Yurt dışından getirilen otomobilin gümrük vergisini, fonunu, rıhtım harcını, KDV’sini ve kayıt harcını hesaplar.',
+    description:
+      'KKTC’ye araç ithalatında ödenecek vergiler: menşe ve motor hacmine göre gümrük vergisi, Fiyat İstikrar Fonu, %4,4 rıhtım harcı, %2,5 Güvenlik Kuvvetleri payı, KDV ve kayıt harcını Resmî Gazete’deki güncel oranlarla hesaplayın; beş yaş sınırını kontrol edin.',
+    intro:
+      'KKTC’de otomobilde motor hacmine göre alınan ayrı bir tüketim vergisi yok; o yükü Fiyat İstikrar Fonu taşıyor ve oranları yılda birkaç kez değişiyor. Bu araç bütün kalemleri CİF değeri üzerinden, her birinin dayandığı Resmî Gazete kaydıyla hesaplıyor.',
+    legal: [
+      {
+        law: 'Gümrük Vergi Oranları (Değişiklik) Tüzüğü',
+        article: '87.03 pozisyonu',
+        summary:
+          'Binek otomobilde genel oran %10. AB-EFTA sütununda benzinli 2000 cm³’e, dizel 2500 cm³’e kadar muaf, üzeri %10; hibrit ve tamamen elektrikli araçlar muaf. Yeni ve kullanılmış araç aynı oranda (A.E. 464, 25.05.2026).',
+      },
+      {
+        law: '44/1996 Gümrük Vergileri Tarife Yasası',
+        article: 'Madde 7',
+        summary:
+          'AB ve EFTA sütunundaki oranlar, menşei TC, AB veya EFTA olan ve menşe ve dolaşım belgeleri ibraz edilen mallara uygulanır. Belge sunulmazsa genel oran alınır; belge üç ay içinde sunulursa fazla ödenen vergi iade edilir.',
+      },
+      {
+        law: '2026 Fiyat İstikrar Fonu (Fona Yatırılacak Miktarlar) (Değişiklik) Emirnamesi',
+        article: '87.03 (A)',
+        summary:
+          'Binek otomobilde silindir hacmi 1500 cm³’e kadar %3, 1500–2000 cm³ %3, 2000–3000 cm³ %8, 3000 cm³ üzeri %12; elektrikli motorlu taşıtlar %5. TC menşeli araçlara ilk dilimin %50’si, diğer dilimlerin %70’i uygulanır (A.E. 938, 5 Ekim 2026’dan itibaren).',
+      },
+      {
+        law: '2005 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü',
+        article: 'I’inci Cetvel, kategori (vi)',
+        summary:
+          'Devlete kesin ithali yapılan motorlu araçlarda rıhtım harcı CİF kıymet üzerinden %4,4 (A.E. 468, RG 139, 18.08.2005). Sonraki değişiklikler yalnızca muafiyet ekliyor; yeni iş araçları muaf, pikaplar (87.04.21/31) değil.',
+      },
+      {
+        law: '13/1981 Güvenlik Kuvvetlerini Güçlendirme Kurumu Yasası',
+        article: 'Madde 6(3)(a)(i)',
+        summary:
+          'İthal edilen motorlu araçlardan, gümrük vergisine matrah olan kıymet üzerinden %2,5 katılma payı alınır. Tarım araçları, resmî hizmet araçları ve engelliler için özel imal edilip onlar adına gümrüklenen araçlar muaf.',
+      },
+      {
+        law: '47/1992 Katma Değer Vergisi Yasası',
+        article: 'Madde 21',
+        summary:
+          'İthalatta KDV matrahı: gümrük vergisine esas değer ile ithalat sırasında ödenen her türlü vergi, resim, harç, pay ve fonların toplamı (Gelir Vergisi Yasası 31(4) kesintileri hariç). Oran salon tipi araçta %20, sade elektrikle çalışan araçta %5 (2025 Yılı KDV Oranları Tüzüğü, Cetvel V madde 7 ve Cetvel II madde 36).',
+      },
+      {
+        law: 'Motorlu Araçlar Kayıt ve Ruhsat Harçları Tüzüğü',
+        article: 'Kısım I, II(1)(A)(a)',
+        summary:
+          'Özel motorlu aracın kayıt harcı, ithalde gümrük vergisinin alındığı matrah üzerinden benzinli ve dizelde %6, elektrikli ve hibritte %4 (A.E. 388, 30.04.2026).',
+      },
+      {
+        law: '24/1982 Gelir Vergisi Yasası',
+        article: 'Madde 31(4)',
+        summary:
+          'İthalatçıdan gümrük vergisi matrahı üzerinden gelir veya kurumlar vergisine mahsuben stopaj kesilir; Fasıl 87 için %4 (A.E. 409/2026). Tamamen ve münhasıran kişisel eşya için kesinti yapılmaz.',
+      },
+      {
+        law: 'Motorlu Taşıt Araçları Yaş Sınırlandırılması Tüzüğü',
+        article: 'Madde 5(1)',
+        summary:
+          'Binek otomobili, KKTC limanına geldiğinde ilk kayıt tarihinden itibaren beş yaşını doldurmuşsa ithal izni verilmez; sol direksiyon araçlara ithal izni verilmez. Yerleşmeye gelenler için istisnalar var.',
+      },
+    ],
+    sources: [
+      {
+        label: '2005 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü (PDF)',
+        href: 'https://mevzuat.mahkemeler.net/Enstrumanlar/st468-2005.pdf',
+        note: 'KKTC Mahkemeleri Mevzuat Bilgi Sistemi; Resmî Gazete arşivinde 2006 öncesi yok',
+      },
+      {
+        label: '22/1978 Rıhtım Harçları Yasası',
+        href: '/yasa/22-1978-rlihtimharclari-yasasi',
+        note: 'Yasadaki cetvel %2,2 gösteriyor; oran 2005 tüzüğüyle %4,4',
+      },
+      {
+        label: '26/1978 Fiyat İstikrar Fonu Yasası',
+        href: '/yasa/26-1978-fiyat-istikrar-fonu-yasasi',
+      },
+      {
+        label: '44/1996 Gümrük Vergileri Tarife Yasası',
+        href: '/yasa/44-1996-gumruk-vergileri-tarife-yasasi',
+      },
+      {
+        label: '47/1992 Katma Değer Vergisi Yasası',
+        href: '/yasa/47-1992-katma-deger-vergisi-yasasi',
+      },
+      {
+        label: 'İthalatta Kur Uygulanması Tüzüğü',
+        href: '/tuzuk/ithalatta-kur-uygulanmasi-tuzugu',
+      },
+      {
+        label: 'Motorlu Taşıt Araçları Yaş Sınırlandırılması Tüzüğü',
+        href: '/tuzuk/motorlu-tasit-araclari-yas-sinirlandirilmasi-tuzugu',
+      },
+    ],
+    assumptions: [
+      'Fiyat İstikrar Fonu CİF değeri üzerinden hesaplanır. Matrahı tanımlayan 2003 Esas Emirnamesi (A.E. 393) internette yayımlanmadığı için bu, birincil kaynaktan doğrulanamadı.',
+      'Hibrit araçlar fon tablosunda silindir hacmi dilimine girer; “elektrikli motorlu taşıtlar” satırı yalnızca tamamen elektrikli araçlar için sayılır. Tablonun lafzı böyle; uygulama doğrulanamadı.',
+      'Gümrük kıymeti olarak fatura bedeli, navlun ve sigorta toplamı alınır ve girdiğiniz kurla TL’ye çevrilir. Gümrük, beyanın tescil günündeki döviz satış kurunu kullanır.',
+      'Araç özel binek otomobilidir (87.03); kayıt harcı özel motorlu araç oranıyla hesaplanır.',
+    ],
+    limitations: [
+      'Pikap, kamyonet ve iş araçları (87.04), motosiklet ve 25 yaşını doldurmuş klasik araçlar hesaplanmaz.',
+      'Yerleşmeye gelenler, öğrenciler (geçici “ZZ” kaydı), diplomatlar ve engelliler için muafiyet ve indirimler hesaplanmaz.',
+      'Yıllık seyrüsefer (yol vergisi), muayene, plaka, gümrük müşaviri ve liman hizmet ücretleri dahil değildir.',
+      'Gümrük, faturadaki değeri yeterli görmezse kıymeti kendisi saptar; özellikle kullanılmış araçlarda vergiler buna göre değişir.',
+    ],
+    faq: [
+      {
+        question: 'KKTC’ye araç getirirken hangi vergiler ödenir?',
+        answer:
+          'Gümrükte: gümrük vergisi (menşeye göre %0 veya %10), Fiyat İstikrar Fonu (motor hacmine göre %3–12, elektrikli %5), %4,4 rıhtım harcı, %2,5 Güvenlik Kuvvetleri payı ve bunların hepsinin üzerine KDV (%20, tamamen elektrikli araçta %5). İlk kayıtta ayrıca CİF değerinin %6’sı (elektrikli ve hibritte %4) kayıt harcı ödenir.',
+      },
+      {
+        question: 'KKTC’de araç ithalatında ÖTV var mı?',
+        answer:
+          'Türkiye’deki gibi bir özel tüketim vergisi yok. Motor hacmine göre artan yükü Fiyat İstikrar Fonu taşıyor: 5 Ekim 2026’dan itibaren 2000 cm³’e kadar %3, 2000–3000 cm³ %8, 3000 cm³ üzeri %12, elektrikli araçlarda %5.',
+      },
+      {
+        question: 'Japonya veya İngiltere’den getirilen araçta gümrük vergisi ne kadar?',
+        answer:
+          'Bu ülkeler AB-EFTA sütununa girmediği için binek otomobilde genel oran olan %10 uygulanır. Türkiye, AB veya EFTA menşeli araçlar menşe ve dolaşım belgesiyle benzinlide 2000 cm³’e, dizelde 2500 cm³’e kadar muaftır.',
+      },
+      {
+        question: 'Kaç yaşındaki araç ithal edilebilir?',
+        answer:
+          'Binek otomobil, KKTC limanına vardığında ilk kayıt tarihinden itibaren beş yaşını doldurmamış olmalı; sol direksiyon araçlara ithal izni verilmez. Yerleşmeye gelen kişilerin kendi adına kayıtlı aracı gibi istisnalar Yaş Sınırlandırılması Tüzüğü’nde düzenleniyor.',
+      },
+      {
+        question: 'Elektrikli araç ithalatında vergiler daha mı düşük?',
+        answer:
+          'Evet. Tamamen elektrikli araçta Fiyat İstikrar Fonu %5, KDV %5 ve kayıt harcı %4; Türkiye, AB veya EFTA menşeli ise gümrük vergisi de yok. Rıhtım harcı (%4,4) ve Güvenlik Kuvvetleri payı (%2,5) ise aynı.',
+      },
+      {
+        question: 'Rıhtım harcı ne kadar?',
+        answer:
+          'Motorlu araçlarda CİF değerinin %4,4’ü. Rıhtım Harçları Yasası’nın cetvelinde %2,2 yazıyor, ama Bakanlar Kurulu 2005 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü ile oranları baştan belirledi ve motorlu araçlar için %4,4 oldu; sonraki değişiklikler yalnızca muafiyet ekledi.',
+      },
+    ],
+  },
+  {
     slug: 'ihtiyat-sandigi-hesaplayici',
     updatedAt: '2026-09-10',
     related: [

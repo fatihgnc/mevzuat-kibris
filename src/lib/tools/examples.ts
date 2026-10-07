@@ -26,6 +26,7 @@ import {
   type TitleDeedInput,
   type TitleDeedResult,
 } from './title-deed-fee';
+import { calculateVehicleImport } from './vehicle-import';
 import { calculateWorkPermitPenalty } from './work-permit-penalty';
 
 export interface ToolExample {
@@ -194,6 +195,25 @@ const EXAMPLES: Record<string, () => ToolExample> = {
         `Rayiç değer daha yüksek olduğu için harç ${formatCurrency(marketValue)} üzerinden alınır. KKTC vatandaşı alıcı %6 ile ${fee(kktc)} öder; bir defalık %3 hakkını kullanıyorsa ${fee(oneOff)}. İkinci taşınmazını alan TC vatandaşı %8 ile ${fee(tcSecond)} öder.`,
         `İlk taşınmazını alan bir yabancı %9 öder: toplam ${fee(foreign)}. Satış sözleşmesini önce Tapu’ya kaydettirirse bunun ${formatCurrency(foreignContract?.amount ?? 0)} kısmı kayıtta, ${formatCurrency(foreignTransfer?.amount ?? 0)} kısmı devirde ödenir.`,
         `Yazılı satış sözleşmesinin pul vergisi, satış bedelinin binde beşi olan ${formatCurrency(stampDuty(price))}. Alım-satımla uğraşmayan satıcıdan Tapu, rayiç değerin %${formatNumber(sellerTaxRate('individual'))}’i olan ${formatCurrency(kktcWithSeller.sellerTotal)} gelir vergisi stopajı keser.`,
+      ],
+    };
+  },
+
+  'ithal-arac-vergisi-hesaplayici': () => {
+    const cif = 600_000;
+    const japan = calculateVehicleImport({ cifTl: cif, fuel: 'petrol', engineCc: 1500, origin: 'other' });
+    const turkey = calculateVehicleImport({ cifTl: cif, fuel: 'petrol', engineCc: 1500, origin: 'tc' });
+    const electric = calculateVehicleImport({ cifTl: cif, fuel: 'electric', engineCc: null, origin: 'other' });
+    const amount = (result: typeof japan, key: string) =>
+      formatCurrency(result.lines.find((line) => line.key === key)?.amount ?? 0);
+    return {
+      inputs: [
+        `CİF değeri (fatura + navlun + sigorta): ${formatCurrency(cif)}`,
+        '1500 cm³ benzinli binek otomobil, kişisel kullanım için',
+      ],
+      outcome: [
+        `Japonya’dan gelen araçta gümrük vergisi ${amount(japan, 'customs')}, Fiyat İstikrar Fonu ${amount(japan, 'fif')}, rıhtım harcı ${amount(japan, 'wharf')}, Güvenlik Kuvvetleri payı ${amount(japan, 'gkk')}; bunların üzerine KDV ${amount(japan, 'vat')}. İlk kayıtta ${amount(japan, 'registration')} kayıt harcıyla toplam ${formatCurrency(japan.total)}, CİF değerinin %${formatNumber(japan.burdenPercent)} kadarı.`,
+        `Aynı araç menşe belgesiyle Türkiye’den gelirse gümrük vergisi alınmaz ve fon yarıya iner: toplam ${formatCurrency(turkey.total)}. Aynı değerde, Japonya’dan gelen tamamen elektrikli bir araçta toplam ${formatCurrency(electric.total)}.`,
       ],
     };
   },
