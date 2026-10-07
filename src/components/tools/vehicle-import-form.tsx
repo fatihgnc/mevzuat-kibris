@@ -46,6 +46,7 @@ const CURRENCIES: ReadonlyArray<{ value: Currency; label: string; symbol: string
 const VEHICLE_TYPES: ReadonlyArray<{ value: VehicleType; label: string }> = [
   { value: 'car', label: 'Binek otomobil' },
   { value: 'pickup', label: 'Pikap / kamyonet (5 tona kadar)' },
+  { value: 'truck', label: 'Kamyon (brüt ağırlığı 5 tonu aşan)' },
   { value: 'motorcycle', label: 'Motosiklet' },
 ];
 
@@ -77,7 +78,7 @@ const DISABILITY: ReadonlyArray<{ value: DisabilityGroup | 'none'; label: string
 
 const schema = z
   .object({
-    vehicleType: z.enum(['car', 'pickup', 'motorcycle']),
+    vehicleType: z.enum(['car', 'pickup', 'truck', 'motorcycle']),
     currency: z.enum(['TRY', 'GBP', 'EUR', 'USD', 'JPY']),
     exchangeRate: optionalAmount('kur'),
     price: requiredAmount('Fatura bedelini girin.'),
@@ -94,6 +95,8 @@ const schema = z
     firstRegistration: optionalDate(),
     arrival: requiredDate('Limana varış tarihini girin.'),
     resettling: z.boolean(),
+    classic: z.boolean(),
+    builtBy1983: z.boolean(),
     disability: z.enum(['none', 'orthopaedic', 'cerebral-palsy-down', 'visual-mental', 'neurological']),
     adapted: z.boolean(),
     gbpRate: optionalAmount('kur'),
@@ -136,12 +139,15 @@ export function VehicleImportForm() {
   const [firstRegistration, setFirstRegistration] = useState('');
   const [arrival, setArrival] = useState(today);
   const [resettling, setResettling] = useState(false);
+  const [classic, setClassic] = useState(false);
+  const [builtBy1983, setBuiltBy1983] = useState(false);
   const [disability, setDisability] = useState<DisabilityGroup | 'none'>('none');
   const [adapted, setAdapted] = useState(false);
   const [gbpRate, setGbpRate] = useState('');
 
   const car = vehicleType === 'car';
   const pickup = vehicleType === 'pickup';
+  const truck = vehicleType === 'truck';
   const motorcycle = vehicleType === 'motorcycle';
   const symbol = CURRENCIES.find((entry) => entry.value === currency)?.symbol ?? 'TL';
   const showWeight = (car && roadTax) || (pickup && doubleCab);
@@ -172,6 +178,8 @@ export function VehicleImportForm() {
       firstRegistration,
       arrival,
       resettling,
+      classic,
+      builtBy1983,
       disability,
       adapted,
       gbpRate,
@@ -182,7 +190,9 @@ export function VehicleImportForm() {
       const cifForeign = values.price + (values.freight ?? 0) + (values.insurance ?? 0);
       const cifTl = cifForeign * rate;
       const isPickup = values.vehicleType === 'pickup';
-      const limitYears = isPickup && !values.doubleCab ? AGE_LIMITS.work : AGE_LIMITS.passenger;
+      const workVehicle = values.vehicleType === 'truck' || (isPickup && !values.doubleCab);
+      const limitYears = workVehicle ? AGE_LIMITS.work : AGE_LIMITS.passenger;
+      const isCar = values.vehicleType === 'car';
       const age = values.firstRegistration ? ageCheck(values.firstRegistration, values.arrival, limitYears) : null;
       const gbp = values.currency === 'GBP' ? rate : values.gbpRate;
       const disabilityGroup = values.vehicleType === 'car' && values.disability !== 'none' ? values.disability : null;
@@ -199,6 +209,8 @@ export function VehicleImportForm() {
         weightKg: values.weightKg,
         roadTax: values.roadTax,
         motorKw: values.motorKw,
+        classic: isCar && values.classic,
+        builtBy1983: isCar && values.classic && values.builtBy1983,
         disability: disabilityGroup
           ? { group: disabilityGroup, adapted: values.adapted, cifGbp: gbp ? cifTl / gbp : null }
           : null,
@@ -244,7 +256,9 @@ export function VehicleImportForm() {
                   ? 'Ruhsattaki motor hacmi. Fon oranı 2000 ve 3000 cm³’ü geçince artıyor; gümrük vergisi muafiyeti benzinlide 2000, dizelde 2500 cm³’e kadar.'
                   : pickup
                     ? 'Genel sütunda gümrük vergisi dizelde 2500, benzinlide 2800 cm³’ü geçince %10’dan %22’ye çıkıyor.'
-                    : 'Fon 80 ve 125 cm³’te, gümrük vergisi 250 cm³’te, KDV 200 cm³’te değişiyor.'
+                    : truck
+                      ? 'Kamyonda oranlar motor hacmine göre değişmiyor; kayıt için girin.'
+                      : 'Fon 80 ve 125 cm³’te, gümrük vergisi 250 cm³’te, KDV 200 cm³’te değişiyor.'
               }
               error={errors.engineCc}
               value={engineCc}
@@ -308,7 +322,7 @@ export function VehicleImportForm() {
         <Fieldset legend="Yaş sınırı">
           <DateField
             label="İlk kayıt tarihi (kullanılmışsa)"
-            hint="Boş bırakılırsa yeni araç sayılır. Araç, limana vardığında ilk kayıttan itibaren yaş sınırını doldurmuşsa ithal izni verilmez."
+            hint="Boş bırakılırsa yeni araç sayılır. Araç, limana vardığında ilk kayıttan itibaren yaş sınırını doldurmuşsa ithal izni verilmez. Klasik araçta imal tarihi esas alınır."
             error={errors.firstRegistration}
             value={firstRegistration}
             onChange={setFirstRegistration}
@@ -327,6 +341,22 @@ export function VehicleImportForm() {
         <Fieldset legend="Muafiyet ve diğer">
           {car ? (
             <>
+              <CheckboxField
+                label="Klasik araç (25 yaşını doldurmuş, Eski Eserler ve Müzeler Dairesi onaylı)"
+                hint={`Fon, oranlar yerine ${formatCurrency(VEHICLE_IMPORT_RATES.classicFif.specificTl)} + %${VEHICLE_IMPORT_RATES.classicFif.rate} alınır; Klasik Otomobil Derneği veya Klasik ve Spor Otomobil Kulübü’nün klasik kabulüyle yaş sınırı uygulanmaz.`}
+                checked={classic}
+                onChange={setClassic}
+                wide
+              />
+              {classic && roadTax ? (
+                <CheckboxField
+                  label="31 Aralık 1983’e kadar imal edildi"
+                  hint={`Kulüp veya derneğin klasik kabulü ve Eski Eserler onayıyla seyrüsefer %${VEHICLE_IMPORT_RATES.classicRoadTaxDiscount} indirimli.`}
+                  checked={builtBy1983}
+                  onChange={setBuiltBy1983}
+                  wide
+                />
+              ) : null}
               <SelectField
                 label="Engelli muafiyeti"
                 hint={`Devlet Sağlık Kurulu raporu gerekir. Gümrük vergisi muafiyeti ${DISABILITY_LIMITS.customsMaxCc} cm³’e ve ${DISABILITY_LIMITS.customsMaxCifGbp.toLocaleString('tr-TR')} £ CİF’e kadar; fon ve kayıt harcı muafiyeti ${DISABILITY_LIMITS.smallCarMaxCc} cm³’e kadar.`}
@@ -390,14 +420,30 @@ export function VehicleImportForm() {
 
         {result ? (
           <>
-            {result.age && !result.age.allowed && !result.resettling ? (
+            {result.classicUnavailable ? <ToolNotice tone="notice">{result.classicUnavailable}</ToolNotice> : null}
+            {result.classic ? (
+              <ToolNotice tone="info">
+                Klasik araç: yaş sınırı uygulanmaz (Yaş Sınırlandırılması Tüzüğü madde 5(2)(A)); Klasik Otomobil
+                Derneği veya Klasik ve Spor Otomobil Kulübü’nün klasik kabulü ve Eski Eserler ve Müzeler Dairesi onayı
+                gerekir. Gümrük vergisi ve KDV binek otomobil (87.03) gibi hesaplandı; Gümrük aracı tarihi koleksiyon
+                eşyası (97.05) sayarsa gümrük vergisi alınmaz.
+              </ToolNotice>
+            ) : null}
+            {result.newWorkVehicle && result.vehicleType === 'pickup' ? (
+              <ToolNotice tone="notice">
+                Rıhtım harcı ve KDV muafiyetleri yeni iş araçlarından yalnızca dizel ve benzinli pikapları (87.04.21,
+                87.04.31) hariç tutuyor; metne göre yeni hibrit ve elektrikli pikaplar muaf. Uygulamayı Gümrük’e
+                sorun.
+              </ToolNotice>
+            ) : null}
+            {result.age && !result.age.allowed && !result.resettling && !result.classic ? (
               <ToolNotice tone="danger">
                 Bu araç {formatDate(result.age.limitDate)} tarihinde {result.limitYears} yaşını dolduruyor; girdiğiniz
                 varış tarihinde ithal izni verilmez. Yerleşmeye gelenlerin kendi adına kayıtlı aracı gibi istisnalar
                 için Yaş Sınırlandırılması Tüzüğü’ne bakın.
               </ToolNotice>
             ) : null}
-            {result.age && (result.age.allowed || result.resettling) ? (
+            {result.age && (result.age.allowed || result.resettling) && !result.classic ? (
               <ToolNotice tone="info">
                 {result.resettling
                   ? 'Yerleşmeye gelen kişinin kendi adına kayıtlı aracı için yaş sınırı bir defaya mahsus uygulanmaz.'

@@ -6,10 +6,12 @@ import {
   customsRate,
   disabilityExemptions,
   fifRate,
+  isNewWorkVehicle,
   motorcycleFif,
   pickupFifRate,
   roadTaxAmount,
   roadTaxGkkShare,
+  truckFifRate,
 } from './vehicle-import';
 
 const line = (result: ReturnType<typeof calculateVehicleImport>, key: string) =>
@@ -272,5 +274,103 @@ describe('motorcycles (87.11)', () => {
     expect(roadTaxAmount('motorcycle', 'petrol', false, null, 650)).toMatchObject({ amount: 2_789 });
     expect(roadTaxAmount('motorcycle', 'electric', false, null, null, 11)).toMatchObject({ amount: 697 });
     expect(roadTaxAmount('motorcycle', 'electric', false, null, null, null).amount).toBeNull();
+  });
+});
+
+describe('trucks over 5 t', () => {
+  it('charges 22% in the general column, 10% for electric ones, nothing in AB-EFTA', () => {
+    expect(customsRate('diesel', 7_000, 'other', 'truck')).toBe(22);
+    expect(customsRate('electric', null, 'other', 'truck')).toBe(10);
+    expect(customsRate('diesel', 7_000, 'eu', 'truck')).toBe(0);
+  });
+
+  it('exempts new trucks from the FİF and charges used ones the pickup rows', () => {
+    expect(truckFifRate('other', null).rate).toBe(0);
+    expect(truckFifRate('tc', null).rate).toBe(0);
+    expect(truckFifRate('other', 5).rate).toBe(6);
+    expect(truckFifRate('eu', 9).rate).toBe(31);
+  });
+
+  it('waives the wharf fee and charges 0% VAT on a new truck', () => {
+    const result = calculateVehicleImport({
+      vehicleType: 'truck',
+      cifTl: 1_000_000,
+      fuel: 'diesel',
+      engineCc: 7_000,
+      origin: 'other',
+    });
+    expect(result.newWorkVehicle).toBe(true);
+    expect(line(result, 'wharf')).toBe(0);
+    expect(result.vatBase).toBe(1_245_000);
+    expect(line(result, 'vat')).toBe(0);
+    expect(result.customsTotal).toBe(245_000);
+    expect(result.total).toBe(305_000);
+  });
+
+  it('charges a used truck in full', () => {
+    const result = calculateVehicleImport({
+      vehicleType: 'truck',
+      cifTl: 1_000_000,
+      fuel: 'diesel',
+      engineCc: 7_000,
+      origin: 'other',
+      ageYears: 5,
+    });
+    expect(result.newWorkVehicle).toBe(false);
+    expect(result.vatBase).toBe(1_349_000);
+    expect(line(result, 'vat')).toBe(215_840);
+    expect(result.total).toBe(624_840);
+  });
+
+  it('uses the goods vehicle road tax line', () => {
+    expect(roadTaxAmount('truck', 'diesel', false, null)).toMatchObject({ amount: 12_655 });
+    expect(roadTaxAmount('truck', 'petrol', false, null).amount).toBeNull();
+  });
+});
+
+describe('new work vehicle exemptions', () => {
+  it('leave out new diesel and petrol pickups but cover hybrid and electric ones', () => {
+    expect(isNewWorkVehicle('pickup', 'diesel', null)).toBe(false);
+    expect(isNewWorkVehicle('pickup', 'petrol', null)).toBe(false);
+    expect(isNewWorkVehicle('pickup', 'hybrid', null)).toBe(true);
+    expect(isNewWorkVehicle('pickup', 'electric', null)).toBe(true);
+    expect(isNewWorkVehicle('pickup', 'electric', 2)).toBe(false);
+    expect(isNewWorkVehicle('car', 'electric', null)).toBe(false);
+  });
+});
+
+describe('classic cars', () => {
+  const classicCar = {
+    cifTl: 500_000,
+    fuel: 'petrol' as const,
+    engineCc: 2_500,
+    origin: 'other' as const,
+    ageYears: 30,
+    classic: true,
+  };
+
+  it('replaces the FİF bands with 750 TL plus 6%', () => {
+    const result = calculateVehicleImport(classicCar);
+    expect(result.classic).toBe(true);
+    expect(result.lines.find((entry) => entry.key === 'fif')?.rate).toBe(6);
+    expect(line(result, 'fif-specific')).toBe(750);
+    expect(result.vatBase).toBe(615_250);
+    expect(line(result, 'vat')).toBe(123_050);
+    expect(result.total).toBe(268_300);
+  });
+
+  it('does not apply under 25 years', () => {
+    const result = calculateVehicleImport({ ...classicCar, ageYears: 20 });
+    expect(result.classic).toBe(false);
+    expect(result.classicUnavailable).not.toBeNull();
+    expect(result.lines.find((entry) => entry.key === 'fif')?.rate).toBe(8);
+  });
+
+  it('cuts the road tax by 65% for cars built up to 1983, not the Güçlendirme Kurumu share', () => {
+    const share = roadTaxGkkShare();
+    const relieved = calculateVehicleImport({ ...classicCar, roadTax: true, weightKg: 1_200, builtBy1983: true });
+    expect(line(relieved, 'road-tax')).toBeCloseTo(1_512 + share, 2);
+    const full = calculateVehicleImport({ ...classicCar, roadTax: true, weightKg: 1_200 });
+    expect(line(full, 'road-tax')).toBeCloseTo(4_320 + share, 2);
   });
 });

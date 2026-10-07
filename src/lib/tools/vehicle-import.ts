@@ -1,6 +1,7 @@
 /**
  * Taxes on importing a passenger car (GTİP 87.03), a pickup (87.04, up to
- * five tonnes) or a motorcycle (87.11) into the KKTC.
+ * five tonnes), a truck (87.04, over five tonnes) or a motorcycle (87.11)
+ * into the KKTC.
  *
  * There is no excise duty by engine size on cars; the engine-size burden is
  * the Fiyat İstikrar Fonu (FİF). Every rate below was read from a primary
@@ -39,6 +40,16 @@
  *  - Disability exemptions: Gümrük Vergileri Tarife (Muafiyet) (Değişiklik)
  *    Tüzüğü, A.E. 861, 17.09.2026 (customs duty), FİF special rules (b)–(d),
  *    and the registration fee regulation, Kısım I (C).
+ *  - New work vehicles: 87.04 except 87.04.21 and 87.04.31 (diesel and petrol
+ *    goods vehicles up to 5 t) pay no wharf fee (2019 Rıhtım Harçlarının
+ *    Oranları (Değişiklik) Tüzüğü, A.E. 176, Cetvel I item 24) and 0% VAT
+ *    (KDV Oranları Tüzüğü Cetvel I item 23, as rewritten by A.E. 920/2026).
+ *    Read literally, this also covers new hybrid (87.04.41, 87.04.51) and
+ *    electric (87.04.60) pickups.
+ *  - Classic cars: FİF 87.03 exception (a), a specific 750 TL plus 6% for a
+ *    car of 25 or more approved by the Eski Eserler ve Müzeler Dairesi; Yaş
+ *    Sınırlandırılması Tüzüğü 5(2)(A) lifts the age limit; the road tax is
+ *    cut by 65% for cars built up to 31.12.1983 (A.E. 388/2026, Kısım I (D)).
  *
  * Points that could not be confirmed from a primary source are applied as
  * stated assumptions and surfaced on the page: the FİF base (taken as the CIF
@@ -50,7 +61,7 @@
 
 import { MINIMUM_WAGE } from './constants';
 
-export type VehicleType = 'car' | 'pickup' | 'motorcycle';
+export type VehicleType = 'car' | 'pickup' | 'truck' | 'motorcycle';
 
 export type Fuel = 'petrol' | 'diesel' | 'hybrid' | 'electric';
 
@@ -130,6 +141,13 @@ export const VEHICLE_IMPORT_RATES = {
     doubleCabSpecificTl: 3000,
   },
   /**
+   * Trucks over 5 t (8704.22–23, .32, .42–43, .52): exempt in the AB-EFTA
+   * column, 22% in the general column; electric ones (8704.60) 10%.
+   */
+  truckCustoms: { general: 22, electric: 10 },
+  /** Classic cars, FİF 87.03 exception (a). */
+  classicFif: { minAgeYears: 25, specificTl: 750, rate: 6 },
+  /**
    * Motorcycles: exempt in the AB-EFTA column; general column 14.5% up to
    * 250 cm³ (8711.10–20), 6% above and for electric ones (8711.60).
    */
@@ -145,6 +163,8 @@ export const VEHICLE_IMPORT_RATES = {
   ],
   wharf: 4.4,
   gkkShare: 2.5,
+  /** Road tax relief for classic cars built up to the end of 1983, percent. */
+  classicRoadTaxDiscount: 65,
   /** Cetvel V item 7 covers motorcycles over 200 cm³; smaller ones fall to Cetvel IV. */
   vat: { car: 20, other: 16, electric: 5, motorcycleOver200: 20 },
   registration: { standard: 6, electricOrHybrid: 4 },
@@ -232,6 +252,13 @@ export interface VehicleImportInput {
   commercial?: boolean;
   /** Whole years since first registration on arrival; `null` for a new vehicle. */
   ageYears?: number | null;
+  /**
+   * A classic car approved by the Eski Eserler ve Müzeler Dairesi; applies
+   * only to cars of 25 or more.
+   */
+  classic?: boolean;
+  /** Classic cars: built up to 31.12.1983, for the road tax relief. */
+  builtBy1983?: boolean;
   /** Pickups: double cab (carries passengers too). */
   doubleCab?: boolean;
   /** Unladen weight in kg: double-cab FİF limit and the car road tax. */
@@ -263,7 +290,7 @@ export interface ImportLine {
   /** Percent. */
   rate?: number;
   note?: string;
-  /** Waived by a disability exemption. */
+  /** Waived by an exemption. */
   exempt?: boolean;
 }
 
@@ -283,6 +310,12 @@ export interface VehicleImportResult {
   disabilityNotes: string[];
   /** Road tax could not be worked out (missing weight, or no line for the vehicle). */
   roadTaxUnavailable: string | null;
+  /** The classic car rules were applied. */
+  classic: boolean;
+  /** Why the classic car rules were asked for but not applied. */
+  classicUnavailable: string | null;
+  /** The new work vehicle wharf and VAT exemptions were applied. */
+  newWorkVehicle: boolean;
 }
 
 function round(value: number): number {
@@ -305,6 +338,11 @@ export function customsRate(
     const moto = VEHICLE_IMPORT_RATES.motorcycleCustoms;
     if (fuel === 'electric') return moto.electric;
     return cc > moto.smallUpToCc ? moto.large : moto.small;
+  }
+  if (vehicleType === 'truck') {
+    if (origin !== 'other') return 0;
+    const truck = VEHICLE_IMPORT_RATES.truckCustoms;
+    return fuel === 'electric' ? truck.electric : truck.general;
   }
   if (vehicleType === 'pickup') {
     if (origin !== 'other') return 0;
@@ -347,6 +385,22 @@ export function pickupFifRate(origin: Origin, ageYears: number | null): { rate: 
   }
   if (ageYears < 8) return { rate: fif.usedUnderEight[column], row: '(B)(a) sekiz yaşını doldurmamış' };
   return { rate: fif.usedEightOrOlder[column], row: '(B)(b) sekiz yaşını doldurmuş' };
+}
+
+/** The FİF rate for a truck over 5 t: new ones are exempt, used ones share the pickup rows. */
+export function truckFifRate(origin: Origin, ageYears: number | null): { rate: number; row: string } {
+  if (ageYears === null) return { rate: 0, row: '(A)(b) yeni, 5 tonu aşan: muaf' };
+  return pickupFifRate(origin, ageYears);
+}
+
+/**
+ * New 87.04 work vehicles other than 87.04.21 and 87.04.31 — the diesel and
+ * petrol ones up to 5 t — pay no wharf fee and 0% VAT.
+ */
+export function isNewWorkVehicle(vehicleType: VehicleType, fuel: Fuel, ageYears: number | null): boolean {
+  if (ageYears !== null) return false;
+  if (vehicleType === 'truck') return true;
+  return vehicleType === 'pickup' && (fuel === 'hybrid' || fuel === 'electric');
 }
 
 /**
@@ -397,8 +451,8 @@ export function roadTaxAmount(
     const table = ROAD_TAX.motorcycle;
     return { amount: band(table.ccLimits, table.byCc, engineCc ?? 0), note: `${engineCc ?? 0} cm³.` };
   }
-  if (vehicleType === 'pickup') {
-    const amount = doubleCab ? ROAD_TAX.doubleCab[fuel] : ROAD_TAX.singleCab[fuel];
+  if (vehicleType === 'pickup' || vehicleType === 'truck') {
+    const amount = vehicleType === 'pickup' && doubleCab ? ROAD_TAX.doubleCab[fuel] : ROAD_TAX.singleCab[fuel];
     if (amount === null) {
       return { amount: null, reason: 'Tüzükte benzinli tek kabin yük aracı için ayrı bir seyrüsefer kalemi yok.' };
     }
@@ -478,9 +532,20 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
   const exemptions = disabilityExemptions(input);
   const lines: ImportLine[] = [];
 
-  const push = (line: ImportLine, waived: boolean) => {
-    lines.push(waived ? { ...line, amount: 0, exempt: true, note: 'Engelli muafiyeti.' } : line);
+  const push = (line: ImportLine, waived: boolean, reason = 'Engelli muafiyeti.') => {
+    lines.push(waived ? { ...line, amount: 0, exempt: true, note: reason } : line);
   };
+
+  const ageYears = input.ageYears ?? null;
+  const classicLimit = rates.classicFif.minAgeYears;
+  let classicUnavailable: string | null = null;
+  if (input.classic && vehicleType !== 'car') {
+    classicUnavailable = 'Fon emirnamesindeki klasik araç kuralı yalnızca binek otomobiller (87.03) için.';
+  } else if (input.classic && (ageYears === null || ageYears < classicLimit)) {
+    classicUnavailable = `Klasik araç kuralı ${classicLimit} yaşını doldurmuş araçlar için; ilk kayıt tarihini kontrol edin.`;
+  }
+  const classic = Boolean(input.classic) && classicUnavailable === null;
+  const newWorkVehicle = isNewWorkVehicle(vehicleType, input.fuel, ageYears);
 
   const customs = customsRate(input.fuel, input.engineCc, input.origin, vehicleType);
   push(
@@ -496,10 +561,17 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
   );
 
   const moto = vehicleType === 'motorcycle' ? motorcycleFif(input.fuel, input.engineCc, input.origin) : null;
+  const classicFif = classic
+    ? { rate: rates.classicFif.rate, specificTl: rates.classicFif.specificTl, row: '87.03 istisna (a), klasik araç' }
+    : null;
+  const specific = moto ?? classicFif;
   const fif =
-    vehicleType === 'pickup'
-      ? pickupFifRate(input.origin, input.ageYears ?? null)
-      : moto ?? fifRate(input.fuel, input.engineCc, input.origin);
+    classicFif ??
+    (vehicleType === 'pickup'
+      ? pickupFifRate(input.origin, ageYears)
+      : vehicleType === 'truck'
+        ? truckFifRate(input.origin, ageYears)
+        : (moto ?? fifRate(input.fuel, input.engineCc, input.origin)));
   push(
     {
       key: 'fif',
@@ -509,14 +581,15 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
       amount: percentOf(cif, fif.rate),
       note: `Emirname satırı ${fif.row}.`,
     },
-    exemptions.fif,
+    exemptions.fif || (vehicleType === 'truck' && ageYears === null),
+    exemptions.fif ? 'Engelli muafiyeti.' : 'Yeni, 5 tonu aşan: emirname satırı (A)(b).',
   );
 
-  if (moto && moto.specificTl > 0) {
+  if (specific && specific.specificTl > 0) {
     lines.push({
       key: 'fif-specific',
       label: 'Fiyat İstikrar Fonu (spesifik)',
-      amount: moto.specificTl,
+      amount: specific.specificTl,
       note: 'Araç başına sabit tutar, orana ek olarak.',
     });
   }
@@ -535,7 +608,11 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     });
   }
 
-  lines.push({ key: 'wharf', label: 'Rıhtım harcı', base: cif, rate: rates.wharf, amount: percentOf(cif, rates.wharf) });
+  push(
+    { key: 'wharf', label: 'Rıhtım harcı', base: cif, rate: rates.wharf, amount: percentOf(cif, rates.wharf) },
+    newWorkVehicle,
+    'Yeni iş aracı (A.E. 176/2019, madde 24).',
+  );
 
   push(
     {
@@ -562,20 +639,24 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     });
   }
 
-  const vatRate = electric
-    ? rates.vat.electric
-    : vehicleType === 'car'
-      ? rates.vat.car
-      : vehicleType === 'motorcycle' && (input.engineCc ?? 0) > 200
-        ? rates.vat.motorcycleOver200
-        : rates.vat.other;
+  const vatRate = newWorkVehicle
+    ? 0
+    : electric
+      ? rates.vat.electric
+      : vehicleType === 'car'
+        ? rates.vat.car
+        : vehicleType === 'motorcycle' && (input.engineCc ?? 0) > 200
+          ? rates.vat.motorcycleOver200
+          : rates.vat.other;
   lines.push({
     key: 'vat',
     label: 'KDV',
     base: vatBase,
     rate: vatRate,
     amount: percentOf(vatBase, vatRate),
-    note: 'Matrah: CİF ile ithalatta ödenen vergi, harç, pay ve fonların toplamı.',
+    note: newWorkVehicle
+      ? 'Yeni iş aracı: KDV Oranları Tüzüğü Cetvel I madde 23, %0.'
+      : 'Matrah: CİF ile ithalatta ödenen vergi, harç, pay ve fonların toplamı.',
   });
 
   const customsTotal = round(lines.reduce((sum, line) => sum + line.amount, 0));
@@ -607,6 +688,9 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     if (road.amount === null) {
       roadTaxUnavailable = road.reason;
     } else {
+      const classicRelief = classic && Boolean(input.builtBy1983);
+      const fee = classicRelief ? round(road.amount * (1 - rates.classicRoadTaxDiscount / 100)) : road.amount;
+      const reliefNote = classicRelief ? ` Klasik araç: %${rates.classicRoadTaxDiscount} indirimli.` : '';
       const share = roadTaxGkkShare();
       const shareNote = `Güçlendirme Kurumu payı ${share.toLocaleString('tr-TR')} TL dahil.`;
       /*
@@ -625,8 +709,8 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
           : {
               key: 'road-tax',
               label: 'Seyrüsefer (ilk yıl)',
-              amount: round(road.amount + share),
-              note: `${road.note} ${shareNote} Yaş indirimi KKTC’de ilk kayıttan itibaren sayılır.`,
+              amount: round(fee + share),
+              note: `${road.note}${reliefNote} ${shareNote} Yaş indirimi KKTC’de ilk kayıttan itibaren sayılır.`,
             },
       );
     }
@@ -644,6 +728,9 @@ export function calculateVehicleImport(input: VehicleImportInput): VehicleImport
     burdenPercent: cif > 0 ? Math.round((total / cif) * 10000) / 100 : 0,
     disabilityNotes: exemptions.notes,
     roadTaxUnavailable,
+    classic,
+    classicUnavailable,
+    newWorkVehicle,
   };
 }
 

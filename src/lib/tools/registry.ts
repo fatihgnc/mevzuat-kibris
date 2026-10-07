@@ -345,6 +345,16 @@ export const TOOLS: readonly Tool[] = [
         href: '/karar/2024-ae-1127-katma-deger-vergisi-yasasi-2025-yili-katma-deger-vergisi-oranlar',
       },
       {
+        label: 'KDV Oranları (Değişiklik) Tüzüğü — A.E. 920 (2026)',
+        href: '/karar/2026-ae-920-katma-deger-vergisi-yasasi-2025-yili-katma-deger-vergisi-oranlari',
+        note: 'Yeni iş araçlarına %0 KDV (Cetvel I madde 23)',
+      },
+      {
+        label: 'Yaş Sınırlandırılması (Değişiklik) Tüzüğü — A.E. 416 (2026)',
+        href: '/karar/2026-ae-416-dis-ticaret-duzenleme-ve-denetim-yasasi-motorlu-tasit-araclari-yas',
+        note: 'Klasik iş araçlarında yaş sınırı istisnası',
+      },
+      {
         label: 'Motorlu araç kayıt ve ruhsat harçları — A.E. 388 (2026)',
         href: '/karar/2026-ae-388-motorlu-araclar-ve-yol-trafik-yasasi-motorlu-araclar-kayit-ve-ruhsat',
       },
@@ -362,17 +372,17 @@ export const TOOLS: readonly Tool[] = [
     heading: 'İthal araç vergisi hesaplayıcı',
     title: 'KKTC Araç İthalatı Vergi Hesaplama 2026',
     summary:
-      'Yurt dışından getirilen otomobil, pikap veya motosikletin gümrük vergisini, fonunu, rıhtım harcını, KDV’sini ve kayıt harcını hesaplar.',
+      'Yurt dışından getirilen otomobil, klasik araç, pikap, kamyon veya motosikletin gümrük vergisini, fonunu, rıhtım harcını, KDV’sini ve kayıt harcını hesaplar.',
     description:
-      'KKTC’ye araç ithalatında ödenecek vergiler: otomobil, pikap ve motosiklette menşe ve motor hacmine göre gümrük vergisi, Fiyat İstikrar Fonu, %4,4 rıhtım harcı, %2,5 Güvenlik Kuvvetleri payı, KDV, kayıt harcı ve ilk yıl seyrüseferi Resmî Gazete’deki güncel oranlarla hesaplayın; engelli muafiyetlerini ve yaş sınırını kontrol edin.',
+      'KKTC’ye araç ithalatında ödenecek vergiler: otomobil, klasik araç, pikap, kamyon ve motosiklette menşe ve motor hacmine göre gümrük vergisi, Fiyat İstikrar Fonu, %4,4 rıhtım harcı, %2,5 Güvenlik Kuvvetleri payı, KDV, kayıt harcı ve ilk yıl seyrüseferi Resmî Gazete’deki güncel oranlarla hesaplayın; engelli muafiyetlerini ve yaş sınırını kontrol edin.',
     intro:
-      'KKTC’de otomobilde motor hacmine göre alınan ayrı bir tüketim vergisi yok; o yükü Fiyat İstikrar Fonu taşıyor ve oranları yılda birkaç kez değişiyor. Bu araç bütün kalemleri CİF değeri üzerinden, her birinin dayandığı Resmî Gazete kaydıyla hesaplıyor; pikap ve motosikletin kendi oranları, engelli muafiyetleri ve yerleşmeye gelenlerin yaş istisnası da dahil.',
+      'KKTC’de otomobilde motor hacmine göre alınan ayrı bir tüketim vergisi yok; o yükü Fiyat İstikrar Fonu taşıyor ve oranları yılda birkaç kez değişiyor. Bu araç bütün kalemleri CİF değeri üzerinden, her birinin dayandığı Resmî Gazete kaydıyla hesaplıyor; pikap, kamyon ve motosikletin kendi oranları, klasik araç kuralları, yeni iş aracı muafiyetleri, engelli muafiyetleri ve yerleşmeye gelenlerin yaş istisnası da dahil.',
     legal: [
       {
         law: 'Gümrük Vergi Oranları (Değişiklik) Tüzüğü',
         article: '87.03 pozisyonu',
         summary:
-          'Binek otomobilde genel oran %10. AB-EFTA sütununda benzinli 2000 cm³’e, dizel 2500 cm³’e kadar muaf, üzeri %10; hibrit ve tamamen elektrikli araçlar muaf. Pikapta (87.04.21/31) AB-EFTA muaf, genel sütunda dizel 2500, benzinli 2800 cm³’e kadar %10, üzeri %22. Motosiklette AB-EFTA muaf, genel sütunda 250 cm³’e kadar %14,5, üzeri ve elektrikliler %6. Yeni ve kullanılmış aynı oranda (A.E. 464, 25.05.2026).',
+          'Binek otomobilde genel oran %10. AB-EFTA sütununda benzinli 2000 cm³’e, dizel 2500 cm³’e kadar muaf, üzeri %10; hibrit ve tamamen elektrikli araçlar muaf. Pikapta (87.04.21/31) AB-EFTA muaf, genel sütunda dizel 2500, benzinli 2800 cm³’e kadar %10, üzeri %22. Brüt ağırlığı 5 tonu aşan kamyonda AB-EFTA muaf, genel sütunda %22, elektrikli %10. Motosiklette AB-EFTA muaf, genel sütunda 250 cm³’e kadar %14,5, üzeri ve elektrikliler %6. Yeni ve kullanılmış aynı oranda (A.E. 464, 25.05.2026).',
       },
       {
         law: '44/1996 Gümrük Vergileri Tarife Yasası',
@@ -388,9 +398,15 @@ export const TOOLS: readonly Tool[] = [
       },
       {
         law: '2026 Fiyat İstikrar Fonu (Fona Yatırılacak Miktarlar) (Değişiklik) Emirnamesi',
+        article: '87.03 istisna (a)',
+        summary:
+          'Eski Eserler ve Müzeler Dairesi onayıyla klasik araba kapsamına giren, 25 yaşını doldurmuş araçlardan mevcut oranlar dikkate alınmaksızın araç başına 750 TL spesifik ve %6 ad valorem fon alınır.',
+      },
+      {
+        law: '2026 Fiyat İstikrar Fonu (Fona Yatırılacak Miktarlar) (Değişiklik) Emirnamesi',
         article: '87.04 ve özel kurallar',
         summary:
-          'Pikap ve kamyonet (azami 5 ton): yeni olanlarda AB-EFTA-TC sütunu %5, III. ülke %2; kullanılmışta sekiz yaşını doldurmamışsa %16 / %6, doldurmuşsa %31 / %21. TC menşeli yeni araçlara ad valorem %7. 2032 kg’a kadar çift kabinlerde ek spesifik fon (A.E. 722/2017 metnine göre 3.000 TL). Binek otomobilde engelli grupları için 1600 cm³’e kadar muafiyet.',
+          'Pikap ve kamyonet (azami 5 ton): yeni olanlarda AB-EFTA-TC sütunu %5, III. ülke %2; 5 tonu aşan yeni araçlar muaf; kullanılmışta (tonajdan bağımsız) sekiz yaşını doldurmamışsa %16 / %6, doldurmuşsa %31 / %21. TC menşeli yeni araçlara ad valorem %7. 2032 kg’a kadar çift kabinlerde ek spesifik fon (A.E. 722/2017 metnine göre 3.000 TL). Binek otomobilde engelli grupları için 1600 cm³’e kadar muafiyet.',
       },
       {
         law: '2010 Fiyat İstikrar Fonu (Değişiklik) Emirnamesi',
@@ -402,7 +418,7 @@ export const TOOLS: readonly Tool[] = [
         law: '2005 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü',
         article: 'I’inci Cetvel, kategori (vi)',
         summary:
-          'Devlete kesin ithali yapılan motorlu araçlarda rıhtım harcı CİF kıymet üzerinden %4,4 (A.E. 468, RG 139, 18.08.2005). Sonraki değişiklikler yalnızca muafiyet ekliyor; yeni iş araçları muaf, pikaplar (87.04.21/31) değil.',
+          'Devlete kesin ithali yapılan motorlu araçlarda rıhtım harcı CİF kıymet üzerinden %4,4 (A.E. 468, RG 139, 18.08.2005). Sonraki değişiklikler yalnızca muafiyet ekliyor: yeni (kullanılmamış) 87.04 motorlu iş araçları, dizel ve benzinli 5 tona kadar olanlar (87.04.21 ve 87.04.31) hariç, muaf (A.E. 176/2019, Cetvel I madde 24).',
       },
       {
         law: '13/1981 Güvenlik Kuvvetlerini Güçlendirme Kurumu Yasası',
@@ -414,7 +430,7 @@ export const TOOLS: readonly Tool[] = [
         law: '47/1992 Katma Değer Vergisi Yasası',
         article: 'Madde 21',
         summary:
-          'İthalatta KDV matrahı: gümrük vergisine esas değer ile ithalat sırasında ödenen her türlü vergi, resim, harç, pay ve fonların toplamı (Gelir Vergisi Yasası 31(4) kesintileri hariç). Oran salon tipi araçta ve 200 cc’nin üzerindeki motosiklette %20 (Cetvel V madde 7), sade elektrikle çalışan kara taşıtlarında %5 (Cetvel II madde 36), pikap ve küçük motosiklet gibi diğerlerinde %16 (Cetvel IV).',
+          'İthalatta KDV matrahı: gümrük vergisine esas değer ile ithalat sırasında ödenen her türlü vergi, resim, harç, pay ve fonların toplamı (Gelir Vergisi Yasası 31(4) kesintileri hariç). Oran salon tipi araçta ve 200 cc’nin üzerindeki motosiklette %20 (Cetvel V madde 7), sade elektrikle çalışan kara taşıtlarında %5 (Cetvel II madde 36), pikap ve küçük motosiklet gibi diğerlerinde %16 (Cetvel IV). Yeni 87.04 motorlu iş araçları (87.04.21 ve 87.04.31 hariç) %0 (Cetvel I madde 23, A.E. 920/2026).',
       },
       {
         law: 'Motorlu Araçlar Kayıt ve Ruhsat Harçları Tüzüğü',
@@ -426,7 +442,7 @@ export const TOOLS: readonly Tool[] = [
         law: 'Motorlu Araçlar Kayıt ve Ruhsat Harçları Tüzüğü',
         article: 'Kısım I, II(2) ve (C)',
         summary:
-          'Yıllık seyrüsefer: özel otomobilde ağırlık dilimine göre kg başına (benzinli 2,09–12,50 TL, dizel 3,02–18,69 TL, hibrit 1,80–8,75 TL, elektrikli 1,12–6,15 TL); çift kabin 15.950 TL, dizel yük aracı 12.655 TL; motosiklet 100 cm³’e kadar 558 TL’den 500 cm³ üzeri 2.789 TL’ye. Yaş indirimi KKTC’de ilk kayıttan itibaren beş, on ve on beş yılda %15, %40, %60. Engelli muafiyeti (C): koşulları taşıyan araçlar Kısım I harçlarından muaf.',
+          'Yıllık seyrüsefer: özel otomobilde ağırlık dilimine göre kg başına (benzinli 2,09–12,50 TL, dizel 3,02–18,69 TL, hibrit 1,80–8,75 TL, elektrikli 1,12–6,15 TL); çift kabin 15.950 TL, dizel yük aracı 12.655 TL; motosiklet 100 cm³’e kadar 558 TL’den 500 cm³ üzeri 2.789 TL’ye. Yaş indirimi KKTC’de ilk kayıttan itibaren beş, on ve on beş yılda %15, %40, %60. 31.12.1983’e kadar imal edilip kulüp veya dernekçe klasik sayılan ve Eski Eserler ve Müzeler Dairesi’nce onaylanan araçta %65 indirim (D). Engelli muafiyeti (C): koşulları taşıyan araçlar Kısım I harçlarından muaf.',
       },
       {
         law: 'Gümrük Vergileri Tarife (Muafiyet) (Değişiklik) Tüzüğü',
@@ -444,7 +460,7 @@ export const TOOLS: readonly Tool[] = [
         law: 'Motorlu Taşıt Araçları Yaş Sınırlandırılması Tüzüğü',
         article: 'Madde 5(1)',
         summary:
-          'Binek otomobil, yalnızca eşya taşımayan pikap ve kamyonet ile motosiklet, limana geldiğinde ilk kayıttan itibaren beş yaşını doldurmuşsa ithal izni verilmez; iş araçlarında sınır on iki yaş (madde 7). Sol direksiyon araçlara izin verilmez. Yerleşmeye gelen kişi, gümrüğe gelmeden önce kendi adına kayıtlı aracını bir defaya mahsus yaş sınırı olmadan getirebilir (madde 6, A.E. 152/2023).',
+          'Binek otomobil, yalnızca eşya taşımayan pikap ve kamyonet ile motosiklet, limana geldiğinde ilk kayıttan itibaren beş yaşını doldurmuşsa ithal izni verilmez; iş araçlarında sınır on iki yaş (madde 7). Sol direksiyon araçlara izin verilmez. Yerleşmeye gelen kişi, gümrüğe gelmeden önce kendi adına kayıtlı aracını bir defaya mahsus yaş sınırı olmadan getirebilir (madde 6, A.E. 152/2023). İmal tarihinden itibaren 25 yaşını tamamlamış, Kıbrıs Türk Klasik Otomobil Derneği veya Klasik ve Spor Otomobil Kulübü’nce klasik kabul edilen ve Eski Eserler ve Müzeler Dairesi’nce onaylanan araca yaş sınırı uygulanmaz (madde 5(2)(A)).',
       },
     ],
     sources: [
@@ -452,6 +468,11 @@ export const TOOLS: readonly Tool[] = [
         label: '2005 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü (PDF)',
         href: 'https://mevzuat.mahkemeler.net/Enstrumanlar/st468-2005.pdf',
         note: 'KKTC Mahkemeleri Mevzuat Bilgi Sistemi; Resmî Gazete arşivinde 2006 öncesi yok',
+      },
+      {
+        label: '2019 Rıhtım Harçlarının Oranları (Değişiklik) Tüzüğü (PDF)',
+        href: 'https://mevzuat.mahkemeler.net/Enstrumanlar/176-2019.pdf',
+        note: 'Yeni iş araçlarına rıhtım harcı muafiyeti',
       },
       {
         label: '22/1978 Rıhtım Harçları Yasası',
@@ -488,10 +509,13 @@ export const TOOLS: readonly Tool[] = [
       'Pikapta çift kabin ek fonu (3.000 TL) 2017 metnine dayanıyor; 2026 baskısında cümle yarıda kesik. TC menşeli yeni pikapta tablodaki %5 yerine istisna sütunundaki %7 uygulanır.',
       'Engelli muafiyetinde KDV’nin alınıp alınmadığı belirsiz (KDV Yasası 16(1)(I)); hesap KDV’yi tam alır. Güçlendirme Kurumu payı yalnızca engelliye özel imal edilip onun adına gümrüklenen araçta muaf sayılır.',
       'Yerleşmeye gelen kişinin aracı için vergi indirimi bulunamadı; tek kolaylık yaş sınırı istisnası. Kişisel Muafiyetler Tüzüğü’nün 1983 tarihli esas metni internette olmadığı için bu doğrulanamadı.',
-      'Benzinli tek kabin pikabın seyrüseferi için tüzükte ayrı kalem yok.',
+      'Benzinli tek kabin pikabın ve kamyonun seyrüseferi için tüzükte ayrı kalem yok.',
+      'Yeni iş aracı muafiyetleri (rıhtım harcı ve %0 KDV) yalnızca 87.04.21 ve 87.04.31’i, yani dizel ve benzinli 5 tona kadar araçları hariç tutuyor. Metne göre yeni hibrit ve elektrikli pikaplar da muaf sayıldı; uygulama doğrulanamadı.',
+      'Klasik araçta gümrük vergisi ve KDV binek otomobil (87.03) oranlarıyla hesaplanır, çünkü fon emirnamesi klasikleri 87.03 altında sayıyor. Gümrük aracı tarihi koleksiyon eşyası (97.05) olarak sınıflandırırsa gümrük vergisi alınmaz.',
+      'Kamyon özel kullanımlıdır (kendi yükünü taşıyan); “T” izinli ticari araçların farklı kayıt ve ruhsat harçları hesaplanmaz.',
     ],
     limitations: [
-      'Beş tonu geçen kamyonlar, iş makineleri ve 25 yaşını doldurmuş klasik araçlar (Eski Eserler onayıyla araç başına 750 TL + %6 fon) hesaplanmaz.',
+      'Otobüs ve minibüsler (87.02), TIR çekicileri (87.01), iş makineleri ve özel amaçlı taşıtlar (87.05) hesaplanmaz.',
       'İkamet ve çalışma izni olan yabancılara geçici “ZZ” kaydı (fonun %50’si, geçici kayıt harcı 18.725 TL; Geçici İthaller (Özel Taşıt Araçları) Tüzüğü) ile diplomatlara tanınan muafiyet hesaplanmaz.',
       'Muayene, plaka, gümrük müşaviri ve liman hizmet ücretleri dahil değildir.',
       'Gümrük, faturadaki değeri yeterli görmezse kıymeti kendisi saptar; özellikle kullanılmış araçlarda vergiler buna göre değişir.',
@@ -525,7 +549,17 @@ export const TOOLS: readonly Tool[] = [
       {
         question: 'Pikap ithalatında vergiler nasıl?',
         answer:
-          'Türkiye, AB veya EFTA menşeli pikapta gümrük vergisi yok; diğer ülkelerden gelende dizel 2500, benzinli 2800 cm³’e kadar %10, üzeri %22. Fon yeni pikapta %2 (AB-EFTA-TC %5), kullanılmışta sekiz yaşından küçükse %6 (%16), büyükse %21 (%31). KDV %16, kayıt harcı %6; rıhtım harcı ve Güvenlik Kuvvetleri payı otomobildeki gibi. Çift kabinler beş yaş, yalnızca yük taşıyan tek kabinler on iki yaş sınırına tabi.',
+          'Türkiye, AB veya EFTA menşeli pikapta gümrük vergisi yok; diğer ülkelerden gelende dizel 2500, benzinli 2800 cm³’e kadar %10, üzeri %22. Fon yeni pikapta %2 (AB-EFTA-TC %5), kullanılmışta sekiz yaşından küçükse %6 (%16), büyükse %21 (%31). KDV %16, kayıt harcı %6; rıhtım harcı ve Güvenlik Kuvvetleri payı otomobildeki gibi. Yeni hibrit ve elektrikli pikaplar metne göre rıhtım harcından muaf ve %0 KDV’ye tabi. Çift kabinler beş yaş, yalnızca yük taşıyan tek kabinler on iki yaş sınırına tabi.',
+      },
+      {
+        question: 'Kamyon ithalatında hangi vergiler ödenir?',
+        answer:
+          'Brüt ağırlığı 5 tonu aşan kamyonda Türkiye, AB veya EFTA menşeliyse gümrük vergisi yok, diğer ülkelerden gelende %22. Yeni kamyon fondan ve rıhtım harcından muaf, KDV’si %0; kullanılmış kamyonda fon sekiz yaşından küçükse %6 (AB-EFTA-TC %16), büyükse %21 (%31), rıhtım harcı %4,4 ve KDV %16. Güvenlik Kuvvetleri payı %2,5, kayıt harcı %6. İş araçları on iki yaş sınırına tabi.',
+      },
+      {
+        question: 'Klasik araç ithalatında vergiler nasıl?',
+        answer:
+          'Eski Eserler ve Müzeler Dairesi onaylı, 25 yaşını doldurmuş klasik otomobilde fon, motor hacmi dilimleri yerine araç başına 750 TL artı %6 alınır. Klasik Otomobil Derneği veya Klasik ve Spor Otomobil Kulübü’nün klasik kabulüyle beş yaş sınırı uygulanmaz. 1983 sonuna kadar imal edilenlerde yıllık seyrüsefer %65 indirimli.',
       },
       {
         question: 'Motosiklet ithalatında vergiler ne kadar?',
