@@ -7,7 +7,7 @@ import { extractDeadline, findWindowEnds } from '../shared/deadline';
 import { sql } from '../shared/db';
 import { log } from '../shared/logger';
 
-import { buildSummary, buildTitle, circularPattern, parseCircular, parseTurkishDate, type Circular } from './circular';
+import { buildSummary, buildTitle, circularPattern, kindOfCategory, parseCircular, parseTurkishDate, type Circular } from './circular';
 import { crawlYear, type KhkRow } from './crawl';
 
 /**
@@ -159,12 +159,12 @@ export async function insertRecord(input: NewRecordInput): Promise<string | null
     insert into records (
       issue_id, source_url, slug, section, doc_type, ref_type, ref_number,
       title, title_normalized, body_text, body_markdown,
-      summary, summary_source, deadline_at, deadline_note, issuer,
+      summary, summary_source, deadline_at, deadline_note, issuer, munhal_kind,
       published_at, has_personal_data, has_own_page, review_flags, review_flagged_at
     ) values (
       null, ${candidate.sourceUrl}, ${slug}, 'MAIN', 'genelge', ${circular.refType}, ${circular.refNumber},
       ${title}, ${normalizeForSearch(title)}, ${bodyText}, ${input.bodyMarkdown ?? null},
-      ${summaryText}, ${summaryText ? 'rule' : null}, ${input.deadlineAt}, ${input.deadlineNote ?? null}, 'khk',
+      ${summaryText}, ${summaryText ? 'rule' : null}, ${input.deadlineAt}, ${input.deadlineNote ?? null}, 'khk', ${kindOfCategory(candidate.row.category)},
       ${input.publishedAt}, false, true,
       ${input.flags?.length ? input.flags : null}, ${input.flags?.length ? sql`now()` : null}
     )

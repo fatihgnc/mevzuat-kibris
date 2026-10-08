@@ -114,3 +114,11 @@ export function buildSummary(department: string, category: string): string | nul
   if (!kind) return null;
   return `${titleCase(turkishUpper(department.replace(/\s+/g, ' ').trim()))} ${kind} münhal ilanı ve sınavları hakkında duyuru`;
 }
+
+/** The commission's own category for a listing page (records.munhal_kind). */
+export function kindOfCategory(category: string): 'ilk_atama' | 'yukselme' | 'ogretmen' | null {
+  if (/[yY]ükselme/.test(category)) return 'yukselme';
+  if (/[öÖ]ğretmenlik/.test(category)) return 'ogretmen';
+  if (/[iİ]lk-[aA]tama/.test(category)) return 'ilk_atama';
+  return null;
+}

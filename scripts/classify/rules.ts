@@ -411,6 +411,37 @@ export function classifyIssuer(input: {
   return (input.bodyText?.trim().length ?? 0) >= ISSUER_MIN_BODY ? 'diger' : null;
 }
 
+export type MunhalKind = 'ilk_atama' | 'yukselme' | 'ogretmen';
+
+/**
+ * The commission's own three vacancy categories (migration 0027). Only for its
+ * circulars: another body's notice has no such category and stays NULL.
+ *
+ * The reference series decides first -- MİA is always an entry post, MT a
+ * promotion post, Ö a teaching post -- because the titles are not reliable: an
+ * "İLK ATANMA VE YÜKSELME YERİ" title sits on promotion circulars. Without a
+ * reference the wording decides, teaching first, then promotion ("YÜKSELME" or
+ * "TERFİ"), then entry ("İLK ATAMA").
+ */
+export function classifyMunhalKind(input: {
+  title: string;
+  refType?: string | null;
+  issuer: Issuer | null;
+}): MunhalKind | null {
+  if (input.issuer !== 'khk') return null;
+
+  if (input.refType === 'mia') return 'ilk_atama';
+  if (input.refType === 'khkmt') return 'yukselme';
+  if (input.refType === 'khko') return 'ogretmen';
+
+  const title = turkishUpper(input.title);
+  // "ÖĞRETİM DAİRESİ": the education departments announce teaching posts.
+  if (title.includes('ÖĞRETMEN') || title.includes('ÖĞRETİM DAİRESİ') || /GENELGE\s+Ö\./.test(title)) return 'ogretmen';
+  if (title.includes('YÜKSELME') || title.includes('TERFİ')) return 'yukselme';
+  if (title.includes('İLK ATAMA') || title.includes('İLK ATANMA')) return 'ilk_atama';
+  return null;
+}
+
 /**
  * Personal-data flag — informational only (spec 3.7 rule 2).
  * Nothing branches on it: bodies of these records are published like any other.

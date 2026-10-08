@@ -1,7 +1,7 @@
 import { recordSlug } from '../../src/lib/text/slugify';
 import { normalizeForSearch } from '../../src/lib/text/turkish-lower';
 import { truncateBytes } from '../../src/lib/text/truncate';
-import { classifyDocType, classifyIssuer, classifyTopics, detectPersonalData } from '../classify/rules';
+import { classifyDocType, classifyIssuer, classifyMunhalKind, classifyTopics, detectPersonalData } from '../classify/rules';
 import { extractEntities } from '../extract-entities/extractor';
 import { extractPdfText } from '../extract-text';
 import { extractDeadline } from '../shared/deadline';
@@ -150,6 +150,8 @@ export async function processIssue(issue: {
       ? classifyIssuer({ title: record.title, docType, bodyText })
       : null;
 
+    const munhalKind = classifyMunhalKind({ title: record.title, refType: record.refType, issuer });
+
     const entities = extractEntities({ title: record.title, bodyText });
 
     /*
@@ -171,14 +173,14 @@ export async function processIssue(issue: {
       insert into records (
         issue_id, slug, section, doc_type, ref_type, ref_number,
         title, title_normalized, subject, body_text,
-        summary, summary_source, deadline_at, deadline_note, issuer,
+        summary, summary_source, deadline_at, deadline_note, issuer, munhal_kind,
         page_from, published_at, has_personal_data, has_own_page
       ) values (
         ${issue.id}, ${slug}, ${record.section}, ${docType},
         ${record.refType}, ${record.refNumber},
         ${record.title}, ${normalizeForSearch(record.title)}, ${record.subject}, ${bodyText},
         ${summaryResult?.summary ?? null}, ${summaryResult ? 'rule' : null},
-        ${deadline.deadlineAt}, ${deadline.note}, ${issuer},
+        ${deadline.deadlineAt}, ${deadline.note}, ${issuer}, ${munhalKind},
         ${pageFrom}, ${issue.publishedAt}, ${hasPersonalData}, ${hasOwnPage}
       )
       on conflict (slug) do update set
@@ -191,6 +193,7 @@ export async function processIssue(issue: {
         deadline_at    = coalesce(excluded.deadline_at, records.deadline_at),
         deadline_note  = coalesce(excluded.deadline_note, records.deadline_note),
         issuer         = coalesce(excluded.issuer, records.issuer),
+        munhal_kind    = coalesce(excluded.munhal_kind, records.munhal_kind),
         page_from      = coalesce(excluded.page_from, records.page_from),
         -- A body written after parsing (hand transcription, OCR) keeps its page:
         -- the parser only sees body_text, which such records often lack.

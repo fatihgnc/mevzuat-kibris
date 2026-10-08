@@ -6,7 +6,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
 import { FilterSheet } from '@/components/filter-sheet';
 import { TopicFilters } from '@/components/topic-filters';
-import { PUBLISHERS, TOPICS, type DeadlineState, type Publisher, type TopicSlug } from '@/lib/constants/topics';
+import { MUNHAL_KINDS, PUBLISHERS, TOPICS, type DeadlineState, type MunhalKind, type Publisher, type TopicSlug } from '@/lib/constants/topics';
 import { TOPIC_FAQ } from '@/lib/content/topic-faq';
 import type { DocType } from '@/lib/constants/doc-types';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
@@ -52,6 +52,7 @@ export function topicHref(
     bitis?: string;
     tur?: readonly DocType[];
     yayinci?: Publisher;
+    ilan?: MunhalKind;
     sirala?: SortOption;
   } = {},
 ): string {
@@ -77,6 +78,7 @@ export function topicHref(
    */
   for (const type of options.tur ?? []) search.append('tur', type);
   if (options.yayinci) search.set('yayinci', options.yayinci);
+  if (options.ilan) search.set('ilan', options.ilan);
   if (options.sirala && options.sirala !== DEFAULT_SORT) search.set('sirala', options.sirala);
 
   const qs = search.toString();
@@ -91,6 +93,7 @@ export async function TopicPage({
   bitis,
   tur = [],
   yayinci,
+  ilan,
   sirala = DEFAULT_SORT,
 }: {
   konu: TopicSlug;
@@ -103,6 +106,8 @@ export async function TopicPage({
   tur?: DocType[];
   /** Münhal only — who published the notice. */
   yayinci?: Publisher;
+  /** Münhal only — what the commission circular announces. */
+  ilan?: MunhalKind;
   sirala?: SortOption;
 }) {
   const topic = TOPICS[konu];
@@ -118,6 +123,7 @@ export async function TopicPage({
   /* A publisher only means something for vacancy notices; elsewhere the parameter is ignored. */
   const supportsPublisher = konu === 'munhal';
   const publisher = supportsPublisher ? yayinci : undefined;
+  const kind = supportsPublisher ? ilan : undefined;
 
   /*
    * The rail's document-type counts, scoped to this topic and its date range but
@@ -132,12 +138,12 @@ export async function TopicPage({
       baslangic,
       bitis,
       tur,
-      yayinci: publisher,
+      yayinci: publisher, ilan: kind,
       sirala,
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
     }),
-    countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: publisher }),
+    countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: publisher, ilan: kind }),
     /*
      * THE THREE RAIL COUNTS IGNORE THE STATUS THAT IS APPLIED but keep the rest
      * of the rail's narrowing — the same "exclude its own filter" rule the
@@ -146,13 +152,13 @@ export async function TopicPage({
      * that cannot help anyone choose.
      */
     supportsDeadline
-      ? countRecords({ topic: konu, deadlineState: 'acik', baslangic, bitis, tur, yayinci: publisher })
+      ? countRecords({ topic: konu, deadlineState: 'acik', baslangic, bitis, tur, yayinci: publisher, ilan: kind })
       : Promise.resolve(0),
     supportsDeadline
-      ? countRecords({ topic: konu, deadlineState: 'kapali', baslangic, bitis, tur, yayinci: publisher })
+      ? countRecords({ topic: konu, deadlineState: 'kapali', baslangic, bitis, tur, yayinci: publisher, ilan: kind })
       : Promise.resolve(0),
     supportsDeadline
-      ? countRecords({ topic: konu, baslangic, bitis, tur, yayinci: publisher })
+      ? countRecords({ topic: konu, baslangic, bitis, tur, yayinci: publisher, ilan: kind })
       : Promise.resolve(0),
     archiveCoverage(konu),
     searchFacets(parseSearchParams({ konu, baslangic, bitis })),
@@ -163,14 +169,27 @@ export async function TopicPage({
      * choosing each would show.
      */
     supportsPublisher
-      ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: 'khk' })
+      ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: 'khk', ilan: kind })
       : Promise.resolve(0),
     supportsPublisher
-      ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: 'diger' })
+      ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: 'diger', ilan: kind })
       : Promise.resolve(0),
   ]);
 
   const publisherCounts: Record<Publisher, number> = { khk: khkCount, diger: otherCount };
+  const kindCounts = await Promise.all(
+    MUNHAL_KINDS.map((option) =>
+      supportsPublisher
+        ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: publisher, ilan: option.key })
+        : Promise.resolve(0),
+    ),
+  );
+  const kindsTotal = supportsPublisher
+    ? await countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: publisher })
+    : 0;
+  const kindOptions = supportsPublisher
+    ? MUNHAL_KINDS.map((option, index) => ({ key: option.key, label: option.label, n: kindCounts[index] ?? 0 }))
+    : [];
   const publisherOptions = supportsPublisher
     ? PUBLISHERS.map((option) => ({ key: option.key, label: option.label, n: publisherCounts[option.key] }))
     : [];
@@ -186,9 +205,9 @@ export async function TopicPage({
    */
   const statusOptions = supportsDeadline
     ? [
-        { key: 'tumu', label: 'Tümü', n: allCount, href: topicHref(konu, { baslangic, bitis, tur, yayinci: publisher, sirala }), active: !applied },
-        { key: 'acik', label: 'Başvurusu açık', n: openCount, href: topicHref(konu, { durum: 'acik', baslangic, bitis, tur, yayinci: publisher, sirala }), active: applied === 'acik' },
-        { key: 'kapali', label: 'Süresi dolmuş', n: closedCount, href: topicHref(konu, { durum: 'kapali', baslangic, bitis, tur, yayinci: publisher, sirala }), active: applied === 'kapali' },
+        { key: 'tumu', label: 'Tümü', n: allCount, href: topicHref(konu, { baslangic, bitis, tur, yayinci: publisher, ilan: kind, sirala }), active: !applied },
+        { key: 'acik', label: 'Başvurusu açık', n: openCount, href: topicHref(konu, { durum: 'acik', baslangic, bitis, tur, yayinci: publisher, ilan: kind, sirala }), active: applied === 'acik' },
+        { key: 'kapali', label: 'Süresi dolmuş', n: closedCount, href: topicHref(konu, { durum: 'kapali', baslangic, bitis, tur, yayinci: publisher, ilan: kind, sirala }), active: applied === 'kapali' },
       ]
     : [];
 
@@ -207,7 +226,7 @@ export async function TopicPage({
   ];
 
   const hrefFor = (nextPage: number) =>
-    topicHref(konu, { durum: applied, page: nextPage, baslangic, bitis, tur, yayinci: publisher, sirala });
+    topicHref(konu, { durum: applied, page: nextPage, baslangic, bitis, tur, yayinci: publisher, ilan: kind, sirala });
 
   /*
    * Changing the sort returns to page 1 — page 4 of "newest first" has nothing to
@@ -215,7 +234,7 @@ export async function TopicPage({
    * jumped. The date range is carried across, because it is a different question.
    */
   const sortHref = (option: SortOption) =>
-    topicHref(konu, { durum: applied, baslangic, bitis, tur, yayinci: publisher, sirala: option });
+    topicHref(konu, { durum: applied, baslangic, bitis, tur, yayinci: publisher, ilan: kind, sirala: option });
 
   return (
     <>
@@ -249,6 +268,9 @@ export async function TopicPage({
               bitis={bitis}
               tur={tur}
               yayinci={publisher}
+              ilan={kind}
+              kinds={kindOptions}
+              kindsTotal={kindsTotal}
               publishers={publisherOptions}
               docTypes={facets.docTypes}
               coverage={coverage}
@@ -265,6 +287,9 @@ export async function TopicPage({
                 bitis={bitis}
                 tur={tur}
                 yayinci={publisher}
+              ilan={kind}
+              kinds={kindOptions}
+              kindsTotal={kindsTotal}
                 publishers={publisherOptions}
                 docTypes={facets.docTypes}
                 coverage={coverage}

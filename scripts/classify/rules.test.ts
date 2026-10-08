@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyDocType, classifyIssuer, classifyTopics, detectPersonalData } from './rules';
+import { classifyDocType, classifyIssuer, classifyMunhalKind, classifyTopics, detectPersonalData } from './rules';
 
 /**
  * Doc-type classification — spec 3.4 and 7.1 step 5.
@@ -208,5 +208,27 @@ describe('classifyIssuer — who published a vacancy notice', () => {
 
   it('gövdesi yoksa ve başlıkta kanıt yoksa karar vermez', () => {
     expect(classifyIssuer({ title: 'YÜKSEK SAVCILAR KURULUNDAN DUYURU MÜNHAL İLANI', docType: 'munhal_ilani' })).toBeNull();
+  });
+});
+
+describe('classifyMunhalKind', () => {
+  it('follows the circular series first', () => {
+    expect(classifyMunhalKind({ title: 'X', refType: 'mia', issuer: 'khk' })).toBe('ilk_atama');
+    expect(classifyMunhalKind({ title: 'İLK ATANMA VE YÜKSELME YERİ', refType: 'khkmt', issuer: 'khk' })).toBe('yukselme');
+    expect(classifyMunhalKind({ title: 'X', refType: 'khko', issuer: 'khk' })).toBe('ogretmen');
+  });
+
+  it('falls back to the wording when there is no reference', () => {
+    expect(classifyMunhalKind({ title: 'ORTAÖĞRETİM DAİRESİ ÖĞRETMEN MÜNHALİ', issuer: 'khk' })).toBe('ogretmen');
+    expect(classifyMunhalKind({ title: 'MESLEKİ TEKNİK ÖĞRETİM DAİRESİ MÜNHAL İLANI', issuer: 'khk' })).toBe('ogretmen');
+    expect(classifyMunhalKind({ title: 'KHK GENELGE Ö.6/2026 DAİRESİ', issuer: 'khk' })).toBe('ogretmen');
+    expect(classifyMunhalKind({ title: 'TERFİ KADROLARI MÜNHAL İLANI', issuer: 'khk' })).toBe('yukselme');
+    expect(classifyMunhalKind({ title: 'POSTA DAİRESİ İLK ATAMA KADROSU MÜNHAL İLANI', issuer: 'khk' })).toBe('ilk_atama');
+    expect(classifyMunhalKind({ title: 'BAŞKA BİR İLAN', issuer: 'khk' })).toBeNull();
+  });
+
+  it('leaves other bodies\' notices without a kind', () => {
+    expect(classifyMunhalKind({ title: 'POLİS ÖĞRETMEN İLK ATAMA', issuer: 'diger' })).toBeNull();
+    expect(classifyMunhalKind({ title: 'İLK ATAMA', issuer: null })).toBeNull();
   });
 });

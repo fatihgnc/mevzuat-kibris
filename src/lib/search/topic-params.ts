@@ -1,5 +1,5 @@
 import type { DocType } from '@/lib/constants/doc-types';
-import { isPublisher, type Publisher } from '@/lib/constants/topics';
+import { isMunhalKind, isPublisher, type MunhalKind, type Publisher } from '@/lib/constants/topics';
 import { searchParamsSchema, DEFAULT_SORT, type SortOption } from './build-query';
 
 /**
@@ -21,6 +21,8 @@ export interface TopicParams {
   tur: DocType[];
   /** Münhal only: who published the notice. Anything unrecognised is dropped. */
   yayinci?: Publisher;
+  /** Münhal only: what the circular announces (records.munhal_kind). */
+  ilan?: MunhalKind;
   sirala: SortOption;
 }
 
@@ -28,7 +30,7 @@ export function parseTopicParams(
   raw: Record<string, string | string[] | undefined> | undefined,
 ): TopicParams {
   const flat: Record<string, string | string[] | undefined> = {};
-  for (const key of ['baslangic', 'bitis', 'sirala', 'yayinci']) {
+  for (const key of ['baslangic', 'bitis', 'sirala', 'yayinci', 'ilan']) {
     const value = raw?.[key];
     flat[key] = Array.isArray(value) ? value[0] : value;
   }
@@ -49,6 +51,7 @@ export function parseTopicParams(
     bitis: parsed.bitis,
     tur: parsed.tur,
     yayinci: isPublisher(flat.yayinci as string | undefined) ? (flat.yayinci as Publisher) : undefined,
+    ilan: isMunhalKind(flat.ilan as string | undefined) ? (flat.ilan as MunhalKind) : undefined,
     sirala: parsed.sirala ?? DEFAULT_SORT,
   };
 }

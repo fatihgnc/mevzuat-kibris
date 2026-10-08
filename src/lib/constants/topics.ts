@@ -64,6 +64,23 @@ export function isPublisher(value: string | undefined): value is Publisher {
   return value === 'khk' || value === 'diger';
 }
 
+/**
+ * What a Kamu Hizmeti Komisyonu circular announces — the "İlan türü" filter of the
+ * münhal rail, the commission's own three categories (records.munhal_kind). Notices
+ * other bodies issued themselves have no kind and show only under "Tümü".
+ */
+export type MunhalKind = 'ilk_atama' | 'yukselme' | 'ogretmen';
+
+export const MUNHAL_KINDS: ReadonlyArray<{ key: MunhalKind; label: string }> = [
+  { key: 'ilk_atama', label: 'İlk atama' },
+  { key: 'yukselme', label: 'Yükselme' },
+  { key: 'ogretmen', label: 'Öğretmenlik, müdür ve müdür muavini' },
+];
+
+export function isMunhalKind(value: string | undefined): value is MunhalKind {
+  return value === 'ilk_atama' || value === 'yukselme' || value === 'ogretmen';
+}
+
 
 export function isDeadlineState(value: string): value is DeadlineState {
   return value === 'acik' || value === 'kapali';

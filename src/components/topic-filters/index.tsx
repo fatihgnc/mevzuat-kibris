@@ -35,6 +35,12 @@ interface TopicFiltersProps {
   tur?: readonly DocType[];
   /** The applied publisher, if any — münhal only. */
   yayinci?: string;
+  /** The applied vacancy kind, if any — münhal only. */
+  ilan?: string;
+  /** The vacancy kinds with counts; empty outside münhal. */
+  kinds?: ReadonlyArray<{ key: string; label: string; n: number }>;
+  /** "Tümü" of the kinds: every notice, including other bodies' that have no kind. */
+  kindsTotal?: number;
   /**
    * Who published a vacancy notice, with counts. Empty for every topic but
    * münhal, which is what hides the section.
@@ -90,6 +96,9 @@ export function TopicFilters({
   bitis,
   tur = [],
   yayinci,
+  ilan,
+  kinds = [],
+  kindsTotal,
   publishers = [],
   docTypes = [],
   coverage,
@@ -98,7 +107,7 @@ export function TopicFilters({
   const min = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
   const max = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
   const active = Boolean(
-    baslangic || bitis || tur.length || yayinci || statusOptions.some((o) => o.active && o.key !== 'tumu'),
+    baslangic || bitis || tur.length || yayinci || ilan || statusOptions.some((o) => o.active && o.key !== 'tumu'),
   );
 
   /*
@@ -126,6 +135,7 @@ export function TopicFilters({
     bitis ?? '',
     [...tur].sort().join(','),
     yayinci ?? '',
+    ilan ?? '',
     statusOptions.find((o) => o.active)?.key ?? '',
   ].join('|');
 
@@ -227,6 +237,34 @@ export function TopicFilters({
                 </li>
               ),
             )}
+          </ul>
+        </section>
+      ) : null}
+
+      {kinds.length ? (
+        <section>
+          <div className="mb-2.5 flex items-baseline justify-between">
+            <h2 className="text-xs text-ink-faint">İlan türü</h2>
+            <span className="text-2xs text-ink-placeholder">bu konuda</span>
+          </div>
+          <ul className="flex flex-col gap-[7px]">
+            {[{ key: '', label: 'Tümü', n: kindsTotal ?? kinds.reduce((sum, k) => sum + k.n, 0) }, ...kinds].map((option) => (
+              <li key={option.key || 'tumu'}>
+                <label className="flex cursor-pointer items-start justify-between gap-2 text-base text-ink-body hover:text-accent">
+                  <span className="flex min-w-0 items-start gap-2">
+                    <input
+                      type="radio"
+                      name="ilan"
+                      value={option.key}
+                      defaultChecked={(ilan ?? '') === option.key}
+                      className="mt-[5px] h-3.5 w-3.5 shrink-0 accent-accent"
+                    />
+                    <span className="leading-snug">{option.label}</span>
+                  </span>
+                  <span className="shrink-0 text-sm text-ink-fainter">{formatCount(option.n)}</span>
+                </label>
+              </li>
+            ))}
           </ul>
         </section>
       ) : null}
