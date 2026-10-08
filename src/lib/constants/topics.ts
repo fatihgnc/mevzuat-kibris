@@ -32,6 +32,8 @@ export interface Topic {
   /** The one-line definition in the home page topic grid */
   blurb: string;
   sortOrder: number;
+  /** What one record of this topic is called, singular — "münhal ilanı" — for counts and empty-state messages. */
+  noun: string;
 }
 
 /**
@@ -94,6 +96,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları. Kamu Hizmeti Komisyonu ile kurumların kendi ilanları, gazetede yayımlandığı gün buraya düşer. Başvuru bitiş tarihi ve ilanın hâlâ açık olup olmadığı kaydın satırında görünür.',
     sortOrder: 1,
+    noun: 'münhal ilanı',
   },
   /*
    * Split out of 'munhal' on 2026-09-25. KHK exam results outnumbered the
@@ -109,6 +112,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Kamu Hizmeti Komisyonu ile kurumların yazılı ve sözlü sınav sonucu duyuruları, baro ve meslek sınavı sonuçları. Bir kadronun ilanı Münhal konusunda, sınavın sonucu burada, atama kararnamesi ise Atama konusunda yer alır.',
     sortOrder: 2,
+    noun: 'sınav sonucu',
   },
   ihale: {
     slug: 'ihale',
@@ -117,6 +121,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'İhale ilanları, ihale sonuçları ve Rekabet Kurulu itiraz kararları. Bir ihaleye itiraz edildiğinde karar bu akışa düşer; kararın kendisi değil, karara bağlandığı bilgisi burada durur. Kesin sonuç için resmî metne bakın.',
     sortOrder: 3,
+    noun: 'ihale ilanı',
   },
   sirket: {
     slug: 'sirket',
@@ -125,6 +130,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Şirketler Mukayyitliği ilanları: yeni tescil, isim değişikliği, tasfiye ve sicilden kayıt silinmesi. Bir şirketin adını arattığınızda o şirketle ilgili tüm sicil hareketlerini tarih sırasıyla görürsünüz.',
     sortOrder: 4,
+    noun: 'şirket ilanı',
   },
   gayrimenkul: {
     slug: 'gayrimenkul',
@@ -133,6 +139,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Kamulaştırma, zorla mal iktisabı, planlama onayı, hali arazi tahsisi ve yol ayrılması kararları. Kararlar çoğunlukla bir köy ya da mahalle adıyla yayımlanır; yer adından girmek en hızlı yol.',
     sortOrder: 5,
+    noun: 'gayrimenkul ilanı',
   },
   marka: {
     slug: 'marka',
@@ -141,6 +148,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Ticaret markası tescil müracaatlarının resmî ilanları. İlan, itiraz süresini başlatan belgedir; müracaatın kabul edildiği anlamına gelmez.',
     sortOrder: 6,
+    noun: 'marka ilanı',
   },
   'vergi-mali': {
     slug: 'vergi-mali',
@@ -149,6 +157,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Katma değer vergisi, harç, fiyat istikrar fonu, azami satış fiyatları, sosyal sigorta primleri ve faiz oranları. Bütçe içi ödenek aktarma kararları da bu akışta yer alır.',
     sortOrder: 7,
+    noun: 'vergi ve mali kayıt',
   },
   mevzuat: {
     slug: 'mevzuat',
@@ -157,6 +166,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Yasalar, yasa gücünde kararnameler, tüzükler, emirnameler ve Meclis\u2019e sunulan yasa tasarısı ile önerileri. Bir yasanın değiştirilmiş güncel hâli değil, değişikliğin yayımlandığı hâli gösterilir.',
     sortOrder: 8,
+    noun: 'mevzuat kaydı',
   },
   atama: {
     slug: 'atama',
@@ -165,6 +175,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Kamu görevlisi atama, görevden alma, görevlendirme ve emeklilik kararnameleri. Kişi adı geçen kayıtlarda kişiye özel sayfa üretilmez; tam liste için resmî metne yönlendirilirsiniz.',
     sortOrder: 9,
+    noun: 'atama kararı',
   },
   /*
    * The ninth topic came from real data. When the 2025 archive was processed, of
@@ -180,6 +191,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     description:
       'Bakanlar Kurulunun KKTC yurttaşlığına alınma kararları. Kayıtlar kişi adı taşıdığı için kişiye özel sayfa üretilmez; tam metin için resmî PDF sayfasına yönlendirilirsiniz.',
     sortOrder: 10,
+    noun: 'yurttaşlık kararı',
   },
 };
 

@@ -319,13 +319,13 @@ export async function TopicPage({
             <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-[18px] gap-y-2 border-b border-line pb-3.5 text-base text-ink-muted">
               <div className="flex flex-wrap items-center gap-x-[18px] gap-y-2">
                 <span>
-                  <span className="font-semibold text-ink">{formatCount(total)} kayıt</span>
+                  <span className="font-semibold text-ink">{formatCount(total)} {topic.noun}</span>
                   {coverageRange(coverage) ? ', ' + coverageRange(coverage) : null}
                 </span>
                 {latest ? (
                   <>
                     <span aria-hidden className="h-3 w-px bg-line" />
-                    <span>Son kayıt {formatDateLong(latest.publishedAt)}</span>
+                    <span>Son {topic.noun} {formatDateLong(latest.publishedAt)}</span>
                   </>
                 ) : null}
               </div>
@@ -341,8 +341,8 @@ export async function TopicPage({
               adSlotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_FEED}
               emptyMessage={
                 applied || baslangic || bitis || tur.length || publisher || kind
-                  ? `Seçtiğiniz filtrelere uyan ${konu === 'munhal' ? 'münhal ilanı' : 'kayıt'} bulunamadı. Filtreleri değiştirmeyi ya da temizlemeyi deneyin.`
-                  : 'Bu konuda henüz kayıt yok.'
+                  ? `Seçtiğiniz filtrelere uyan ${topic.noun} bulunamadı. Filtreleri değiştirmeyi ya da temizlemeyi deneyin.`
+                  : `Bu konuda henüz ${topic.noun} yok.`
               }
             />
 
