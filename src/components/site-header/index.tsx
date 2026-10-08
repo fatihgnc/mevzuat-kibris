@@ -56,6 +56,18 @@ const NAV: Array<{ href: string; label: string }> = [
    */
 ];
 
+function navLink(item: { href: string; label: string }) {
+  return (
+    <Link
+      key={item.href}
+      href={item.href}
+      className="text-ink-muted no-underline hover:text-ink hover:no-underline"
+    >
+      {item.label}
+    </Link>
+  );
+}
+
 /** In the menu below 1060px only; the desktop row has no room for them (see NAV). */
 const MOBILE_ONLY = [
   { href: '/yer', label: 'Yerler' },
@@ -100,13 +112,14 @@ const NAV_WITH_TOOLS: Array<{ href: string; label: string; isNew?: boolean }> = 
    * short of Konular and a second choice.
    */
   { href: '/konu/munhal', label: 'Münhal ilanları' },
+  // Araçlar second, as on the desktop row.
+  { href: TOOLS_PATH, label: 'Araçlar' },
   { href: '/konu/ihale', label: 'İhaleler' },
   // Kept next to Kurumlar, the entity indexes together, as they were before the desktop row changed.
   // The phone menu already opens with "Münhal ilanları" above, so the desktop row's own link is left out.
   ...NAV.filter((item) => item.href !== '/konu/munhal').flatMap((item) =>
     item.href === '/kurum' ? [item, ...MOBILE_ONLY] : [item],
   ),
-  { href: TOOLS_PATH, label: 'Araçlar' },
 ];
 
 interface SiteHeaderProps {
@@ -198,21 +211,15 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
            * a link you cannot reach is worse than a menu you have to open.
            */}
           <div className="hidden items-center gap-4 min-[1060px]:flex min-[1060px]:gap-[22px]">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-ink-muted no-underline hover:text-ink hover:no-underline"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {/* Münhaller and Araçlar lead the row (2026-10-08): the two places most visits are for. */}
+            {[NAV.find((item) => item.href === '/konu/munhal')!].map(navLink)}
             <NavDropdown
               label="Araçlar"
               href={TOOLS_PATH}
               footerLabel="Tüm araçlar"
               items={tools}
             />
+            {NAV.filter((item) => item.href !== '/konu/munhal').map(navLink)}
             <NavDropdown label="Diğer hizmetler" items={OTHER_SERVICE_ITEMS} />
           </div>
         </nav>
