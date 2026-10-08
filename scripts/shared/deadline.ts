@@ -90,6 +90,73 @@ function findDates(text: string): Found[] {
   return found;
 }
 
+const WORD = '[A-Za-zÇĞİÖŞÜçğıöşü]+';
+const FULL_DATE = '(?<!\\d)(\\d{1,2})\\s+('+ WORD + ')\\s+(\\d{4})';
+
+/** "29 Eylül 2026 - 3 Ocak 2027" — the dash may be a hyphen, en or em dash. */
+const FULL_RANGE = new RegExp(FULL_DATE + '\\s*[-–—]\\s*' + FULL_DATE, 'g');
+/** "11-25 Haziran 2025" — both days share one month and year. */
+const COMPACT_RANGE = new RegExp('(?<!\\d)(\\d{1,2})\\s*[-–—]\\s*(\\d{1,2})\\s+(' + WORD + ')\\s+(\\d{4})', 'g');
+/** "11 Haziran 2025 tarihine kadar" */
+const UNTIL = new RegExp(FULL_DATE + '\\s+tarihine\\s+kadar', 'g');
+
+function monthNumber(raw: string): number | undefined {
+  return MONTHS[raw.toLocaleLowerCase('tr')];
+}
+
+/**
+ * Application windows written as a range ("A - B tarihleri arasında") or as an
+ * "until" date. The deadline is the END of the window. Returns the set of
+ * distinct end dates found; a window whose end precedes its start is a sign of an
+ * OCR digit error, so it is discarded rather than trusted.
+ */
+export function findWindowEnds(text: string): Set<string> {
+  const ends = new Set<string>();
+  // Ranges sitting right after an application cue. Bodies sometimes carry another
+  // decision's text (see the bleed cleanup), whose date ranges must not count.
+  const cued = new Set<string>();
+
+  const add = (end: string, index: number) => {
+    ends.add(end);
+    const before = text.slice(Math.max(0, index - CUE_WINDOW), index).toLocaleLowerCase('tr');
+    if (/başvuru|müracaat|randevu/.test(before)) cued.add(end);
+  };
+
+  for (const m of text.matchAll(FULL_RANGE)) {
+    const startMonth = monthNumber(m[2]!);
+    const endMonth = monthNumber(m[5]!);
+    if (startMonth === undefined || endMonth === undefined) continue;
+    const start = toIso(Number(m[3]), startMonth, Number(m[1]));
+    const end = toIso(Number(m[6]), endMonth, Number(m[4]));
+    if (start && end && end >= start) add(end, m.index!);
+  }
+
+  for (const m of text.matchAll(COMPACT_RANGE)) {
+    const month = monthNumber(m[3]!);
+    if (month === undefined) continue;
+    const start = toIso(Number(m[4]), month, Number(m[1]));
+    const end = toIso(Number(m[4]), month, Number(m[2]));
+    if (start && end && end >= start) add(end, m.index!);
+  }
+
+  if (cued.size) return cued;
+  if (ends.size) return ends;
+
+  // "until" dates also appear in eligibility rules ("... 31 Aralık 2026 tarihine
+  // kadar"), so they count only right after an application cue, and only when no
+  // explicit window exists.
+  for (const m of text.matchAll(UNTIL)) {
+    const month = monthNumber(m[2]!);
+    if (month === undefined) continue;
+    const before = text.slice(Math.max(0, m.index! - 200), m.index!).toLocaleLowerCase('tr');
+    if (!/başvuru|müracaat/.test(before)) continue;
+    const end = toIso(Number(m[3]), month, Number(m[1]));
+    if (end) ends.add(end);
+  }
+
+  return ends;
+}
+
 export interface DeadlineResult {
   deadlineAt: string | null;
   /** Extra context such as "Yazılı sınav 14 Şubat 2026, altı kadro" */
@@ -106,7 +173,14 @@ export interface DeadlineResult {
 export function extractDeadline(bodyText: string | null): DeadlineResult {
   if (!bodyText) return { deadlineAt: null, note: null };
 
-  const text = bodyText.replace(/\s+/g, ' ');
+  const text = bodyText.replace(/\*\*/g, '').replace(/\s+/g, ' ');
+
+  // A stated application window beats the cue heuristic below, which gives up as
+  // soon as two dates sit near a cue — and a range always has two.
+  const windowEnds = findWindowEnds(text);
+  if (windowEnds.size === 1) return { deadlineAt: [...windowEnds][0]!, note: extractNote(text) };
+  if (windowEnds.size > 1) return { deadlineAt: null, note: extractNote(text) };
+
   const lower = text.toLocaleLowerCase('tr');
   const dates = findDates(text);
   if (!dates.length) return { deadlineAt: null, note: null };
