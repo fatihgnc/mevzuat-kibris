@@ -340,11 +340,9 @@ export async function TopicPage({
               showDeadline={supportsDeadline}
               adSlotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_FEED}
               emptyMessage={
-                applied === 'acik'
-                  ? 'Başvurusu açık kayıt yok.'
-                  : applied === 'kapali'
-                    ? 'Başvuru süresi dolmuş kayıt yok.'
-                    : 'Bu konuda henüz kayıt yok.'
+                applied || baslangic || bitis || tur.length || publisher || kind
+                  ? `Seçtiğiniz filtrelere uyan ${konu === 'munhal' ? 'münhal ilanı' : 'kayıt'} bulunamadı. Filtreleri değiştirmeyi ya da temizlemeyi deneyin.`
+                  : 'Bu konuda henüz kayıt yok.'
               }
             />
 
