@@ -5,6 +5,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 
 import { AdSlot } from '@/components/ad-slot';
+import { DeadlineStatus } from '@/components/deadline-status';
 import { EntityChip } from '@/components/entity-chip';
 import { InBodySearch } from '@/components/in-body-search';
 import { MaskedText } from '@/components/masked-text';
@@ -15,7 +16,7 @@ import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
 import { TOPICS } from '@/lib/constants/topics';
 import { guideForRecord } from '@/lib/content/guides';
 import { recordHref } from '@/lib/db/queries/shared';
-import { formatDateLong, formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
+import { formatDateLong, formatDateShort } from '@/lib/text/dates';
 import { cn } from '@/lib/utils';
 import type { RecordDetail as RecordDetailType } from '@/types/record';
 
@@ -78,20 +79,12 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
       />
 
       {record.deadlineAt ? (
-        <p className="mt-4 text-md">
-          {isDeadlinePassed(record.deadlineAt) ? (
-            <span className="text-ink-muted">
-              Başvuru süresi doldu, {formatDateLong(record.deadlineAt)}
-            </span>
-          ) : (
-            <span className="rounded-sm bg-mark px-1.5 py-0.5 font-semibold text-ink">
-              Son başvuru {formatDateLong(record.deadlineAt)}
-            </span>
-          )}
-          {record.deadlineNote ? (
-            <span className="ml-2 text-ink-muted">{record.deadlineNote}</span>
-          ) : null}
-        </p>
+        <DeadlineStatus
+          variant="detail"
+          deadlineAt={record.deadlineAt}
+          note={record.deadlineNote}
+          className="mt-4"
+        />
       ) : null}
 
       {/*

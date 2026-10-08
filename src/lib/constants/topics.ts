@@ -46,6 +46,24 @@ export interface Topic {
  * second one is the duplicate Google would have to be told to ignore.
  */
 export type DeadlineState = 'acik' | 'kapali';
+/**
+ * Who published a vacancy notice — the "Yayıncı" filter of the münhal rail.
+ * `khk` is a Kamu Hizmeti Komisyonu circular, `diger` an institution's own notice
+ * (Polis Genel Müdürlüğü, Yüksek Savcılar Kurulu, Sivil Savunma, ...). Stored in
+ * records.issuer. The labels spell the commission out: "KHK" means nothing to a
+ * first-time visitor, and the second label names what the 27 records actually are.
+ */
+export type Publisher = 'khk' | 'diger';
+
+export const PUBLISHERS: ReadonlyArray<{ key: Publisher; label: string }> = [
+  { key: 'khk', label: 'Kamu Hizmeti Komisyonu' },
+  { key: 'diger', label: 'Polis, yargı ve diğer kurumlar' },
+];
+
+export function isPublisher(value: string | undefined): value is Publisher {
+  return value === 'khk' || value === 'diger';
+}
+
 
 export function isDeadlineState(value: string): value is DeadlineState {
   return value === 'acik' || value === 'kapali';
@@ -57,7 +75,7 @@ export const TOPICS: Record<TopicSlug, Topic> = {
     name: 'Münhal',
     blurb: 'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları',
     description:
-      'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları. Kamu Hizmeti Komisyonu ile kurumların kendi ilanları, gazetede yayımlandığı gün buraya düşer. Başvuru bitiş tarihi, ilanın metni okunabildiğinde kaydın satırında görünür.',
+      'Kamu kadrolarına ilk atama, terfi ve sözleşmeli personel ilanları. Kamu Hizmeti Komisyonu ile kurumların kendi ilanları, gazetede yayımlandığı gün buraya düşer. Başvuru bitiş tarihi ve ilanın hâlâ açık olup olmadığı kaydın satırında görünür.',
     sortOrder: 1,
   },
   /*

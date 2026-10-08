@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyDocType, classifyTopics, detectPersonalData } from './rules';
+import { classifyDocType, classifyIssuer, classifyTopics, detectPersonalData } from './rules';
 
 /**
  * Doc-type classification — spec 3.4 and 7.1 step 5.
@@ -170,5 +170,43 @@ describe('classifyTopics — münhal holds vacancies only', () => {
         docType: 'diger',
       }),
     ).toContain('atama');
+  });
+});
+
+describe('classifyIssuer — who published a vacancy notice', () => {
+  const longBody = 'x'.repeat(400);
+
+  it('KHK başlığını KHK sayar', () => {
+    expect(
+      classifyIssuer({ title: 'KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI GENELGE MİA.24/2026', docType: 'genelge' }),
+    ).toBe('khk');
+  });
+
+  it('başlığında KHK geçmeyen ama gövdesi KHK olan genelgeyi KHK sayar', () => {
+    expect(
+      classifyIssuer({
+        title: 'TRAFİK DAİRESİ III.DERECE SÜRÜŞ EHLİYETİ MÜFETTİŞİ KADROSU MÜNHAL İLANI',
+        docType: 'munhal_ilani',
+        bodyText: 'KUZEY KIBRIS TÜRK CUMHURİYETİ KAMU HİZMETİ KOMİSYONU BAŞKANLIĞI Sayı : 198 ' + longBody,
+      }),
+    ).toBe('khk');
+  });
+
+  it('genelge numarasından KHK sayar', () => {
+    expect(classifyIssuer({ title: 'TRAFİK DAİRESİ ... MİA.17/2025', docType: 'munhal_ilani' })).toBe('khk');
+  });
+
+  it('kurumun kendi ilanını diğer sayar', () => {
+    expect(
+      classifyIssuer({
+        title: 'KKTC GÜVENLİK KUVVETLERİ KOMUTANLIĞI POLİS GENEL MÜDÜRLÜĞÜ POLİS MEMURU MÜNHAL İLANI',
+        docType: 'munhal_ilani',
+        bodyText: 'Polis Genel Müdürlüğü ' + longBody,
+      }),
+    ).toBe('diger');
+  });
+
+  it('gövdesi yoksa ve başlıkta kanıt yoksa karar vermez', () => {
+    expect(classifyIssuer({ title: 'YÜKSEK SAVCILAR KURULUNDAN DUYURU MÜNHAL İLANI', docType: 'munhal_ilani' })).toBeNull();
   });
 });

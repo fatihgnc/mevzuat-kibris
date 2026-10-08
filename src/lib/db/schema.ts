@@ -83,6 +83,8 @@ export const records = pgTable(
     summaryAttemptedAt: timestamp('summary_attempted_at', { withTimezone: true }),
     deadlineAt: date('deadline_at'),
     deadlineNote: text('deadline_note'),
+    // Who published a vacancy notice: 'khk' or 'diger' (migration 0025). NULL = undecided.
+    issuer: text('issuer'),
     pageFrom: smallint('page_from'),
     pageTo: smallint('page_to'),
     publishedAt: date('published_at').notNull(),

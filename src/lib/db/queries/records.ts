@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { TAG, cachedQuery } from '@/lib/db/cache';
 import { docTypeLabel, formatRef, type DocType } from '@/lib/constants/doc-types';
-import { isTopicSlug, type DeadlineState, type TopicSlug } from '@/lib/constants/topics';
+import { isTopicSlug, type DeadlineState, type Publisher, type TopicSlug } from '@/lib/constants/topics';
 import { HEADLINE_OPTIONS } from '@/lib/search/highlight';
 import { maskTitle } from '@/lib/search/mask-title';
 import type { BuiltQuery, SearchParams, SortOption } from '@/lib/search/build-query';
@@ -409,6 +409,8 @@ export interface ListOptions {
    * without this the rail could only narrow a topic feed by date.
    */
   tur?: readonly DocType[];
+  /** Who published a vacancy notice (records.issuer) — the münhal rail's "Yayıncı" filter. */
+  yayinci?: Publisher;
   /** Publication order; 'yeni' (newest first) is the default everywhere. */
   sirala?: SortOption;
   limit?: number;
@@ -434,6 +436,7 @@ function listCacheKey(prefix: string, options: ListOptions): string[] {
     options.bitis ?? '',
     /* Sorted, so two spellings of the same set are one cache entry. */
     [...(options.tur ?? [])].sort().join(','),
+    options.yayinci ?? '',
     options.sirala ?? '',
     String(options.limit ?? ''),
     String(options.offset ?? ''),
@@ -489,6 +492,7 @@ function listConditions(options: ListOptions) {
   if (options.bitis) conditions.push(sql`r.published_at <= ${options.bitis}::date`);
   /* `in (...)` and not `= any(array)` — see the note in filterConditions. */
   if (options.tur?.length) conditions.push(sql`r.doc_type in (${inList(options.tur)})`);
+  if (options.yayinci) conditions.push(sql`r.issuer = ${options.yayinci}`);
 
   return sql.join(conditions, sql` and `);
 }

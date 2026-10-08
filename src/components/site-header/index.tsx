@@ -31,7 +31,13 @@ const NAV: Array<{ href: string; label: string }> = [
    * the footer, the guides and the sitemap.
    */
   { href: '/yasa', label: 'Yasalar' },
-  { href: '/sirket', label: 'Şirketler' },
+  /*
+   * Münhaller took Şirketler's slot (2026-10-08). The vacancies are what most
+   * visits are for, yet the desktop row had no direct link to them — they sat one
+   * click down in Konular. Şirketler moves to the narrow-screen menu with Yerler
+   * and stays in the footer, the guides and the sitemap.
+   */
+  { href: '/konu/munhal', label: 'Münhaller' },
   { href: '/tuzuk', label: 'Tüzükler' },
   /*
    * The guides were reachable only from the footer, which is the wrong end of
@@ -51,7 +57,10 @@ const NAV: Array<{ href: string; label: string }> = [
 ];
 
 /** In the menu below 1060px only; the desktop row has no room for them (see NAV). */
-const MOBILE_ONLY = [{ href: '/yer', label: 'Yerler' }];
+const MOBILE_ONLY = [
+  { href: '/yer', label: 'Yerler' },
+  { href: '/sirket', label: 'Şirketler' },
+];
 
 /**
  * The calculators get ONE MENU, and it is built from the registry.
@@ -93,7 +102,10 @@ const NAV_WITH_TOOLS: Array<{ href: string; label: string; isNew?: boolean }> = 
   { href: '/konu/munhal', label: 'Münhal ilanları' },
   { href: '/konu/ihale', label: 'İhaleler' },
   // Kept next to Kurumlar, the entity indexes together, as they were before the desktop row changed.
-  ...NAV.flatMap((item) => (item.href === '/kurum' ? [item, ...MOBILE_ONLY] : [item])),
+  // The phone menu already opens with "Münhal ilanları" above, so the desktop row's own link is left out.
+  ...NAV.filter((item) => item.href !== '/konu/munhal').flatMap((item) =>
+    item.href === '/kurum' ? [item, ...MOBILE_ONLY] : [item],
+  ),
   { href: TOOLS_PATH, label: 'Araçlar' },
 ];
 

@@ -33,6 +33,13 @@ interface TopicFiltersProps {
   bitis?: string;
   /** The applied document types. */
   tur?: readonly DocType[];
+  /** The applied publisher, if any — münhal only. */
+  yayinci?: string;
+  /**
+   * Who published a vacancy notice, with counts. Empty for every topic but
+   * münhal, which is what hides the section.
+   */
+  publishers?: ReadonlyArray<{ key: string; label: string; n: number }>;
   /**
    * The types this topic actually contains, with counts, most first. A topic is
    * not one kind of document — "Münhal" holds vacancy notices, exam results and
@@ -82,6 +89,8 @@ export function TopicFilters({
   baslangic,
   bitis,
   tur = [],
+  yayinci,
+  publishers = [],
   docTypes = [],
   coverage,
   scope = 'rail',
@@ -89,7 +98,7 @@ export function TopicFilters({
   const min = coverage?.earliestYear ? coverage.earliestYear + '-01-01' : undefined;
   const max = coverage?.latestYear ? coverage.latestYear + '-12-31' : undefined;
   const active = Boolean(
-    baslangic || bitis || tur.length || statusOptions.some((o) => o.active && o.key !== 'tumu'),
+    baslangic || bitis || tur.length || yayinci || statusOptions.some((o) => o.active && o.key !== 'tumu'),
   );
 
   /*
@@ -116,6 +125,7 @@ export function TopicFilters({
     baslangic ?? '',
     bitis ?? '',
     [...tur].sort().join(','),
+    yayinci ?? '',
     statusOptions.find((o) => o.active)?.key ?? '',
   ].join('|');
 
@@ -177,6 +187,46 @@ export function TopicFilters({
                 </Link>
               </li>
             ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/*
+        * WHO PUBLISHED IT — a radio group, because a notice has exactly one
+        * publisher and "both" is the same as choosing none. It sits inside the
+        * form with the document types, so it applies with the same button and
+        * every state stays a shareable address that works without JS.
+        *
+        * The empty value is "Tümü", which drops the parameter: one list, one
+        * address.
+        */}
+      {publishers.length ? (
+        <section>
+          <div className="mb-2.5 flex items-baseline justify-between">
+            <h2 className="text-xs text-ink-faint">Yayıncı</h2>
+            <span className="text-2xs text-ink-placeholder">bu konuda</span>
+          </div>
+          <ul className="flex flex-col gap-[7px]">
+            {[{ key: '', label: 'Tümü', n: publishers.reduce((sum, p) => sum + p.n, 0) }, ...publishers].map(
+              (option) => (
+                <li key={option.key || 'tumu'}>
+                  {/* The label wraps instead of truncating: "Polis, yargı ve diğer kurumlar" is the point of the row. */}
+                  <label className="flex cursor-pointer items-start justify-between gap-2 text-base text-ink-body hover:text-accent">
+                    <span className="flex min-w-0 items-start gap-2">
+                      <input
+                        type="radio"
+                        name="yayinci"
+                        value={option.key}
+                        defaultChecked={(yayinci ?? '') === option.key}
+                        className="mt-[5px] h-3.5 w-3.5 shrink-0 accent-accent"
+                      />
+                      <span className="leading-snug">{option.label}</span>
+                    </span>
+                    <span className="shrink-0 text-sm text-ink-fainter">{formatCount(option.n)}</span>
+                  </label>
+                </li>
+              ),
+            )}
           </ul>
         </section>
       ) : null}

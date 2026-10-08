@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Pagination } from '@/components/pagination';
 import { RecordList } from '@/components/record-list';
@@ -8,7 +6,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SortLinks } from '@/components/sort-links';
 import { FilterSheet } from '@/components/filter-sheet';
 import { TopicFilters } from '@/components/topic-filters';
-import { TOPICS, type DeadlineState, type TopicSlug } from '@/lib/constants/topics';
+import { PUBLISHERS, TOPICS, type DeadlineState, type Publisher, type TopicSlug } from '@/lib/constants/topics';
 import { TOPIC_FAQ } from '@/lib/content/topic-faq';
 import type { DocType } from '@/lib/constants/doc-types';
 import { archiveCoverage, coverageRange } from '@/lib/db/queries/coverage';
@@ -53,6 +51,7 @@ export function topicHref(
     baslangic?: string;
     bitis?: string;
     tur?: readonly DocType[];
+    yayinci?: Publisher;
     sirala?: SortOption;
   } = {},
 ): string {
@@ -77,6 +76,7 @@ export function topicHref(
    * address the form builds are the same string for the same selection.
    */
   for (const type of options.tur ?? []) search.append('tur', type);
+  if (options.yayinci) search.set('yayinci', options.yayinci);
   if (options.sirala && options.sirala !== DEFAULT_SORT) search.set('sirala', options.sirala);
 
   const qs = search.toString();
@@ -90,6 +90,7 @@ export async function TopicPage({
   baslangic,
   bitis,
   tur = [],
+  yayinci,
   sirala = DEFAULT_SORT,
 }: {
   konu: TopicSlug;
@@ -100,6 +101,8 @@ export async function TopicPage({
   baslangic?: string;
   bitis?: string;
   tur?: DocType[];
+  /** Münhal only — who published the notice. */
+  yayinci?: Publisher;
   sirala?: SortOption;
 }) {
   const topic = TOPICS[konu];
@@ -112,6 +115,9 @@ export async function TopicPage({
    */
   const supportsDeadline = konu === 'munhal' || konu === 'ihale';
   const applied = supportsDeadline ? durum : undefined;
+  /* A publisher only means something for vacancy notices; elsewhere the parameter is ignored. */
+  const supportsPublisher = konu === 'munhal';
+  const publisher = supportsPublisher ? yayinci : undefined;
 
   /*
    * The rail's document-type counts, scoped to this topic and its date range but
@@ -119,18 +125,19 @@ export async function TopicPage({
    * rail follows, without which ticking one type would leave that type as the
    * only option and there would be no way to add a second.
    */
-  const [records, total, openCount, closedCount, allCount, coverage, facets] = await Promise.all([
+  const [records, total, openCount, closedCount, allCount, coverage, facets, khkCount, otherCount] = await Promise.all([
     listRecords({
       topic: konu,
       deadlineState: applied,
       baslangic,
       bitis,
       tur,
+      yayinci: publisher,
       sirala,
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
     }),
-    countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur }),
+    countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: publisher }),
     /*
      * THE THREE RAIL COUNTS IGNORE THE STATUS THAT IS APPLIED but keep the rest
      * of the rail's narrowing — the same "exclude its own filter" rule the
@@ -139,17 +146,34 @@ export async function TopicPage({
      * that cannot help anyone choose.
      */
     supportsDeadline
-      ? countRecords({ topic: konu, deadlineState: 'acik', baslangic, bitis, tur })
+      ? countRecords({ topic: konu, deadlineState: 'acik', baslangic, bitis, tur, yayinci: publisher })
       : Promise.resolve(0),
     supportsDeadline
-      ? countRecords({ topic: konu, deadlineState: 'kapali', baslangic, bitis, tur })
+      ? countRecords({ topic: konu, deadlineState: 'kapali', baslangic, bitis, tur, yayinci: publisher })
       : Promise.resolve(0),
     supportsDeadline
-      ? countRecords({ topic: konu, baslangic, bitis, tur })
+      ? countRecords({ topic: konu, baslangic, bitis, tur, yayinci: publisher })
       : Promise.resolve(0),
     archiveCoverage(konu),
     searchFacets(parseSearchParams({ konu, baslangic, bitis })),
+    /*
+     * The publisher counts ignore the publisher that is applied — the same
+     * "exclude its own filter" rule as the status and the document types — but
+     * keep the status, the range and the types, so the two numbers say what
+     * choosing each would show.
+     */
+    supportsPublisher
+      ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: 'khk' })
+      : Promise.resolve(0),
+    supportsPublisher
+      ? countRecords({ topic: konu, deadlineState: applied, baslangic, bitis, tur, yayinci: 'diger' })
+      : Promise.resolve(0),
   ]);
+
+  const publisherCounts: Record<Publisher, number> = { khk: khkCount, diger: otherCount };
+  const publisherOptions = supportsPublisher
+    ? PUBLISHERS.map((option) => ({ key: option.key, label: option.label, n: publisherCounts[option.key] }))
+    : [];
 
   /*
    * The rail's status rows. Built here rather than in the rail because only this
@@ -162,15 +186,15 @@ export async function TopicPage({
    */
   const statusOptions = supportsDeadline
     ? [
-        { key: 'tumu', label: 'Tümü', n: allCount, href: topicHref(konu, { baslangic, bitis, tur, sirala }), active: !applied },
-        { key: 'acik', label: 'Başvurusu açık', n: openCount, href: topicHref(konu, { durum: 'acik', baslangic, bitis, tur, sirala }), active: applied === 'acik' },
-        { key: 'kapali', label: 'Süresi dolmuş', n: closedCount, href: topicHref(konu, { durum: 'kapali', baslangic, bitis, tur, sirala }), active: applied === 'kapali' },
+        { key: 'tumu', label: 'Tümü', n: allCount, href: topicHref(konu, { baslangic, bitis, tur, yayinci: publisher, sirala }), active: !applied },
+        { key: 'acik', label: 'Başvurusu açık', n: openCount, href: topicHref(konu, { durum: 'acik', baslangic, bitis, tur, yayinci: publisher, sirala }), active: applied === 'acik' },
+        { key: 'kapali', label: 'Süresi dolmuş', n: closedCount, href: topicHref(konu, { durum: 'kapali', baslangic, bitis, tur, yayinci: publisher, sirala }), active: applied === 'kapali' },
       ]
     : [];
 
   /** Shown on the phone's "Filtreler" button, so the sheet does not have to be opened to know. */
   const activeFilters =
-    (baslangic ? 1 : 0) + (bitis ? 1 : 0) + (tur?.length ?? 0) + (applied ? 1 : 0);
+    (baslangic ? 1 : 0) + (bitis ? 1 : 0) + (tur?.length ?? 0) + (applied ? 1 : 0) + (publisher ? 1 : 0);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const latest = records[0];
@@ -183,7 +207,7 @@ export async function TopicPage({
   ];
 
   const hrefFor = (nextPage: number) =>
-    topicHref(konu, { durum: applied, page: nextPage, baslangic, bitis, tur, sirala });
+    topicHref(konu, { durum: applied, page: nextPage, baslangic, bitis, tur, yayinci: publisher, sirala });
 
   /*
    * Changing the sort returns to page 1 — page 4 of "newest first" has nothing to
@@ -191,7 +215,7 @@ export async function TopicPage({
    * jumped. The date range is carried across, because it is a different question.
    */
   const sortHref = (option: SortOption) =>
-    topicHref(konu, { durum: applied, baslangic, bitis, tur, sirala: option });
+    topicHref(konu, { durum: applied, baslangic, bitis, tur, yayinci: publisher, sirala: option });
 
   return (
     <>
@@ -224,6 +248,8 @@ export async function TopicPage({
               baslangic={baslangic}
               bitis={bitis}
               tur={tur}
+              yayinci={publisher}
+              publishers={publisherOptions}
               docTypes={facets.docTypes}
               coverage={coverage}
               scope="rail"
@@ -238,6 +264,8 @@ export async function TopicPage({
                 baslangic={baslangic}
                 bitis={bitis}
                 tur={tur}
+                yayinci={publisher}
+                publishers={publisherOptions}
                 docTypes={facets.docTypes}
                 coverage={coverage}
                 scope="sheet"
@@ -280,33 +308,6 @@ export async function TopicPage({
                 <SortLinks active={sirala} hrefFor={sortHref} />
               </div>
             </div>
-
-            {/*
-              THE STATUS FILTER ITSELF NOW LIVES IN THE RAIL, with the document
-              types and the date range, because that is what it is — a way of
-              narrowing the list, not a mode the page is in. What stays here is
-              only the explanation, and only while "açık" is empty.
-
-              It has to stay even at zero, and the reason is the measurement.
-              Münhal holds 1.527 records and 19 of them have body text (9 Eylül
-              2026); the deadline is read from that text, so the count cannot rise
-              until the text does. Without this note a visitor reads the empty
-              list as "no vacancy is open" when the truth is "we cannot read the
-              vacancies" — and only the second answer sends them to the PDF, which
-              1.440 of those records already link to.
-
-              Worded to hold for both topics: münhal's dates are unreadable,
-              ihale's have simply passed, and the sentence claims only the
-              mechanism, which is true of each.
-            */}
-            {supportsDeadline && openCount === 0 ? (
-              <p className="m-0 mt-[26px] rounded border border-notice-border bg-notice px-3.5 py-2.5 text-sm leading-[1.6] text-notice-ink">
-                Başvuru tarihini kaydın gövde metninden okuyoruz; metni taranmış görüntü
-                olarak yayımlanan ilanlarda bu tarih çıkmıyor. &ldquo;Başvurusu açık&rdquo;
-                boş diye süresi açık ilan yok demek değil — ilanın kendisi ve orijinal{' '}
-                <Link href="/sayilar">gazete PDF&apos;i</Link> her kaydın sayfasında duruyor.
-              </p>
-            ) : null}
 
             <RecordList
               records={records}

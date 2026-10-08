@@ -368,6 +368,49 @@ export function classifyTopics(input: { title: string; docType: DocType }): Topi
   return [...topics];
 }
 
+export type Issuer = 'khk' | 'diger';
+
+/** A KHK circular's reference: MİA.17/2025, MT.18/2022, Ö.2/2025, Y.1/2024, YD.2/2023. */
+const KHK_CIRCULAR_REF = /\b(?:M[İI]A|MT|YD|Ö|Y)\.?\s*\d+\s*\/\s*\d{4}\b/i;
+
+/** How much of the body is searched for the issuing body — the heading is always near the top. */
+const ISSUER_BODY_WINDOW = 1800;
+
+/** Below this a body is too short to say who issued it. */
+const ISSUER_MIN_BODY = 200;
+
+/**
+ * Who published a vacancy notice — the Kamu Hizmeti Komisyonu or another body.
+ *
+ * Measured on the 234 münhal records (2026-10-08): wherever "Kamu Hizmeti
+ * Komisyonu" appears in the title or at the top of the body the notice is a KHK
+ * circular (207), and the 27 that never mention it are all issued by an
+ * institution itself (Polis Genel Müdürlüğü, Güvenlik Kuvvetleri, Yüksek
+ * Savcılar Kurulu, Yüksek Adliye Kurulu, Sivil Savunma Teşkilatı, Sayıştay).
+ * The title alone is not enough — a KHK circular is often headed only with the
+ * department's name.
+ *
+ * NO EVIDENCE AND NO BODY gives null, not 'diger': a record whose text has not
+ * been read yet must not be filed under "other institutions" by default. A later
+ * pass (scripts/backfill-issuer) decides it once the body exists.
+ */
+export function classifyIssuer(input: {
+  title: string;
+  docType: DocType;
+  bodyText?: string | null;
+}): Issuer | null {
+  const title = turkishUpper(input.title);
+  const body = turkishUpper((input.bodyText ?? '').slice(0, ISSUER_BODY_WINDOW));
+
+  if (title.includes('KAMU HİZMETİ KOMİSYON') || body.includes('KAMU HİZMETİ KOMİSYON')) return 'khk';
+  if (KHK_CIRCULAR_REF.test(input.title) || KHK_CIRCULAR_REF.test(input.bodyText?.slice(0, ISSUER_BODY_WINDOW) ?? '')) {
+    return 'khk';
+  }
+  if (input.docType === 'genelge') return 'khk';
+
+  return (input.bodyText?.trim().length ?? 0) >= ISSUER_MIN_BODY ? 'diger' : null;
+}
+
 /**
  * Personal-data flag — informational only (spec 3.7 rule 2).
  * Nothing branches on it: bodies of these records are published like any other.

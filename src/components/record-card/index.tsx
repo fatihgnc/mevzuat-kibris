@@ -1,8 +1,9 @@
 import Link from 'next/link';
 
+import { DeadlineStatus } from '@/components/deadline-status';
 import { MaskedText } from '@/components/masked-text';
 import { recordHref } from '@/lib/db/queries/shared';
-import { formatDateShort, isDeadlinePassed } from '@/lib/text/dates';
+import { formatDateShort } from '@/lib/text/dates';
 import { TOPICS } from '@/lib/constants/topics';
 import { cn } from '@/lib/utils';
 import type { RecordListItem } from '@/types/record';
@@ -53,7 +54,6 @@ export function RecordCard({
   className,
 }: RecordCardProps) {
   const heading = record.summary ?? null;
-  const deadlinePassed = isDeadlinePassed(record.deadlineAt);
   const compact = variant === 'compact';
   const query = highlightQuery?.trim();
   /* Only records with their own page can carry it; the rest link to an issue page. */
@@ -111,18 +111,7 @@ export function RecordCard({
           </span>
         ) : null}
 
-        {showDeadline && record.deadlineAt ? (
-          <span
-            className={cn(
-              'text-sm font-semibold',
-              deadlinePassed ? 'text-ink-muted' : 'rounded-sm bg-mark px-1 text-ink',
-            )}
-          >
-            {deadlinePassed
-              ? 'Başvuru süresi doldu, ' + formatDateShort(record.deadlineAt)
-              : 'Başvuru bitişi ' + formatDateShort(record.deadlineAt)}
-          </span>
-        ) : null}
+        {showDeadline && record.deadlineAt ? <DeadlineStatus deadlineAt={record.deadlineAt} /> : null}
 
         <span className="flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
           {badges(record, hideTopic).map((label, index) => (

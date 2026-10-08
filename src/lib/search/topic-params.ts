@@ -1,4 +1,5 @@
 import type { DocType } from '@/lib/constants/doc-types';
+import { isPublisher, type Publisher } from '@/lib/constants/topics';
 import { searchParamsSchema, DEFAULT_SORT, type SortOption } from './build-query';
 
 /**
@@ -18,6 +19,8 @@ export interface TopicParams {
    * topic rail could only narrow a feed by date.
    */
   tur: DocType[];
+  /** Münhal only: who published the notice. Anything unrecognised is dropped. */
+  yayinci?: Publisher;
   sirala: SortOption;
 }
 
@@ -25,7 +28,7 @@ export function parseTopicParams(
   raw: Record<string, string | string[] | undefined> | undefined,
 ): TopicParams {
   const flat: Record<string, string | string[] | undefined> = {};
-  for (const key of ['baslangic', 'bitis', 'sirala']) {
+  for (const key of ['baslangic', 'bitis', 'sirala', 'yayinci']) {
     const value = raw?.[key];
     flat[key] = Array.isArray(value) ? value[0] : value;
   }
@@ -45,6 +48,7 @@ export function parseTopicParams(
     baslangic: parsed.baslangic,
     bitis: parsed.bitis,
     tur: parsed.tur,
+    yayinci: isPublisher(flat.yayinci as string | undefined) ? (flat.yayinci as Publisher) : undefined,
     sirala: parsed.sirala ?? DEFAULT_SORT,
   };
 }
