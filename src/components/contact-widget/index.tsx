@@ -4,6 +4,8 @@ import { Check, MessageSquareText, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
+import { CONTACT_WIDGET_OPEN_EVENT } from './events';
+
 const schema = z.object({
   email: z.string().trim().email('Geçerli bir e-posta adresi girin.'),
   subject: z
@@ -20,12 +22,13 @@ const PULL_THRESHOLD_PX = 24;
 const GESTURE_SLOP_PX = 8;
 /** How far the phone sheet has to be pulled down by its handle to close. */
 const SHEET_DISMISS_PX = 90;
-/** Where the reader last left the tab, as a fraction of the viewport height. */
+/** Where the reader last left the tab: a fraction of the viewport height (phone) or width (desktop). */
 const TAB_POSITION_KEY = 'iletisim-sekme-konum';
-/** The tab's default resting place, measured from the bottom of the viewport. */
+const TAB_POSITION_KEY_X = 'iletisim-sekme-konum-x';
+/** Phone: the tab's default resting place, measured from the bottom of the viewport. */
 const TAB_DEFAULT_BOTTOM_PX = 96;
-/** Phone: how long a slid-out tab waits for its second tap before tucking back in. */
-const TAB_COLLAPSE_MS = 4000;
+/** Desktop: the panel's width, which decides how far left it may be placed. */
+const PANEL_WIDTH_PX = 360;
 
 function isPhone(): boolean {
   return window.matchMedia('(max-width: 767px)').matches;
@@ -36,6 +39,11 @@ const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : us
 
 function headerHeight(): number {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 64;
+}
+
+/** Keeps a box of the given width inside the viewport, a little off either edge. */
+function clampLeft(left: number, width: number): number {
+  return Math.min(Math.max(left, 8), Math.max(8, window.innerWidth - width - 8));
 }
 
 /** Keeps a box of the given height between the sticky header and the bottom edge (or an anchor ad). */
@@ -66,18 +74,15 @@ function anchorAdOffset(): number {
  * short form one tap away on every page and sends the page's own address along
  * with the message, so "which record?" never has to be asked.
  *
- * It is drawn as an index tab sticking out of the page's right edge — the
- * archive's own paper, border and teal, rather than a chat bubble borrowed from
- * a support widget. On desktop the tab carries its label and the panel opens
- * right beside it; on phones the tab is icon-only and the panel is a bottom
- * sheet. On both, the tab can be dragged up and down the edge and stays where
- * it was left.
+ * On desktop it is a teal tab sitting on the bottom edge of the window, with
+ * its label, and the panel opens right above it; it can be dragged left and
+ * right along the edge. On phones it is an icon-only index tab sticking out of
+ * the right edge, the panel is a bottom sheet, and the tab can be dragged up
+ * and down. On both, the tab stays where it was left.
  *
- * On phones the tab rests tucked in, showing only its spine: the first tap
- * slides it out, the second opens the sheet, and without a second tap it
- * tucks itself back in after a few seconds. A pull does the same as a tap: on
+ * A pull (inwards on a phone, upwards on desktop) does the same as a tap. On
  * iOS and Android a swipe that starts at the screen edge can be taken by the
- * system's own back/forward gesture, so a pull alone would be unreliable.
+ * system's own back/forward gesture, so on a phone the tap is the reliable way.
  */
 export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   const [open, setOpen] = useState(false);
@@ -89,16 +94,16 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [adOffset, setAdOffset] = useState(0);
 
-  /** Null until the reader has moved the tab; it then sits where they left it. */
+  /** Null until the reader has moved the tab; it then sits where they left it. Phone: top. */
   const [tabTop, setTabTop] = useState<number | null>(null);
+  /** Same, for desktop: the tab's left edge. */
+  const [tabLeft, setTabLeft] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
-  /** Desktop only: the panel's top edge, lined up with the tab. */
-  const [panelTop, setPanelTop] = useState<number | null>(null);
+  /** Desktop only: the panel's spot, right above the tab. */
+  const [panelPos, setPanelPos] = useState<{ left: number; bottom: number } | null>(null);
   /** Phone only: how far the sheet is being pulled down by its handle. */
   const [sheetDrag, setSheetDrag] = useState(0);
   const [sheetDragging, setSheetDragging] = useState(false);
-  /** Phone only: false while the tab is tucked in with just its spine showing. */
-  const [expanded, setExpanded] = useState(false);
 
   const tabRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -112,16 +117,17 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   /** A drag ends with a pointerup that the browser still turns into a click. */
   const suppressClick = useRef(false);
   /** The position a drag last reached, read on release — state can still be a render behind. */
-  const draggedTop = useRef<number | null>(null);
+  const draggedPos = useRef<number | null>(null);
   const sheetStartY = useRef<number | null>(null);
   /** The latest pull distance, read on release — state can still be a render behind. */
   const sheetPull = useRef(0);
-  const collapseTimer = useRef<number | null>(null);
 
   useEffect(() => {
     try {
       const saved = Number(localStorage.getItem(TAB_POSITION_KEY));
       if (saved > 0 && saved < 1) setTabTop(saved);
+      const savedX = Number(localStorage.getItem(TAB_POSITION_KEY_X));
+      if (savedX > 0 && savedX < 1) setTabLeft(savedX);
     } catch {
       // No storage (private window, blocked site data): the tab starts at its default.
     }
@@ -152,43 +158,27 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Line the desktop panel up with the tab, before it paints.
+  // Sit the desktop panel right above the tab, its right edge lined up with the tab's, before it paints.
   useIsomorphicLayoutEffect(() => {
     if (!open || !window.matchMedia('(min-width: 768px)').matches) return;
     const tab = tabRef.current?.getBoundingClientRect();
-    const panel = panelRef.current;
-    if (!tab || !panel) return;
-    const height = panel.offsetHeight;
-    setPanelTop(clampTop(tab.top + tab.height / 2 - height / 2, height, adOffset));
-  }, [open, status, error, tabTop, adOffset]);
-
-  function cancelCollapse() {
-    if (collapseTimer.current != null) window.clearTimeout(collapseTimer.current);
-    collapseTimer.current = null;
-  }
-
-  /** Slides the phone tab out, and back in again if the second tap never comes. */
-  function expand() {
-    setExpanded(true);
-    cancelCollapse();
-    collapseTimer.current = window.setTimeout(() => setExpanded(false), TAB_COLLAPSE_MS);
-  }
-
-  useEffect(() => cancelCollapse, []);
+    if (!tab) return;
+    setPanelPos({
+      left: clampLeft(tab.right - PANEL_WIDTH_PX, PANEL_WIDTH_PX),
+      bottom: window.innerHeight - tab.top + 8,
+    });
+  }, [open, tabLeft, adOffset]);
 
   function close() {
-    // The phone tab comes back tucked in, not still slid out from before.
-    setExpanded(false);
     setOpen(false);
     setError(null);
     setSheetDrag(0);
-    setPanelTop(null);
+    setPanelPos(null);
   }
 
   /** A fresh form each time after a successful send, not the thank-you note again. */
   function openPanel() {
     gesture.current = null;
-    cancelCollapse();
     if (status === 'sent') {
       setStatus('idle');
       setEmail('');
@@ -198,20 +188,30 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
     setOpen(true);
   }
 
+  // Other parts of the page (the record page's "Bu kayıtta hata mı var?") open the form with a subject.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const subject = (event as CustomEvent<{ subject?: string }>).detail?.subject;
+      openPanel();
+      if (subject) setSubject((current) => current || subject);
+    };
+    window.addEventListener(CONTACT_WIDGET_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(CONTACT_WIDGET_OPEN_EVENT, onOpen);
+    // openPanel only reads `status`, which is what has to stay current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   function endGesture() {
-    if (gesture.current?.mode === 'drag' && draggedTop.current != null) {
+    if (gesture.current?.mode === 'drag' && draggedPos.current != null) {
       try {
-        localStorage.setItem(TAB_POSITION_KEY, String(draggedTop.current));
+        localStorage.setItem(isPhone() ? TAB_POSITION_KEY : TAB_POSITION_KEY_X, String(draggedPos.current));
       } catch {
         // Not remembered across pages, but it still stays put on this one.
       }
     }
-    const dragged = gesture.current?.mode === 'drag';
     gesture.current = null;
-    draggedTop.current = null;
+    draggedPos.current = null;
     setDragging(false);
-    // Moving a slid-out tab restarts its wait rather than tucking it in mid-drag.
-    if (dragged && expanded) expand();
     // Only the click the browser may send right after this gesture is swallowed.
     if (suppressClick.current) {
       window.setTimeout(() => {
@@ -263,6 +263,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   }
 
   const tabHeight = () => tabRef.current?.offsetHeight ?? 48;
+  const tabWidth = () => tabRef.current?.offsetWidth ?? 130;
 
   const inputClass =
     'w-full rounded border border-line-strong bg-surface px-[11px] py-2.5 text-base text-ink outline-none transition-colors placeholder:text-ink-placeholder focus:border-accent focus:ring-2 focus:ring-accent/15';
@@ -270,13 +271,14 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   return (
     <div className="print:hidden">
       {/*
-        * The tab. Tap it or pull it inwards to open; drag it up or down to move
-        * it out of the way. The first few pixels of movement decide which of the
-        * two a gesture is, so a vertical drag never opens the panel.
+        * The tab. Tap it or pull it inwards to open (leftwards on a phone, upwards
+        * on desktop); drag it along its edge to move it out of the way. The first
+        * few pixels of movement decide which of the two a gesture is, so a drag
+        * never opens the panel.
         *
         * Pointer events rather than touch events, so it behaves the same under a
         * mouse as under a finger. Capturing the pointer keeps the drag alive once
-        * it leaves the tab's own narrow box, which it does almost immediately.
+        * it leaves the tab's own box, which it can do almost immediately.
         */}
       <button
         ref={tabRef}
@@ -287,8 +289,6 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
             return;
           }
           if (open) close();
-          // Phone: the first tap only slides the tab out; the second opens the sheet.
-          else if (isPhone() && !expanded) expand();
           else openPanel();
         }}
         onPointerDown={(event) => {
@@ -299,7 +299,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
           gesture.current = {
             startX: event.clientX,
             startY: event.clientY,
-            grabOffset: event.clientY - rect.top,
+            grabOffset: isPhone() ? event.clientY - rect.top : event.clientX - rect.left,
             mode: 'pending',
           };
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -307,30 +307,36 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
         onPointerMove={(event) => {
           const g = gesture.current;
           if (!g || g.mode === 'done') return;
-          const dx = g.startX - event.clientX;
-          const dy = event.clientY - g.startY;
+          const phone = isPhone();
+          // Along the edge the tab slides on, and inwards from it.
+          const along = phone ? event.clientY - g.startY : event.clientX - g.startX;
+          const inwards = phone ? g.startX - event.clientX : g.startY - event.clientY;
 
           if (g.mode === 'pending') {
-            if (Math.abs(dy) > GESTURE_SLOP_PX && Math.abs(dy) > Math.abs(dx)) {
+            if (Math.abs(along) > GESTURE_SLOP_PX && Math.abs(along) > Math.abs(inwards)) {
               g.mode = 'drag';
               suppressClick.current = true;
               setDragging(true);
-              cancelCollapse();
-            } else if (dx > PULL_THRESHOLD_PX && !open) {
+            } else if (inwards > PULL_THRESHOLD_PX && !open) {
               g.mode = 'done';
               suppressClick.current = true;
-              // A pull does what a tap would: slide out first, then open.
-              if (isPhone() && !expanded) expand();
-              else openPanel();
+              // A pull does what a tap would.
+              openPanel();
               return;
             } else {
               return;
             }
           }
 
-          const top = clampTop(event.clientY - g.grabOffset, tabHeight(), adOffset);
-          draggedTop.current = top / window.innerHeight;
-          setTabTop(draggedTop.current);
+          if (phone) {
+            const top = clampTop(event.clientY - g.grabOffset, tabHeight(), adOffset);
+            draggedPos.current = top / window.innerHeight;
+            setTabTop(draggedPos.current);
+          } else {
+            const left = clampLeft(event.clientX - g.grabOffset, tabWidth());
+            draggedPos.current = left / window.innerWidth;
+            setTabLeft(draggedPos.current);
+          }
         }}
         onPointerUp={endGesture}
         onPointerCancel={endGesture}
@@ -338,50 +344,51 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
         aria-expanded={open}
         aria-controls="contact-widget-panel"
         data-dragging={dragging || undefined}
-        data-collapsed={!expanded || undefined}
         style={
-          tabTop == null
-            ? { bottom: TAB_DEFAULT_BOTTOM_PX + adOffset }
-            : { top: clampTop(tabTop * window.innerHeight, tabHeight(), adOffset) }
+          {
+            '--tab-bottom': TAB_DEFAULT_BOTTOM_PX + adOffset + 'px',
+            '--tab-top':
+              tabTop == null ? undefined : clampTop(tabTop * window.innerHeight, tabHeight(), adOffset) + 'px',
+            '--tab-dbottom': adOffset + 'px',
+            '--tab-left':
+              tabLeft == null ? undefined : clampLeft(tabLeft * window.innerWidth, tabWidth()) + 'px',
+          } as React.CSSProperties
         }
         className={
-          'group fixed right-0 z-40 flex touch-none select-none flex-col items-center gap-2 rounded-l-lg border border-r-0 border-line-strong bg-surface py-3 pl-[10px] pr-[5px] text-link ' +
+          'group fixed z-40 flex touch-none select-none items-center ' +
           'shadow-[0_8px_24px_-10px_rgb(0_0_0/0.35)] transition-[transform,box-shadow] duration-300 ease-out ' +
-          'md:animate-tab-peek md:motion-reduce:animate-none dark:bg-surface-muted ' +
-          /*
-           * Phone: tucked in, only the border and spine (11px) stay on screen.
-           * An invisible strip to its left widens what a finger can hit, since
-           * 11px alone is too narrow to tap reliably.
-           */
-          'max-md:data-[collapsed]:translate-x-[19px] max-md:data-[collapsed]:shadow-none ' +
-          "max-md:before:absolute max-md:before:inset-y-0 max-md:before:-left-3 max-md:before:w-3 max-md:before:content-[''] " +
           'cursor-grab data-[dragging]:cursor-grabbing data-[dragging]:shadow-[0_14px_32px_-10px_rgb(0_0_0/0.45)] ' +
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ' +
-          'w-[30px] md:w-[36px] ' +
+          /*
+           * Desktop: a teal tab standing on the bottom edge of the window.
+           */
+          'md:bottom-[var(--tab-dbottom)] md:gap-2 md:rounded-t-lg md:bg-accent md:px-4 md:py-2.5 md:text-accent-ink ' +
+          'md:animate-tab-rise md:motion-reduce:animate-none md:hover:bg-accent-hover ' +
+          (tabLeft == null ? 'md:right-[24px] ' : 'md:left-[var(--tab-left)] ') +
+          /*
+           * Phone: an index tab on the right edge, paper-coloured with a teal spine.
+           */
+          'max-md:right-0 max-md:w-[30px] max-md:flex-col max-md:gap-2 max-md:rounded-l-lg max-md:border max-md:border-r-0 max-md:border-line-strong max-md:bg-surface max-md:py-3 max-md:pl-[10px] max-md:pr-[5px] max-md:text-link dark:max-md:bg-surface-muted ' +
+          (tabTop == null ? 'max-md:bottom-[var(--tab-bottom)] ' : 'max-md:top-[var(--tab-top)] ') +
           (open ? 'max-md:hidden' : '')
         }
       >
-        {/* The index-tab edge: a teal spine along the side that faces the page. */}
+        {/* Phone only: the index-tab edge, a teal spine along the side that faces the page. */}
         <span
           aria-hidden
-          className="absolute inset-y-2 left-[3px] w-[3px] rounded-full bg-accent transition-all duration-200 group-hover:inset-y-1.5 dark:bg-link"
+          className="absolute inset-y-2 left-[3px] w-[3px] rounded-full bg-accent transition-all duration-200 group-hover:inset-y-1.5 md:hidden dark:bg-link"
         />
 
-        {/* Phone only: on desktop the label says it already. */}
         {open ? (
-          <X size={16} strokeWidth={2.25} aria-hidden className="shrink-0 md:hidden" />
+          <X size={16} strokeWidth={2.25} aria-hidden className="shrink-0" />
         ) : (
-          <MessageSquareText size={15} strokeWidth={2} aria-hidden className="shrink-0 md:hidden" />
+          <MessageSquareText size={15} strokeWidth={2} aria-hidden className="shrink-0" />
         )}
 
-        {/* Desktop: the label, reading bottom-to-top like a file tab. */}
-        <span
-          aria-hidden
-          className="hidden rotate-180 whitespace-nowrap text-sm font-semibold tracking-wide text-ink [writing-mode:vertical-rl] md:block"
-        >
+        {/* Desktop only: on a phone the icon stands alone. */}
+        <span aria-hidden className="hidden whitespace-nowrap text-sm font-semibold tracking-wide md:block">
           {open ? 'Kapat' : 'Bize yazın'}
         </span>
-
       </button>
 
       {open ? (
@@ -400,15 +407,16 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
             aria-modal="false"
             aria-labelledby="contact-widget-title"
             style={{
-              ['--panel-top' as string]: (panelTop ?? 0) + 'px',
+              ['--panel-left' as string]: (panelPos?.left ?? 0) + 'px',
+              ['--panel-bottom' as string]: (panelPos?.bottom ?? 0) + 'px',
               transform: sheetDrag ? `translateY(${sheetDrag}px)` : undefined,
               transition: sheetDragging ? 'none' : 'transform 200ms ease-out',
             }}
             className={
               'fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] overflow-y-auto border border-line bg-surface shadow-[0_24px_60px_-20px_rgb(0_0_0/0.45)] ' +
               'animate-sheet-up rounded-t-[20px] motion-reduce:animate-none ' +
-              'md:bottom-auto md:left-auto md:right-[46px] md:top-[var(--panel-top)] md:w-[360px] md:animate-panel-in md:rounded-lg ' +
-              (panelTop == null ? 'md:invisible' : '')
+              'md:inset-x-auto md:bottom-[var(--panel-bottom)] md:left-[var(--panel-left)] md:max-h-[calc(100dvh-var(--panel-bottom)-72px)] md:w-[360px] md:animate-panel-in md:rounded-lg ' +
+              (panelPos == null ? 'md:invisible' : '')
             }
           >
             {/* Phone: the sheet's handle — pull it down to dismiss. */}

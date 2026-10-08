@@ -10,6 +10,7 @@ import { EntityChip } from '@/components/entity-chip';
 import { InBodySearch } from '@/components/in-body-search';
 import { MaskedText } from '@/components/masked-text';
 import { RecordMetaBar, buildRecordMetaFields } from '@/components/record-meta-bar';
+import { ReportError } from '@/components/report-error';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- geçici olarak kullanılmıyor, bkz. BodyTemporarilyUnavailableNotice
 import { OcrNotice } from '@/components/source-notice';
 import { docTypeLabel, formatRef, refAliases } from '@/lib/constants/doc-types';
@@ -111,7 +112,10 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
               Karar metni
             </h2>
-            {record.bodyMarkdown ? <InBodySearch targetId={BODY_ELEMENT_ID} /> : null}
+            <div className="flex items-center gap-4">
+              <ReportError subject={'Kayıt hatası: ' + (refLabel ?? heading)} />
+              {record.bodyMarkdown ? <InBodySearch targetId={BODY_ELEMENT_ID} /> : null}
+            </div>
           </div>
 
           {/*

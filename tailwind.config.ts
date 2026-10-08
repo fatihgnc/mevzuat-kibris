@@ -98,21 +98,21 @@ const config: Config = {
           '30%': { width: '55%' },
           '100%': { width: '92%' },
         },
-        // Contact tab: slides in from the page edge on load and settles with a small recoil.
-        'tab-peek': {
-          '0%': { transform: 'translateX(110%)' },
-          '65%': { transform: 'translateX(-5px)' },
-          '85%': { transform: 'translateX(1px)' },
-          '100%': { transform: 'translateX(0)' },
+        // Desktop contact tab: rises in from below the window's bottom edge on load and settles with a small recoil.
+        'tab-rise': {
+          '0%': { transform: 'translateY(110%)' },
+          '65%': { transform: 'translateY(-5px)' },
+          '85%': { transform: 'translateY(1px)' },
+          '100%': { transform: 'translateY(0)' },
         },
-        // Contact panel: a bottom sheet on phones, opens beside the tab on desktop.
+        // Contact panel: a bottom sheet on phones, opens above the tab on desktop.
         'sheet-up': {
           '0%': { transform: 'translateY(100%)' },
           '100%': { transform: 'translateY(0)' },
         },
         'panel-in': {
-          '0%': { opacity: '0', transform: 'translateX(12px) scale(0.98)' },
-          '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.98)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
         'fade-in': {
           '0%': { opacity: '0' },
@@ -121,7 +121,7 @@ const config: Config = {
       },
       animation: {
         'route-progress': 'route-progress 12s cubic-bezier(0.1, 0.8, 0.2, 1) forwards',
-        'tab-peek': 'tab-peek 700ms cubic-bezier(0.2, 0.9, 0.3, 1) 900ms both',
+        'tab-rise': 'tab-rise 700ms cubic-bezier(0.2, 0.9, 0.3, 1) 900ms both',
         'sheet-up': 'sheet-up 280ms cubic-bezier(0.2, 0.9, 0.3, 1)',
         'panel-in': 'panel-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1)',
         'fade-in': 'fade-in 200ms ease-out',
