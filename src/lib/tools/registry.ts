@@ -51,6 +51,11 @@ export interface Tool {
    * `lastModified`; do not bump it for a typo fix, or both lose their meaning.
    */
   updatedAt: string;
+  /**
+   * The day the tool went live (`YYYY-MM-DD`). For `NEW_TOOL_DAYS` after it the
+   * tool carries a "Yeni" badge in the menus and on the hub.
+   */
+  addedAt?: string;
   /** Tools used alongside this one, each with its reason. */
   related: readonly RelatedTool[];
   /** Archive records that set the rates or amounts the tool relies on. */
@@ -105,6 +110,7 @@ export const TOOLS: readonly Tool[] = [
   {
     slug: 'tapu-harci-hesaplayici',
     updatedAt: '2026-10-07',
+    addedAt: '2026-10-07',
     related: [],
     authority: 'İlçe Tapu Amirliği’ne',
     ogFooter: 'Tapu ve Kadastro Dairesi (Harçlar ve Ücretler) Tüzüğü  ·  Pul Yasası  ·  Gelir Vergisi Yasası',
@@ -326,6 +332,7 @@ export const TOOLS: readonly Tool[] = [
   {
     slug: 'ithal-arac-vergisi-hesaplayici',
     updatedAt: '2026-10-07',
+    addedAt: '2026-10-07',
     related: [],
     authority: 'Gümrük ve Rüsumat Dairesi’ne',
     ogFooter: 'Gümrük vergisi  ·  Fiyat İstikrar Fonu  ·  rıhtım harcı  ·  KDV  ·  kayıt harcı',
@@ -1351,6 +1358,20 @@ export const TOOLS: readonly Tool[] = [
 
 export function findTool(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);
+}
+
+/** How long a tool counts as new after `addedAt`. */
+export const NEW_TOOL_DAYS = 30;
+
+/**
+ * Whether the tool still gets the "Yeni" badge. Pages are rendered on the
+ * server and cached, so the badge drops off at the first rebuild or
+ * revalidation after the window closes, not on the exact day.
+ */
+export function isNewTool(tool: Tool, now: Date = new Date()): boolean {
+  if (!tool.addedAt) return false;
+  const added = new Date(`${tool.addedAt}T00:00:00Z`).getTime();
+  return now.getTime() - added < NEW_TOOL_DAYS * 24 * 60 * 60 * 1000;
 }
 
 export const TOOLS_PATH = '/arac';

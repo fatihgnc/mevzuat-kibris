@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { NewBadge } from '@/components/new-badge';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { MINIMUM_WAGE } from '@/lib/tools/constants';
 import { formatCurrency } from '@/lib/tools/format';
-import { TOOLS, toolPath } from '@/lib/tools/registry';
+import { isNewTool, TOOLS, toolPath } from '@/lib/tools/registry';
 
 export const metadata: Metadata = buildMetadata({
   title: 'Araçlar',
@@ -44,7 +45,10 @@ export default function ToolsPage() {
                 href={toolPath(tool.slug)}
                 className="flex w-full flex-col gap-2 rounded-lg border border-line bg-surface p-5 no-underline hover:border-line-strong hover:bg-surface-hover hover:no-underline"
               >
-                <span className="text-xl font-medium leading-[1.38] text-ink">{tool.name}</span>
+                <span className="flex items-center gap-2 text-xl font-medium leading-[1.38] text-ink">
+                  {tool.name}
+                  {isNewTool(tool) ? <NewBadge /> : null}
+                </span>
                 <span className="text-base leading-[1.5] text-ink-muted">{tool.summary}</span>
                 <span className="mt-1 text-sm text-ink-faint">
                   {tool.legal.map((reference) => reference.article).join(', ')}

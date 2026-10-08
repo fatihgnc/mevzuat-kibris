@@ -4,9 +4,13 @@ import { Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
+import { NewBadge, PulseDot } from '@/components/new-badge';
+
 export interface NavMenuItem {
   href: string;
   label: string;
+  /** Shows the "Yeni" badge, and a dot on the closed menu button. */
+  isNew?: boolean;
 }
 
 /**
@@ -24,6 +28,7 @@ export interface NavMenuItem {
  */
 export function NavMenu({ items }: { items: readonly NavMenuItem[] }) {
   const ref = useRef<HTMLDetailsElement>(null);
+  const hasNew = items.some((item) => item.isNew);
 
   useEffect(() => {
     const close = () => {
@@ -60,11 +65,13 @@ export function NavMenu({ items }: { items: readonly NavMenuItem[] }) {
         * flush together, so a mismatched box here would read as misaligned.
         */}
       <summary
-        aria-label="Menü"
+        aria-label={hasNew ? 'Menü (yeni içerik var)' : 'Menü'}
         title="Menü"
-        className="flex h-[42px] w-[42px] cursor-pointer list-none items-center justify-center rounded text-ink-muted transition-colors hover:text-ink [&::-webkit-details-marker]:hidden"
+        className="relative flex h-[42px] w-[42px] cursor-pointer list-none items-center justify-center rounded text-ink-muted transition-colors hover:text-ink [&::-webkit-details-marker]:hidden"
       >
         <Menu size={20} aria-hidden />
+        {/* The closed menu hides the badge, so the button itself carries a dot. */}
+        {hasNew ? <PulseDot className="absolute right-2 top-2 group-open:hidden" /> : null}
       </summary>
       {/*
         * `hidden group-open:flex`, NOT a bare `flex`.
@@ -86,9 +93,10 @@ export function NavMenu({ items }: { items: readonly NavMenuItem[] }) {
               onClick={() => {
                 if (ref.current) ref.current.open = false;
               }}
-              className="block px-4 py-2 text-ink-body no-underline hover:bg-surface-hover hover:text-ink hover:no-underline"
+              className="flex items-center gap-2 px-4 py-2 text-ink-body no-underline hover:bg-surface-hover hover:text-ink hover:no-underline"
             >
               {item.label}
+              {item.isNew ? <NewBadge /> : null}
             </Link>
           </li>
         ))}

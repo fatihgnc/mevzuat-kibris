@@ -7,7 +7,8 @@ import { articleAnchorId } from '@/components/tool-page/linkify-articles';
 import { breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/json-ld';
 import { formatDate, parseDate } from '@/lib/tools/duration';
 import { toolExample, type ToolExample } from '@/lib/tools/examples';
-import { findTool, TOOLS, TOOLS_PATH, toolPath, type Tool } from '@/lib/tools/registry';
+import { NewBadge } from '@/components/new-badge';
+import { findTool, isNewTool, TOOLS, TOOLS_PATH, toolPath, type Tool } from '@/lib/tools/registry';
 
 /**
  * Her hesaplayıcının iskeleti.
@@ -96,6 +97,7 @@ export function ToolPage({ tool, children }: { tool: Tool; children: React.React
                 {others.map((entry) => (
                   <li key={entry.slug}>
                     <Link href={toolPath(entry.slug)}>{entry.name}</Link>
+                    {isNewTool(entry) ? <NewBadge className="ml-2" /> : null}
                   </li>
                 ))}
               </ul>

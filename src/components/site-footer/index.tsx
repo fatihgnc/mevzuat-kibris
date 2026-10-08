@@ -1,7 +1,8 @@
 import Link from 'next/link';
 
 import { TOPIC_LIST } from '@/lib/constants/topics';
-import { TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
+import { NewBadge } from '@/components/new-badge';
+import { isNewTool, TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
 import { FACEBOOK_URL, SITE_NAME } from '@/lib/seo/config';
 import type { EntityRow } from '@/types/entity';
 
@@ -100,6 +101,7 @@ export function SiteFooter({
                     className="text-ink-body no-underline hover:text-accent hover:no-underline"
                   >
                     {tool.name}
+                    {isNewTool(tool) ? <NewBadge className="ml-2" /> : null}
                   </Link>
                 </li>
               ))}

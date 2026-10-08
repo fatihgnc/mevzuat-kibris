@@ -5,7 +5,7 @@ import { NavMenu } from '@/components/nav-menu';
 import { SearchDialog } from '@/components/search-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
-import { TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
+import { isNewTool, TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
 import { cn } from '@/lib/utils';
 
 /**
@@ -61,11 +61,14 @@ const MOBILE_ONLY = [{ href: '/yer', label: 'Yerler' }];
  * gets them as a plain entry in NavMenu — a hover menu inside a tap menu is not
  * a thing — so `NAV_WITH_TOOLS` is what the small screen sees.
  */
-const TOOL_ITEMS = TOOLS.map((tool) => ({
-  href: toolPath(tool.slug),
-  label: tool.name,
-  description: tool.summary,
-}));
+function toolItems() {
+  return TOOLS.map((tool) => ({
+    href: toolPath(tool.slug),
+    label: tool.name,
+    description: tool.summary,
+    isNew: isNewTool(tool),
+  }));
+}
 
 /**
  * "Diğer hizmetler" menüsü — bağımsız kardeş sitelere giden bağlantılar.
@@ -81,7 +84,7 @@ const OTHER_SERVICE_ITEMS = [
  * altında hiç render edilmiyor (bkz. NavDropdown); mobil menü listesine
  * eklemek bu davranışı tekrar açardı.
  */
-const NAV_WITH_TOOLS = [
+const NAV_WITH_TOOLS: Array<{ href: string; label: string; isNew?: boolean }> = [
   /*
    * The two topics most visits are for, first. On a phone the home page used to
    * bury the vacancies three screens down, and this menu had no way to them
@@ -119,6 +122,16 @@ interface SiteHeaderProps {
  * combined with.
  */
 export function SiteHeader({ query = '', className }: SiteHeaderProps) {
+  /*
+   * Worked out per render rather than at module load: on a long-running server
+   * a module-level value would keep the badge until the next restart.
+   */
+  const tools = toolItems();
+  const hasNewTool = tools.some((tool) => tool.isNew);
+  const narrowNav = NAV_WITH_TOOLS.map((item) =>
+    item.href === TOOLS_PATH ? { ...item, isNew: hasNewTool } : item,
+  );
+
   return (
     <header
       /*
@@ -186,7 +199,7 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
               label="Araçlar"
               href={TOOLS_PATH}
               footerLabel="Tüm araçlar"
-              items={TOOL_ITEMS}
+              items={tools}
             />
             <NavDropdown label="Diğer hizmetler" items={OTHER_SERVICE_ITEMS} />
           </div>
@@ -202,7 +215,7 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
           <SearchDialog defaultValue={query} />
           <ThemeToggle />
           <div className="min-[1060px]:hidden">
-            <NavMenu items={NAV_WITH_TOOLS} />
+            <NavMenu items={narrowNav} />
           </div>
         </div>
       </div>

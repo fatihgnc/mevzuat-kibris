@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
+import { NewBadge } from '@/components/new-badge';
+
 export interface NavDropdownItem {
   href: string;
   label: string;
@@ -10,6 +12,8 @@ export interface NavDropdownItem {
   description?: string;
   /** Siteden çıkan bağlantılar için: yeni sekmede açılan sade <a>, next/link değil. */
   external?: boolean;
+  /** Shows the "Yeni" badge; decided on the server so the client renders the same markup. */
+  isNew?: boolean;
 }
 
 /**
@@ -134,7 +138,10 @@ export function NavDropdown({
               };
               const content = (
                 <>
-                  <span className="block text-base font-medium text-ink-body">{item.label}</span>
+                  <span className="flex items-center gap-2 text-base font-medium text-ink-body">
+                    {item.label}
+                    {item.isNew ? <NewBadge /> : null}
+                  </span>
                   {item.description ? (
                     <span className="mt-0.5 block text-sm leading-[1.45] text-ink-muted">
                       {item.description}
