@@ -6,6 +6,11 @@ import { z } from 'zod';
 
 const schema = z.object({
   email: z.string().trim().email('Geçerli bir e-posta adresi girin.'),
+  subject: z
+    .string()
+    .trim()
+    .min(1, 'Konu boş olamaz.')
+    .max(150, 'Konu en fazla 150 karakter olabilir.'),
   message: z.string().trim().min(1, 'Mesaj boş olamaz.'),
 });
 
@@ -77,6 +82,7 @@ function anchorAdOffset(): number {
 export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [website, setWebsite] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -186,6 +192,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
     if (status === 'sent') {
       setStatus('idle');
       setEmail('');
+      setSubject('');
       setMessage('');
     }
     setOpen(true);
@@ -224,7 +231,7 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
 
-    const parsed = schema.safeParse({ email, message });
+    const parsed = schema.safeParse({ email, subject, message });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Formu kontrol edin.');
       return;
@@ -465,10 +472,11 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
                       Yedi gün içinde yanıtlıyoruz.
                     </p>
                   </div>
-                  {/* Keeps the e-mail address; only the message starts over. */}
+                  {/* Keeps the e-mail address; subject and message start over. */}
                   <button
                     type="button"
                     onClick={() => {
+                      setSubject('');
                       setMessage('');
                       setStatus('idle');
                     }}
@@ -495,6 +503,25 @@ export function ContactWidget({ contactEmail }: { contactEmail: string }) {
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="Size dönebilmemiz için"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="contact-widget-subject"
+                      className="mb-1.5 block text-sm font-semibold text-ink"
+                    >
+                      Konu
+                    </label>
+                    <input
+                      id="contact-widget-subject"
+                      type="text"
+                      required
+                      maxLength={150}
+                      value={subject}
+                      onChange={(event) => setSubject(event.target.value)}
+                      placeholder="Örn. Kayıt metninde eksik"
                       className={inputClass}
                     />
                   </div>

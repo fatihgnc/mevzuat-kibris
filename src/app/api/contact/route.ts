@@ -8,6 +8,13 @@ export const dynamic = 'force-dynamic';
 
 const schema = z.object({
   email: z.string().trim().email('Geçerli bir e-posta adresi girin.').max(254),
+  /** Used as the e-mail's subject line; collapsed to one line so it cannot inject headers. */
+  subject: z
+    .string({ required_error: 'Konu boş olamaz.' })
+    .trim()
+    .min(1, 'Konu boş olamaz.')
+    .max(150, 'Konu en fazla 150 karakter olabilir.')
+    .transform((value) => value.replace(/\s+/g, ' ')),
   message: z.string().trim().min(1, 'Mesaj boş olamaz.').max(4000),
   /** The page the visitor was on when they opened the widget. */
   page: z.string().trim().max(500).optional(),
@@ -77,7 +84,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { email, message, page, website } = parsed.data;
+  const { email, subject, message, page, website } = parsed.data;
 
   // Pretend it went through so the bot has nothing to learn from.
   if (website) return NextResponse.json({ ok: true });
@@ -98,7 +105,7 @@ export async function POST(request: Request) {
     from,
     to: CONTACT_EMAIL,
     replyTo: email,
-    subject: SITE_NAME + ' iletişim — ' + (path ?? email),
+    subject,
     text:
       'Gönderen: ' +
       email +
