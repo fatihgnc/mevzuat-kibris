@@ -275,7 +275,18 @@ function BodyMarkdown({ markdown }: { markdown: string }) {
         '[&_tr:nth-child(even)_td]:bg-surface',
       ].join(' ')}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, rehypeSanitize]}
+        components={{
+          // Links in a body (KHK circulars link their service schemes and forms) leave the site, so they open beside it.
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
         {markdown}
       </ReactMarkdown>
     </div>
