@@ -52,8 +52,9 @@ export function RecordMetaBar({ fields, className }: { fields: MetaField[]; clas
 export function buildRecordMetaFields(input: {
   refLabel: string | null;
   publishedAt: string;
-  issueYear: number;
-  issueNumber: number;
+  /** Null when the record is not from a gazette issue (khk.gov.ct.tr). */
+  issueYear: number | null;
+  issueNumber: number | null;
   section: string;
   institution?: { slug: string; name: string } | null;
   primaryTopic?: { slug: string; name: string } | null;
@@ -70,7 +71,7 @@ export function buildRecordMetaFields(input: {
     hideOnPhone: true,
   });
 
-  fields.push({
+  if (input.issueYear !== null && input.issueNumber !== null) fields.push({
     label: 'Gazete',
     value: (
       <>

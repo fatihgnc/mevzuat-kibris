@@ -24,7 +24,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const meta = record
     ? [
         formatDateLong(record.publishedAt),
-        'RG sayı ' + record.issue.number + '/' + record.issue.year,
+        record.fromGazette ? 'RG sayı ' + record.issue.number + '/' + record.issue.year : 'Kamu Hizmeti Komisyonu',
       ].join('  ·  ')
     : SITE_TAGLINE;
 

@@ -189,12 +189,16 @@ export function recordJsonLd(record: RecordDetail) {
     url,
     isBasedOn: record.issue.pdfUrl,
     publisher,
-    isPartOf: {
-      '@type': 'PublicationIssue',
-      issueNumber: record.issue.number,
-      datePublished: toIsoDate(record.issue.publishedAt),
-      name: SOURCE_NAME + ' sayı ' + record.issue.number + '/' + record.issue.year,
-    },
+    ...(record.fromGazette
+      ? {
+          isPartOf: {
+            '@type': 'PublicationIssue',
+            issueNumber: record.issue.number,
+            datePublished: toIsoDate(record.issue.publishedAt),
+            name: SOURCE_NAME + ' sayı ' + record.issue.number + '/' + record.issue.year,
+          },
+        }
+      : {}),
   };
 }
 

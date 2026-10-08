@@ -129,6 +129,9 @@ export const REF_TYPES = [
   'yt',
   'yo',
   'mia',
+  // Kamu Hizmeti Komisyonu circular series that the gazette does not carry (migration 0026).
+  'khkmt',
+  'khko',
   'rekabet',
   'eskieser',
   'genelgey',
@@ -175,6 +178,10 @@ export function formatRef(refType: string | null, refNumber: string | null): str
       return `Y.Ö.NO:${refNumber}`;
     case 'mia':
       return `GENELGE MİA.${refNumber}`;
+    case 'khkmt':
+      return `GENELGE MT.${refNumber}`;
+    case 'khko':
+      return `GENELGE Ö.${refNumber}`;
     case 'rekabet':
       return `Karar ${refNumber}`;
     case 'eskieser':

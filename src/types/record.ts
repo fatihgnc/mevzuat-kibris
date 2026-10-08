@@ -50,8 +50,9 @@ export interface RecordListItem {
   id: number;
   slug: string;
   hasOwnPage: boolean;
-  issueYear: number;
-  issueNumber: number;
+  /** Null for records that did not come from a gazette issue (khk.gov.ct.tr). */
+  issueYear: number | null;
+  issueNumber: number | null;
   publishedAt: string;
   refLabel: string | null;
   title: string;
@@ -74,6 +75,12 @@ export interface RecordListItem {
 }
 
 export interface RecordDetail extends RecordRow {
+  /**
+   * False for records taken straight from khk.gov.ct.tr (migration 0026): they
+   * belong to no gazette issue, so `issue` below is a stand-in (number 0, the
+   * source PDF as `pdfUrl`) and no link to /sayilar may be built from it.
+   */
+  fromGazette: boolean;
   issue: {
     id: number;
     year: number;

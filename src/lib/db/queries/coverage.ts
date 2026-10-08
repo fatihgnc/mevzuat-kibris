@@ -47,7 +47,7 @@ export async function archiveCoverage(topic?: string): Promise<ArchiveCoverage> 
            max(i.year)::int as latest,
            count(r.id)::int as total
       from records r
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
       ${scope}
   `);
 

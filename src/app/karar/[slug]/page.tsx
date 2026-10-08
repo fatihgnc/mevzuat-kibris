@@ -140,8 +140,8 @@ export default async function RecordPage({ params }: Props) {
       recordHref({
         slug: record.slug,
         hasOwnPage: false,
-        issueYear: record.issue.year,
-        issueNumber: record.issue.number,
+        issueYear: record.fromGazette ? record.issue.year : null,
+        issueNumber: record.fromGazette ? record.issue.number : null,
         refLabel: formatRef(record.refType, record.refNumber),
       }),
     );
@@ -154,7 +154,11 @@ export default async function RecordPage({ params }: Props) {
     ...(topic ? [{ name: topic.name, href: '/konu/' + topic.slug }] : []),
     {
       name: String(record.issue.year),
-      href: topic ? '/konu/' + topic.slug + '/' + record.issue.year : '/sayilar/' + record.issue.year,
+      href: topic
+        ? '/konu/' + topic.slug + '/' + record.issue.year
+        : record.fromGazette
+          ? '/sayilar/' + record.issue.year
+          : '/',
     },
     { name: record.refNumber ?? 'Kayıt' },
   ];

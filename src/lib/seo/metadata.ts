@@ -132,7 +132,8 @@ export function recordTitle(
   refLabel?: string | null,
 ): string {
   const prefix = refLabel ? refLabel + ' — ' : '';
-  const suffix = ' — RG ' + issueNumber + '/' + year;
+  // Issue number 0 = no gazette issue: the record comes from khk.gov.ct.tr.
+  const suffix = issueNumber > 0 ? ' — RG ' + issueNumber + '/' + year : ' — KHK';
   const room = Math.max(RECORD_TITLE_MAX - prefix.length - suffix.length, 24);
 
   return prefix + truncateTitle(summaryOrTitle, room) + suffix;

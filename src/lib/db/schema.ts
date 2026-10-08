@@ -61,7 +61,9 @@ export const records = pgTable(
   'records',
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
-    issueId: bigint('issue_id', { mode: 'number' }).notNull(),
+    // Null for records taken from khk.gov.ct.tr (migration 0026).
+    issueId: bigint('issue_id', { mode: 'number' }),
+    sourceUrl: text('source_url'),
     slug: text('slug').notNull(),
     section: text('section').notNull(),
     docType: text('doc_type').notNull(),

@@ -51,10 +51,14 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         <span>{docTypeLabel(record.docType)}</span>
         <Divider />
         <time dateTime={record.publishedAt}>{formatDateLong(record.publishedAt)}</time>
-        <Divider />
-        <Link href={'/sayilar/' + record.issue.year + '/' + record.issue.number}>
-          {record.issue.number}. sayı
-        </Link>
+        {record.fromGazette ? (
+          <>
+            <Divider />
+            <Link href={'/sayilar/' + record.issue.year + '/' + record.issue.number}>
+              {record.issue.number}. sayı
+            </Link>
+          </>
+        ) : null}
       </div>
 
       <h1 className="mt-3 max-w-title text-4xl font-semibold leading-[1.28] tracking-tightest text-ink [overflow-wrap:anywhere] sm:text-6xl">
@@ -66,8 +70,8 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
         fields={buildRecordMetaFields({
           refLabel,
           publishedAt: record.publishedAt,
-          issueYear: record.issue.year,
-          issueNumber: record.issue.number,
+          issueYear: record.fromGazette ? record.issue.year : null,
+          issueNumber: record.fromGazette ? record.issue.number : null,
           section: record.section,
           institution,
           primaryTopic: primaryTopic
@@ -185,7 +189,15 @@ export function RecordDetail({ record }: { record: RecordDetailType }) {
             />
           ) : null}
 
-          {record.sameIssue.length ? (
+          {!record.fromGazette ? (
+            <section className="mt-[30px] border-t border-line pt-[22px]">
+              <h2 className="mb-3.5 text-md font-semibold text-ink">Arşivde gezin</h2>
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-base">
+                <Link href="/konu/munhal">Tüm münhal ilanları</Link>
+                <Link href="/sayilar">Tüm sayılar</Link>
+              </div>
+            </section>
+          ) : record.sameIssue.length ? (
             <RelatedBlock
               title={record.issue.number + '. sayıdaki diğer kayıtlar'}
               records={record.sameIssue}

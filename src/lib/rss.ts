@@ -48,7 +48,7 @@ export function buildRssFeed({
 
       const meta = [
         record.refLabel,
-        'RG sayı ' + record.issueNumber + '/' + record.issueYear,
+        record.issueNumber !== null ? 'RG sayı ' + record.issueNumber + '/' + record.issueYear : 'Kamu Hizmeti Komisyonu',
         record.docTypeLabel,
         record.institution,
       ]

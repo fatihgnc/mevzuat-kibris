@@ -62,7 +62,7 @@ export const LIST_COLUMNS = `
  * result set would have to be grouped before pagination.
  */
 export const LIST_JOINS = `
-  join issues i on i.id = r.issue_id
+  left join issues i on i.id = r.issue_id
   left join lateral (
     select array_agg(rt.topic order by rt.topic) as slugs
       from record_topics rt
@@ -89,8 +89,8 @@ export interface RawListRow {
   ref_number: string | null;
   published_at: string | Date;
   deadline_at: string | Date | null;
-  issue_year: number;
-  issue_number: number;
+  issue_year: number | null;
+  issue_number: number | null;
   topics: string[] | null;
   institution: string | null;
   has_body: boolean;
@@ -155,6 +155,7 @@ export function mapListItem(row: RawListRow, query = ''): RecordListItem {
 export function recordHref(item: Pick<RecordListItem, 'slug' | 'hasOwnPage' | 'issueYear' | 'issueNumber' | 'refLabel'>): string {
   if (item.hasOwnPage) return '/karar/' + item.slug;
   const anchor = item.refLabel ? '#karar-' + encodeURIComponent(item.refLabel) : '';
+  if (item.issueYear === null || item.issueNumber === null) return '/karar/' + item.slug;
   return '/sayilar/' + item.issueYear + '/' + item.issueNumber + anchor;
 }
 

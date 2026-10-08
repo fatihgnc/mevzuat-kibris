@@ -36,7 +36,7 @@ const DOC_TYPE_RULES: DocTypeRule[] = [
   { type: 'eski_eserler_karari', keywords: ['ESKİ ESERLER YÜKSEK KURULU'] },
   { type: 'yasa_tasarisi', refTypes: ['yt'] },
   { type: 'yasa_onerisi', refTypes: ['yo'] },
-  { type: 'genelge', refTypes: ['mia'] },
+  { type: 'genelge', refTypes: ['mia', 'khkmt', 'khko'] },
   { type: 'marka_ilani', refTypes: ['mt'], sections: ['EK_V_B_II'] },
   { type: 'marka_ilani', keywords: ['MARKA TESCİL MÜRACAATI'] },
   { type: 'sirket_duyurusu', refTypes: ['sm'] },

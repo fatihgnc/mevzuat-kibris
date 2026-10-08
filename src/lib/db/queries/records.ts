@@ -88,7 +88,7 @@ function filterConditions(params: Partial<SearchParams>, exclude?: 'konu' | 'tur
    * typed, so it takes the field.
    */
   if (params.yil && !params.baslangic && !params.bitis) {
-    parts.push(sql`i.year = ${params.yil}`);
+    parts.push(sql`extract(year from r.published_at)::int = ${params.yil}`);
   }
   if (params.baslangic) {
     parts.push(sql`r.published_at >= ${params.baslangic}::date`);
@@ -215,7 +215,7 @@ export async function searchRecords(
     select count(*)::int as n from (
       select 1
         from records r
-        join issues i on i.id = r.issue_id
+        left join issues i on i.id = r.issue_id
        where ${matchCondition}
          and r.has_own_page
          and ${filters}
@@ -232,14 +232,14 @@ export async function searchRecords(
   const facetQuery = db.execute<Row<{ kind: string; key: string; n: string }>>(sql`
     select 'topic' as kind, rt.topic as key, count(*)::int as n
       from records r
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
       join record_topics rt on rt.record_id = r.id
      where ${matchCondition} and r.has_own_page and ${topicFacetFilters}
      group by rt.topic
     union all
     select 'doc_type', r.doc_type, count(*)::int
       from records r
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
      where ${matchCondition} and r.has_own_page and ${docTypeFacetFilters}
      group by r.doc_type
   `);
@@ -251,7 +251,7 @@ export async function searchRecords(
           select count(*)::int as n from (
             select 1
               from records r
-              join issues i on i.id = r.issue_id
+              left join issues i on i.id = r.issue_id
              where r.search_vector @@ ${loose}
                and r.has_own_page
                and ${filters}
@@ -313,14 +313,14 @@ export async function searchFacets(params: SearchParams): Promise<SearchResult['
   const facetRows = await db.execute<Row<{ kind: string; key: string; n: string }>>(sql`
     select 'topic' as kind, rt.topic as key, count(*)::int as n
       from records r
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
       join record_topics rt on rt.record_id = r.id
      where r.has_own_page and ${topicFacetFilters}
      group by rt.topic
     union all
     select 'doc_type', r.doc_type, count(*)::int
       from records r
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
      where r.has_own_page and ${docTypeFacetFilters}
      group by r.doc_type
   `);
@@ -481,7 +481,7 @@ function listConditions(options: ListOptions) {
       )`,
     );
   }
-  if (options.year) conditions.push(sql`i.year = ${options.year}`);
+  if (options.year) conditions.push(sql`extract(year from r.published_at)::int = ${options.year}`);
   if (options.deadlineState === 'acik') {
     conditions.push(sql`r.deadline_at is not null and r.deadline_at >= current_date`);
   }
@@ -520,7 +520,7 @@ async function countRecordsUncached(options: ListOptions): Promise<number> {
   const rows = await db.execute<Row<{ n: string }>>(sql`
     select count(*)::int as n
       from records r
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
      where ${listConditions(options)}
   `);
 
@@ -561,12 +561,12 @@ export async function topicCounts(): Promise<Record<string, number>> {
  */
 export async function topicYearCounts(): Promise<Array<{ topic: string; year: number }>> {
   const rows = await db.execute<Row<{ topic: string; year: number }>>(sql`
-    select rt.topic, i.year
+    select rt.topic, extract(year from r.published_at)::int as year
       from record_topics rt
       join records r on r.id = rt.record_id
-      join issues i on i.id = r.issue_id
+      left join issues i on i.id = r.issue_id
      where r.has_own_page
-     group by rt.topic, i.year
+     group by rt.topic, extract(year from r.published_at)::int
      having count(*) > 0
   `);
 
@@ -587,13 +587,15 @@ interface RawDetailRow extends RawListRow {
   corrects_id: string | number | null;
   has_personal_data: boolean;
   title_normalized: string;
-  issue_id: string | number;
-  issue_published_at: string | Date;
-  pdf_url: string;
-  text_status: string;
+  issue_id: string | number | null;
+  source_url: string | null;
+  created_at: string | Date;
+  issue_published_at: string | Date | null;
+  pdf_url: string | null;
+  text_status: string | null;
   text_quality: number | null;
-  issue_updated_at: string | Date;
-  pdf_broken: boolean;
+  issue_updated_at: string | Date | null;
+  pdf_broken: boolean | null;
 }
 
 /**
@@ -617,6 +619,8 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
            r.corrects_id,
            r.has_personal_data,
            r.issue_id,
+           r.source_url,
+           r.created_at,
            i.published_at as issue_published_at,
            i.pdf_url,
            i.text_status,
@@ -696,7 +700,7 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
 
   return {
     id,
-    issueId: Number(row.issue_id),
+    issueId: row.issue_id === null ? 0 : Number(row.issue_id),
     slug: row.slug,
     section: row.section as RecordDetail['section'],
     docType: base.docType,
@@ -719,22 +723,31 @@ async function loadRecordBySlug(slug: string): Promise<RecordDetail | null> {
     correctsId: row.corrects_id === null ? null : Number(row.corrects_id),
     hasPersonalData: row.has_personal_data,
     hasOwnPage: row.has_own_page,
+    fromGazette: row.issue_id !== null,
+    // A record from khk.gov.ct.tr has no issue: stand in with its own date and
+    // source PDF so the page can render, and see `RecordDetail.fromGazette`.
     issue: {
-      id: Number(row.issue_id),
-      year: row.issue_year,
-      number: row.issue_number,
+      id: row.issue_id === null ? 0 : Number(row.issue_id),
+      year: row.issue_year ?? Number(base.publishedAt.slice(0, 4)),
+      number: row.issue_number ?? 0,
       publishedAt:
-        row.issue_published_at instanceof Date
-          ? row.issue_published_at.toISOString().slice(0, 10)
-          : String(row.issue_published_at).slice(0, 10),
-      pdfUrl: row.pdf_url,
-      pdfBroken: row.pdf_broken,
-      textStatus: row.text_status as RecordDetail['issue']['textStatus'],
+        row.issue_published_at === null
+          ? base.publishedAt
+          : row.issue_published_at instanceof Date
+            ? row.issue_published_at.toISOString().slice(0, 10)
+            : String(row.issue_published_at).slice(0, 10),
+      pdfUrl: row.pdf_url ?? row.source_url ?? '',
+      pdfBroken: row.pdf_broken ?? false,
+      textStatus: (row.text_status ?? 'extracted') as RecordDetail['issue']['textStatus'],
       textQuality: row.text_quality,
       updatedAt:
-        row.issue_updated_at instanceof Date
-          ? row.issue_updated_at.toISOString()
-          : String(row.issue_updated_at),
+        row.issue_updated_at === null
+          ? row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : String(row.created_at)
+          : row.issue_updated_at instanceof Date
+            ? row.issue_updated_at.toISOString()
+            : String(row.issue_updated_at),
     },
     topics: base.topics,
     entities: entityRows.map((entity) => ({

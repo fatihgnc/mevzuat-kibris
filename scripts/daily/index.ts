@@ -3,6 +3,7 @@ import { processIssue } from '../parse-records';
 import { triggerRevalidate } from '../revalidate';
 import { closeDb, finishRun, sql, startRun } from '../shared/db';
 import { log, toErrorEntry } from '../shared/logger';
+import { syncAuto as syncKhk } from '../khk-sync/sync';
 import { flagForReview } from './flag-review';
 import { notifyNewIssues } from './notify-new-issues';
 
@@ -104,6 +105,25 @@ async function main() {
      */
     const flagged = await flagForReview(processedIssueIds);
     if (flagged > 0) log.info('gözden geçirme için işaretlenen kayıt sayısı', { flagged });
+
+    /*
+     * Vacancy circulars straight from khk.gov.ct.tr (migration 0026). A separate
+     * stage with its own failure handling: the gazette ingest above must not be
+     * lost because the commission's site is down or changed its markup. Set
+     * KHK_SYNC=off to skip it.
+     */
+    if (process.env.KHK_SYNC !== 'off') {
+      try {
+        const khk = await syncKhk([year - 1, year]);
+        recordsNew += khk.written.length;
+        for (const slug of khk.written) touchedRecordSlugs.add(slug);
+        if (khk.written.length) topics.add('munhal');
+        log.info('khk senkronizasyonu', { written: khk.written.length, skipped: khk.skipped.length });
+      } catch (error) {
+        log.error('khk senkronizasyonu başarısız', { message: String(error) });
+        errors.push(toErrorEntry('khk-sync', error));
+      }
+    }
 
     /*
      * Revalidation — spec 11.2. EVERY affected tag is refreshed, not just the
