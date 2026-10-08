@@ -16,6 +16,7 @@ import {
   ToolNotice,
   useCalculator,
 } from '@/components/tool-page/fields';
+import { useAutoRate, useExchangeRates } from '@/components/tools/use-exchange-rates';
 import { MINIMUM_WAGE } from '@/lib/tools/constants';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/tools/format';
 import {
@@ -236,6 +237,11 @@ export function TitleDeedFeeForm() {
   const [seller, setSeller] = useState<Seller>('none');
   const [fixedFees, setFixedFees] = useState(false);
 
+  const rates = useExchangeRates();
+  const rateHint = useAutoRate(rates, currency, exchangeRate, setExchangeRate);
+  /* The first-home exemption names the banknote selling rate for its £100,000 cap. */
+  const gbpRateHint = useAutoRate(rates, 'GBP', gbpRate, setGbpRate, 'banknote');
+
   const sale = transaction === 'sale';
   const gift = transaction === 'gift';
   const kktc = buyer === 'kktc';
@@ -388,7 +394,7 @@ export function TitleDeedFeeForm() {
           {currency !== 'TRY' ? (
             <NumberField
               label={`1 ${symbol} kaç TL`}
-              hint="Harç TL olarak alınır. Tapu’da işlem günündeki kur esas alınır."
+              hint={`${rateHint ? `${rateHint} ` : ''}Harç TL olarak alınır; Tapu’da işlem günündeki kur esas alınır.`}
               error={errors.exchangeRate}
               value={exchangeRate}
               onChange={setExchangeRate}
@@ -458,7 +464,7 @@ export function TitleDeedFeeForm() {
                 {firstHome && currency !== 'GBP' ? (
                   <NumberField
                     label="1 £ kaç TL"
-                    hint="Devir günündeki Merkez Bankası efektif satış kuru."
+                    hint={gbpRateHint ?? 'Devir günündeki Merkez Bankası efektif satış kuru.'}
                     error={errors.gbpRate}
                     value={gbpRate}
                     onChange={setGbpRate}

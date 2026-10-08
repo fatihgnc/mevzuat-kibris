@@ -17,6 +17,7 @@ import {
   ToolNotice,
   useCalculator,
 } from '@/components/tool-page/fields';
+import { useAutoRate, useExchangeRates } from '@/components/tools/use-exchange-rates';
 import { formatDate, toDateInputValue } from '@/lib/tools/duration';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/tools/format';
 import { optionalAmount, optionalDate, requiredAmount, requiredDate } from '@/lib/tools/validation';
@@ -148,6 +149,10 @@ export function VehicleImportForm() {
   const [disability, setDisability] = useState<DisabilityGroup | 'none'>('none');
   const [adapted, setAdapted] = useState(false);
   const [gbpRate, setGbpRate] = useState('');
+
+  const rates = useExchangeRates();
+  const rateHint = useAutoRate(rates, currency, exchangeRate, setExchangeRate);
+  const gbpRateHint = useAutoRate(rates, 'GBP', gbpRate, setGbpRate);
 
   const car = vehicleType === 'car';
   const pickup = vehicleType === 'pickup';
@@ -311,7 +316,7 @@ export function VehicleImportForm() {
           {currency !== 'TRY' ? (
             <NumberField
               label={`1 ${symbol} kaç TL`}
-              hint="Gümrük beyanının tescil tarihindeki döviz satış kuru esas alınır."
+              hint={`${rateHint ? `${rateHint} ` : ''}Gümrük, beyanın tescil günündeki döviz satış kurunu esas alır.`}
               error={errors.exchangeRate}
               value={exchangeRate}
               onChange={setExchangeRate}
@@ -406,7 +411,7 @@ export function VehicleImportForm() {
                   {currency !== 'GBP' ? (
                     <NumberField
                       label="1 £ kaç TL (30.000 £ sınırı için)"
-                      hint="Girilmezse CİF sınırı kontrol edilmez."
+                      hint={gbpRateHint ?? 'Girilmezse CİF sınırı kontrol edilmez.'}
                       error={errors.gbpRate}
                       value={gbpRate}
                       onChange={setGbpRate}
