@@ -3,12 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { MaskedText } from '@/components/masked-text';
+import { IssueSections } from '@/components/issue-sections';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { SECTIONS, SECTION_DESCRIPTION, SECTION_SHORT, isSection } from '@/lib/constants/sections';
 import { adjacentIssues, getIssue, getIssueSections } from '@/lib/db/queries/issues';
-import { recordHref } from '@/lib/db/queries/shared';
 import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { formatDateLong } from '@/lib/text/dates';
@@ -24,8 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const issue = await getIssue(Number(yil), Number(sayi));
   if (!issue) return { title: 'Sayı bulunamadı' };
 
+  /*
+   * The date leads, and "KKTC Resmi Gazete" is spelled unaccented, because that is
+   * how people search for a day's gazette ("resmi gazete 9 ekim 2026"). The old
+   * title, "Resmî Gazete sayı 200/2026", carried neither the date nor KKTC, and
+   * nobody searches by issue number.
+   */
   return buildMetadata({
-    title: 'Resmî Gazete sayı ' + issue.number + '/' + issue.year,
+    title: 'KKTC Resmi Gazete ' + formatDateLong(issue.publishedAt) + ' — Sayı ' + issue.number,
     description:
       formatDateLong(issue.publishedAt) +
       ' tarihli KKTC Resmî Gazete sayı ' +
@@ -51,13 +55,6 @@ export default async function IssuePage({ params }: Props) {
     adjacentIssues(year, number),
   ]);
 
-  // Sections in the gazette's own order; an unknown section falls to the end.
-  const ordered = [...sections].sort((a, b) => {
-    const ai = SECTIONS.indexOf(a.section as never);
-    const bi = SECTIONS.indexOf(b.section as never);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-  });
-
   const crumbs = [
     { name: 'Ana sayfa', href: '/' },
     { name: 'Sayılar', href: '/sayilar' },
@@ -73,7 +70,7 @@ export default async function IssuePage({ params }: Props) {
         <Breadcrumbs items={crumbs} />
 
         <h1 className="m-0 text-4xl font-semibold tracking-tightest text-ink sm:text-5xl">
-          Resmî Gazete&apos;nin {number}. sayısı
+          {formatDateLong(issue.publishedAt)} tarihli Resmî Gazete, sayı {number}
         </h1>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-ink-muted">
@@ -99,65 +96,7 @@ export default async function IssuePage({ params }: Props) {
           </a>
         </div>
 
-        {ordered.map((group) => (
-          <section key={group.section} className="mt-9">
-            <h2 className="text-3xl font-semibold text-ink">
-              {isSection(group.section) ? SECTION_SHORT[group.section] : group.section}
-            </h2>
-            {isSection(group.section) ? (
-              <p className="mt-1 text-base text-ink-muted">
-                {SECTION_DESCRIPTION[group.section]}
-              </p>
-            ) : null}
-
-            <ul className="mt-3.5 flex flex-col">
-              {group.records.map((record) => (
-                <li
-                  key={record.id}
-                  // Thin records have no page of their own; the anchor points here (spec 8.2 rule 2).
-                  id={record.refLabel ? 'karar-' + record.refLabel : undefined}
-                  className="scroll-mt-24 border-b border-line-soft py-3.5"
-                >
-                  <div className="flex flex-col gap-1.5">
-                    {record.hasOwnPage ? (
-                      <Link
-                        href={recordHref(record)}
-                        className="text-lg font-medium leading-[1.4] hover:text-link"
-                      >
-                        {record.summary ?? <MaskedText tokens={record.titleTokens} />}
-                      </Link>
-                    ) : (
-                      /*
-                       * A record with no page of its own appears here in full: it
-                       * loses no information for lacking a page, it simply gets no
-                       * separate URL.
-                       */
-                      <span className="text-lg font-medium leading-[1.4] text-ink">
-                        {record.summary ?? <MaskedText tokens={record.titleTokens} />}
-                      </span>
-                    )}
-
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-                      {record.refLabel ? (
-                        <span className="text-ink-fainter">{record.refLabel}</span>
-                      ) : null}
-                      {record.primaryTopic ? (
-                        <Link
-                          href={'/konu/' + record.primaryTopic}
-                          className="inline-flex items-center gap-1.5 text-ink-muted no-underline hover:text-accent hover:no-underline"
-                        >
-                          {record.docTypeLabel}
-                        </Link>
-                      ) : (
-                        <span>{record.docTypeLabel}</span>
-                      )}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        <IssueSections sections={sections} />
 
         <nav className="mt-10 flex items-center justify-between gap-4 border-t border-line pt-5 text-base">
           {adjacent.prev ? (

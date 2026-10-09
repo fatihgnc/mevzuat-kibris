@@ -117,6 +117,9 @@ export function SiteFooter({
             </h2>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
               <li>
+                <Link href="/bugun">Bugünkü Resmî Gazete</Link>
+              </li>
+              <li>
                 <Link href="/sayilar">Sayılar</Link>
               </li>
               {/*

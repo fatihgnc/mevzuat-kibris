@@ -89,6 +89,8 @@ export async function POST(request: Request) {
   }
 
   revalidatePath('/sayilar');
+  // "Today's gazette" is the latest day's issues, so every ingest can change it.
+  revalidatePath('/bugun');
 
   // Corrected records (spec 3.3): the ORIGINAL page, not just the new DÜZELTME page.
   for (const slug of parsed.data.records) {

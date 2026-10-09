@@ -87,6 +87,45 @@ export async function getIssue(year: number, number: number): Promise<IssueSumma
 }
 
 /**
+ * /bugun — every issue of the most recent publication day, plus the day before it.
+ *
+ * A day, not an issue: the gazette often publishes two or three numbers on the
+ * same date (124, 125 and 126 all came out on 3 Temmuz 2026), and someone asking
+ * for "today's gazette" means all of them.
+ */
+export async function latestIssueDay(): Promise<{
+  date: string;
+  issues: IssueSummary[];
+  previousDate: string | null;
+} | null> {
+  const rows = await db.execute<Row<RawIssue>>(sql`
+    select ${sql.raw(ISSUE_COLUMNS)}
+      from issues i
+     where i.published_at = (select max(published_at) from issues)
+     order by i.number asc
+  `);
+  if (!rows.length) return null;
+
+  const issues = rows.map(mapIssue);
+  const date = issues[0]!.publishedAt;
+
+  const prev = await db.execute<Row<{ d: string | Date | null }>>(sql`
+    select max(published_at) as d from issues where published_at < ${date}
+  `);
+  const previousDate = prev[0]?.d ? toDate(prev[0].d) : null;
+
+  return { date, issues, previousDate };
+}
+
+/** The issues published on one date — used to link /bugun to the previous day's numbers. */
+export async function issuesOnDate(date: string): Promise<Array<{ year: number; number: number }>> {
+  const rows = await db.execute<Row<{ year: number; number: number }>>(sql`
+    select year, number from issues where published_at = ${date} order by number asc
+  `);
+  return rows.map((row) => ({ year: row.year, number: row.number }));
+}
+
+/**
  * Issue contents — grouped by section. Thin records are listed here too (they
  * have no page of their own but do get an anchor on the issue page, spec 8.2).
  */

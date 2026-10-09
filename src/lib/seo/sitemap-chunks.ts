@@ -74,6 +74,8 @@ export function staticEntries(): MetadataRoute.Sitemap {
 
   return [
     entry('/', { lastModified: now, priority: 1, changeFrequency: 'daily' }),
+    // The latest day's issues — changes with every new issue (see app/bugun).
+    entry('/bugun', { lastModified: now, priority: 0.9, changeFrequency: 'daily' }),
     entry('/sayilar', { lastModified: now, priority: 0.6, changeFrequency: 'weekly' }),
     /*
      * The entity hubs. They rank by record count, so their first page changes

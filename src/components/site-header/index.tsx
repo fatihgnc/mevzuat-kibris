@@ -112,7 +112,9 @@ const NAV_WITH_TOOLS: Array<{ href: string; label: string; isNew?: boolean }> = 
    * short of Konular and a second choice.
    */
   { href: '/konu/munhal', label: 'Münhal ilanları' },
-  // Araçlar second, as on the desktop row.
+  // "kktc resmi gazete bugün" is the niche's biggest query; see app/bugun.
+  { href: '/bugun', label: 'Bugünkü Resmî Gazete' },
+  // Araçlar next, as on the desktop row.
   { href: TOOLS_PATH, label: 'Araçlar' },
   { href: '/konu/ihale', label: 'İhaleler' },
   // Kept next to Kurumlar, the entity indexes together, as they were before the desktop row changed.

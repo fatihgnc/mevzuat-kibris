@@ -22,6 +22,9 @@ import { RSS_ALTERNATE } from "@/lib/seo/metadata";
 import { ARCHIVE_START_YEAR, SITE_NAME } from "@/lib/seo/config";
 import { formatCount } from "@/lib/db/queries/shared";
 import { googleTopRecords } from "@/lib/gsc/top-records";
+import { latestIssueDay } from "@/lib/db/queries/issues";
+import { formatDateLong } from "@/lib/text/dates";
+import { formatIssueNumbers } from "@/lib/text/issue-numbers";
 
 /**
  * THE HOME PAGE'S OWN TITLE AND DESCRIPTION — and why they are not the site-wide
@@ -117,7 +120,7 @@ export default async function HomePage() {
     .toISOString()
     .slice(0, 10);
 
-  const [status, recent, counts, institutions, coverage, recentVacancies, googleTop] =
+  const [status, recent, counts, institutions, coverage, recentVacancies, googleTop, latestDay] =
     await Promise.all([
       siteStatus(),
       listRecords({ limit: 6 }),
@@ -126,7 +129,13 @@ export default async function HomePage() {
       archiveCoverage(),
       listRecords({ topic: "munhal", baslangic: thirtyDaysAgo, limit: 10 }),
       googleTopRecords(5),
+      latestIssueDay(),
     ]);
+
+  // Cyprus date, not the server's UTC one; see app/bugun for the same check.
+  const latestIsToday =
+    latestDay?.date ===
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Nicosia" }).format(new Date());
 
   return (
     <>
@@ -138,8 +147,13 @@ export default async function HomePage() {
       >
         <div className="grid gap-10 lg:grid-cols-page">
           <div className="min-w-0">
+            {/*
+              * "KKTC" in the h1: the page ranks for "kktc resmi gazete" on its
+              * title alone, and the heading said only "Resmî Gazete" — which in
+              * a Turkish search mostly means Turkey's.
+              */}
             <h1 className="m-0 mb-2.5 max-w-[22em] text-4xl font-semibold leading-[1.25] tracking-tightest text-ink sm:text-5xl">
-              Resmî Gazete&apos;de aradığınız bilgiye hızlıca ulaşın
+              KKTC Resmî Gazete&apos;de aradığınız bilgiye hızlıca ulaşın
             </h1>
             {/*
               * Phone: one sentence. The full paragraph ran to eight lines there
@@ -161,6 +175,24 @@ export default async function HomePage() {
               yayımlanan sayıların yanı sıra, eklenen her yeni sayı sitemizde anlık
               olarak listeleniyor.
             </p>
+
+            {/*
+              * The way in to /bugun, above the search box so it is on the first
+              * screen of a phone too — the issue card in the side column comes
+              * after everything else there. "Son" rather than "Bugünkü" on days
+              * with no new issue, so the line never claims a stale issue is today's.
+              */}
+            {latestDay ? (
+              <p className="mb-4 text-md text-ink-body">
+                <Link href="/bugun" className="font-semibold">
+                  {latestIsToday ? "Bugünkü Resmî Gazete" : "Son Resmî Gazete"}
+                </Link>
+                {": "}
+                <time dateTime={latestDay.date}>{formatDateLong(latestDay.date)}</time>
+                {", "}
+                {formatIssueNumbers(latestDay.issues.map((issue) => issue.number))}
+              </p>
+            ) : null}
 
             <SearchBox />
 
