@@ -1,5 +1,6 @@
 import { crawlYear } from '../crawl-archive';
 import { processIssue } from '../parse-records';
+import { submitIndexNow } from '../indexnow';
 import { triggerRevalidate } from '../revalidate';
 import { closeDb, finishRun, sql, startRun } from '../shared/db';
 import { log, toErrorEntry } from '../shared/logger';
@@ -144,6 +145,27 @@ async function main() {
       issues,
       records: [...touchedRecordSlugs],
     });
+
+    /*
+     * IndexNow — after revalidation, so a crawler that reacts within seconds
+     * fetches the fresh page rather than the cached one. Only records with a page
+     * of their own: the rest redirect to their issue, which is listed anyway.
+     */
+    const ownPageSlugs = touchedRecordSlugs.size
+      ? await sql<Array<{ slug: string }>>`
+          select slug from records where slug = any(${[...touchedRecordSlugs]}) and has_own_page
+        `
+      : [];
+    if (ownPageSlugs.length || issues.length) {
+      await submitIndexNow([
+        '/',
+        '/bugun',
+        ...issues.map((issue) => '/sayilar/' + issue.year + '/' + issue.number),
+        ...[...new Set(issues.map((issue) => issue.year))].map((y) => '/sayilar/' + y),
+        ...[...topics].map((topic) => '/konu/' + topic),
+        ...ownPageSlugs.map((row) => '/karar/' + row.slug),
+      ]);
+    }
 
     // After processing, so the email can report record counts and review flags.
     await notifyNewIssues(year, newIssueNumbers);
