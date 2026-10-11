@@ -69,7 +69,9 @@ export async function submitIndexNow(paths: string[]): Promise<void> {
   }
 }
 
-if (process.argv[1]?.includes('indexnow')) {
+// Matched on the script path itself, not a substring: an importer whose own file
+// name contains "indexnow" would otherwise also fire this block with its own argv.
+if (/[\\/]indexnow([\\/]index\.ts)?$/.test(process.argv[1] ?? '')) {
   // Manual use: `npx tsx scripts/indexnow /karar/slug /sayilar/2026/202`
   submitIndexNow(process.argv.slice(2))
     .then(() => process.exit(0))
