@@ -139,8 +139,14 @@ export function recordJsonLd(record: RecordDetail) {
       dateModified,
       validThrough: toIsoDate(record.deadlineAt),
       employmentType: 'FULL_TIME',
+      /*
+       * Plain `Organization`, not `GovernmentOrganization`. The subtype is valid
+       * schema.org, but Google's JobPosting validator rejects it ("Invalid object
+       * type for field hiringOrganization") and that is a critical issue — it keeps
+       * every vacancy out of the jobs result.
+       */
       hiringOrganization: {
-        '@type': 'GovernmentOrganization',
+        '@type': 'Organization',
         name: institution?.name ?? 'Kuzey Kıbrıs Türk Cumhuriyeti',
         ...(institution ? { url: absoluteUrl('/kurum/' + institution.slug) } : {}),
       },
