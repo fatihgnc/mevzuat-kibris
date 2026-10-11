@@ -127,7 +127,7 @@ export function staticEntries(): MetadataRoute.Sitemap {
   ];
 }
 
-/** Records from the last 24 months — the chunk Google fetches most often. */
+/** Records from the last RECENT_MONTHS months — the chunk Google fetches most often. */
 export async function recentRecordEntries(): Promise<MetadataRoute.Sitemap> {
   const rows = await db.execute<Row<{ slug: string; published_at: string | Date }>>(sql`
     select slug, published_at

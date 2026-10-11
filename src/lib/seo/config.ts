@@ -153,8 +153,15 @@ if (process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' && !SITE_URL.startsWith(
  * should not be the first visitor to pay for the page.
  *
  * The sitemap said 24 and the build said 12. Now both read this.
+ *
+ * Six, down from 24, since the move off Vercel. 24 months was sized against
+ * Vercel's ISR write quota, where prerendering was free and on-demand renders
+ * were metered. Self-hosted the trade reversed: 24 months meant ~9,400 prerendered
+ * record pages, ~2 GB of every Docker image and most of a ~20 minute build, and
+ * the VPS disk ran out mid-deploy (2026-10-11). On-demand renders cost nothing
+ * here and the database sits on the same host.
  */
-export const RECENT_MONTHS = 24;
+export const RECENT_MONTHS = 6;
 
 export function absoluteUrl(path: string): string {
   return SITE_URL + (path.startsWith('/') ? path : '/' + path);
