@@ -1,4 +1,4 @@
-import { ARCHIVE_START_YEAR, SITE_KICKER, SITE_NAME, SITE_TAGLINE } from '@/lib/seo/config';
+import { ARCHIVE_START_YEAR, SITE_NAME, SITE_TAGLINE } from '@/lib/seo/config';
 import { OG_CONTENT_TYPE, OG_SIZE, ogCard } from '@/lib/seo/og-card';
 
 export const alt = SITE_NAME + ' — ' + SITE_TAGLINE;
@@ -14,7 +14,6 @@ export const contentType = OG_CONTENT_TYPE;
  */
 export default function Image() {
   return ogCard({
-    kicker: SITE_KICKER,
     heading: SITE_TAGLINE,
     summary: 'Resmî Gazete kayıtlarını başlığa, konuya ve tarihe göre ara.',
     footer: 'Resmî Gazete arşivi  ·  ' + ARCHIVE_START_YEAR + ' — bugün',

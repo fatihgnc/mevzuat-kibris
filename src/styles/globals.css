@@ -75,6 +75,15 @@
     --accent-hover: 189 61% 23%;   /* #17575F */
     --accent-ink: 0 0% 100%;
 
+    /*
+     * Logo (katlı MK). Each letter is a folded ribbon: a shaded and a lit
+     * facet. Only BrandMark reads these; see src/lib/brand/mark.ts.
+     */
+    --brand-m-shade: 188 63% 20%;  /* #134A53 */
+    --brand-m-lit: 188 45% 44%;    /* #3E95A3 */
+    --brand-k-shade: 40 63% 48%;   /* #C9952E */
+    --brand-k-lit: 42 86% 63%;     /* #F2C14E */
+
     /* Eşleşme vurgusu — arama vurgusu ve ::selection aynı sarı */
     --mark: 53 61% 85%;            /* #F2ECC0 */
 
@@ -181,6 +190,10 @@
     --accent: 190 42% 34%;
     --accent-hover: 190 44% 40%;
     --accent-ink: 0 0% 100%;
+
+    /* The M's shaded facet would vanish on the dark surface; both facets step up. */
+    --brand-m-shade: 188 54% 36%;  /* #2A7F8C */
+    --brand-m-lit: 188 45% 65%;    /* #7FC3CE */
     --link: 190 52% 62%;
 
     /*

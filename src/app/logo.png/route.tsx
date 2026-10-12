@@ -1,5 +1,8 @@
 import { ImageResponse } from 'next/og';
 
+import { BRAND_COLORS } from '@/lib/brand/mark';
+import { brandMarkImage } from '@/lib/brand/mark-image';
+
 /**
  * The Organization logo, as a raster — spec 8.3.
  *
@@ -10,28 +13,15 @@ import { ImageResponse } from 'next/og';
  * (spec 14.3), so rather than commit a binary, the same mark is drawn here and
  * rendered to PNG on request.
  *
- * The mark is the one in src/app/icon.svg: three stacked bars, the middle one in
- * the accent yellow. Kept square and on the brand ground, which is what a logo
- * slot expects — the wide share card is a different image and lives in
- * opengraph-image.tsx.
- *
- * If the two ever diverge, icon.svg is the original.
+ * The mark is the folded MK from src/lib/brand/mark.ts, in its on-ground colours.
+ * Kept square and on the brand ground, which is what a logo slot expects — the
+ * wide share card is a different image and lives in opengraph-image.tsx.
  */
 export const runtime = 'edge';
 
 const SIZE = 512;
 
 export function GET() {
-  const bar = (width: number, left: number, top: number, color: string) => ({
-    position: 'absolute' as const,
-    left,
-    top,
-    width,
-    height: 64,
-    borderRadius: 32,
-    background: color,
-  });
-
   return new ImageResponse(
     (
       <div
@@ -39,13 +29,12 @@ export function GET() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          position: 'relative',
-          background: '#1E5F63',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: BRAND_COLORS.ground,
         }}
       >
-        <div style={bar(224, 96, 128, '#FFFFFF')} />
-        <div style={bar(256, 160, 224, '#F2C14E')} />
-        <div style={bar(288, 96, 320, '#FFFFFF')} />
+        {brandMarkImage(200)}
       </div>
     ),
     { width: SIZE, height: SIZE },

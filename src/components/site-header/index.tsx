@@ -1,10 +1,11 @@
 import Link from 'next/link';
 
+import { BrandMark } from '@/components/brand-mark';
 import { NavDropdown } from '@/components/nav-dropdown';
 import { NavMenu } from '@/components/nav-menu';
 import { SearchDialog } from '@/components/search-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { SITE_KICKER, SITE_NAME } from '@/lib/seo/config';
+import { SITE_NAME } from '@/lib/seo/config';
 import { isNewTool, TOOLS, TOOLS_PATH, toolPath } from '@/lib/tools/registry';
 import { cn } from '@/lib/utils';
 
@@ -177,20 +178,13 @@ export function SiteHeader({ query = '', className }: SiteHeaderProps) {
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-8 lg:px-10">
         {/*
-         * The kicker sits UNDER the name and it never hides.
-         *
-         * Beside the name it was the first thing dropped when the row got tight,
-         * and it was absent from the search header altogether — so the one line
-         * that says what this site is disappeared on exactly the screens where a
-         * visitor is least likely to know. Stacking it frees the horizontal room
-         * that made it droppable in the first place.
+         * The mark alone (2026-10-12): the visible name and the "bağımsız arşiv"
+         * kicker were both dropped with the new mark. The name stays in the link
+         * as screen-reader text, so its accessible name is still the site name.
          */}
-        <Link
-          href="/"
-          className="flex shrink-0 flex-col items-start leading-none no-underline hover:no-underline"
-        >
-          <span className="text-2xl font-bold tracking-tighter text-ink">{SITE_NAME}</span>
-          <span className="mt-1 text-xs text-ink-muted">{SITE_KICKER}</span>
+        <Link href="/" className="flex shrink-0 items-center no-underline hover:no-underline">
+          <BrandMark className="h-6 w-auto shrink-0" />
+          <span className="sr-only">{SITE_NAME}</span>
         </Link>
 
         {/*

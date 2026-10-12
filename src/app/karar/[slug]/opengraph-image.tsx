@@ -1,6 +1,6 @@
 import { getRecordBySlug } from '@/lib/db/queries/records';
 import { formatDateLong } from '@/lib/text/dates';
-import { SITE_KICKER, SITE_NAME, SITE_TAGLINE } from '@/lib/seo/config';
+import { SITE_NAME, SITE_TAGLINE } from '@/lib/seo/config';
 import { OG_CONTENT_TYPE, OG_SIZE, ogCard } from '@/lib/seo/og-card';
 import { truncateTitle } from '@/lib/text/truncate';
 
@@ -29,7 +29,6 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     : SITE_TAGLINE;
 
   return ogCard({
-    kicker: SITE_KICKER,
     heading,
     footer: meta,
     headingSize: heading.length > 80 ? 52 : 62,

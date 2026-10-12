@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
 import { ImageResponse } from 'next/og';
 
+import { BRAND_COLORS } from '@/lib/brand/mark';
+import { brandMarkImage } from '@/lib/brand/mark-image';
 import { SITE_NAME, SITE_URL } from '@/lib/seo/config';
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = 'image/png';
 
 type OgCardInput = {
-  /** Small label next to the site name, e.g. "bağımsız arşiv". */
-  kicker: string;
+  /** Optional small label next to the site name, e.g. "hesaplayıcı". */
+  kicker?: string;
   heading: string;
   /** Optional block under the heading: a sentence, or richer content such as chips. */
   summary?: ReactNode;
@@ -20,7 +22,7 @@ type OgCardInput = {
 
 const INK = '#FFFFFF';
 const MUTED = '#BFDADB';
-const GROUND = '#1E5F63';
+const GROUND = BRAND_COLORS.ground;
 const ACCENT = '#F2C14E';
 
 /**
@@ -50,17 +52,12 @@ export function ogCard({ kicker, heading, summary, footer, headingSize }: OgCard
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <svg width="64" height="64" viewBox="0 0 32 32">
-            <rect x="2" y="2" width="28" height="28" rx="6" fill="#174B4F" />
-            <rect x="6" y="8" width="14" height="4" rx="2" fill="#FFFFFF" />
-            <rect x="10" y="14" width="16" height="4" rx="2" fill={ACCENT} />
-            <rect x="6" y="20" width="18" height="4" rx="2" fill="#FFFFFF" />
-          </svg>
+          {brandMarkImage(44)}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
             <span style={{ fontSize: 34, fontWeight: 700, color: INK, letterSpacing: '-0.01em' }}>
               {SITE_NAME}
             </span>
-            <span style={{ fontSize: 24, color: MUTED }}>{kicker}</span>
+            {kicker ? <span style={{ fontSize: 24, color: MUTED }}>{kicker}</span> : null}
           </div>
         </div>
 

@@ -8,7 +8,6 @@
 
 export const SITE_NAME = 'Mevzuat Kıbrıs';
 export const SITE_TAGLINE = 'KKTC Resmî Gazete arşivi ve arama';
-export const SITE_KICKER = 'bağımsız arşiv';
 
 /** On preview deployments use their own origin; canonical generation flows from this one point. */
 export const SITE_URL = (
