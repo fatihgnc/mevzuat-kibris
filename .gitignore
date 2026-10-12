@@ -27,3 +27,14 @@ q.ts
 # Oturumlar arasi devir dosyasi. Repoda DURMAZ: 141eebf ile bilerek cikarildi,
 # ve bir oturum onu yeniden `git add`leyip geri soktu. Bu satir onu engelliyor.
 HANDOFF.md
+
+# Local work that is not part of the site.
+# Logo design workspace: concepts, renders, generator scripts. The shipped mark
+# lives in src/lib/brand/mark.ts and src/app/icon.svg.
+/logo/
+# Rendered social media posts and reels (output of scripts/social).
+/social-out/
+# Claude Code settings are per machine (dev server ports, local helper
+# scripts, worktrees). Only the project skills are shared.
+/.claude/*
+!/.claude/skills/

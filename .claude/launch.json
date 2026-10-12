@@ -8,10 +8,35 @@
       "port": 3061
     },
     {
+      "name": "mevzuat-kibris-local-db",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/dev-local-db.mjs", "3066"],
+      "port": 3066
+    },
+    {
+      "name": "mevzuat-kibris-local-db-3068",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/dev-local-db.mjs", "3068"],
+      "port": 3068
+    },
+    {
+      "name": "mevzuat-kibris-auto",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3067,
+      "autoPort": true
+    },
+    {
       "name": "mevzuat-kibris-3065",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3065"],
       "port": 3065
+    },
+    {
+      "name": "mevzuat-kibris-prod-tunnel-3070",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/bachi/AppData/Local/Temp/claude/C--Users-bachi-OneDrive-Masa-st--mevzuat-kibris/7c79aa59-7a97-4f9f-a969-83495d103fca/scratchpad/start-prod-tunnel.mjs", "3070"],
+      "port": 3070
     }
   ]
 }
