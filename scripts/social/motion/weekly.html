@@ -15,7 +15,7 @@
   @font-face { font-family: 'SS3'; font-weight: 900; src: url(../fonts/ss3-latin-ext-900.woff) format('woff'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 
   :root {
-    --teal: #1E5F63; --teal-deep: #174B4F; --teal-ink: #0F3538; --accent: #F2C14E;
+    --teal: #134A53; --teal-deep: #0D363D; --teal-ink: #0A2B30; --accent: #F2C14E;
     --ink: #FFFFFF; --muted: #BFDADB;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -89,8 +89,9 @@
   .source path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ---- Outro ----------------------------------------------------------------- */
-  .logo { width: 170px; height: 170px; border-radius: 36px; background: var(--teal-deep); position: relative; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25); }
-  .logo i { position: absolute; height: 22px; border-radius: 11px; transform-origin: left center; }
+  .logo { display: block; width: 182px; height: 100px; overflow: visible; }
+  /* each panel of the folded MK unfolds in place */
+  .logo .pn { transform-box: fill-box; transform-origin: center; }
   .wordmark { font-size: 64px; font-weight: 900; letter-spacing: -0.01em; margin-top: 34px; }
   .outro-title { font-size: 92px; font-weight: 900; line-height: 1.0; letter-spacing: -0.025em; margin-top: 70px; }
   .url { position: relative; align-self: flex-start; margin-top: 44px; padding: 14px 30px 20px; }
@@ -134,7 +135,7 @@
 
   <section class="scene" id="outro">
     <div class="content">
-      <div class="logo"><i style="left:34px;top:42px;width:76px;background:#fff"></i><i style="left:56px;top:74px;width:86px;background:#F2C14E"></i><i style="left:34px;top:106px;width:98px;background:#fff"></i></div>
+      <svg class="logo" viewBox="0 14 62 34"><path class="pn" fill="#CFE3E6" d="M0 14L10 14L10 48L0 48Z"/><path class="pn" fill="#F7F5EF" d="M0 14L10 14L24 41L14 41Z"/><path class="pn" fill="#CFE3E6" d="M14 41L24 41L38 14L28 14Z"/><path class="pn" fill="#F7F5EF" d="M28 14L38 14L38 48L28 48Z"/><path class="pn" fill="#C9952E" d="M38.8 27.2L48.8 27.2L62 48L52 48Z"/><path class="pn" fill="#F2C14E" d="M28 38L38 38L62 14L52 14Z"/></svg>
       <div class="wordmark mask"><span>Mevzuat Kıbrıs</span></div>
       <h2 class="outro-title">
         <span class="mask"><span>Haftanın 220 kaydının</span></span>
@@ -150,7 +151,7 @@
   <div class="slab slab-b"></div>
 
   <div class="brand">
-    <svg width="58" height="58" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="6" fill="#174B4F"/><rect x="6" y="8" width="14" height="4" rx="2" fill="#fff"/><rect x="10" y="14" width="16" height="4" rx="2" fill="#F2C14E"/><rect x="6" y="20" width="18" height="4" rx="2" fill="#fff"/></svg>
+    <svg width="80" height="44" viewBox="0 14 62 34"><path fill="#CFE3E6" d="M0 14L10 14L10 48L0 48Z"/><path fill="#F7F5EF" d="M0 14L10 14L24 41L14 41Z"/><path fill="#CFE3E6" d="M14 41L24 41L38 14L28 14Z"/><path fill="#F7F5EF" d="M28 14L38 14L38 48L28 48Z"/><path fill="#C9952E" d="M38.8 27.2L48.8 27.2L62 48L52 48Z"/><path fill="#F2C14E" d="M28 38L38 38L62 14L52 14Z"/></svg>
     <span>Mevzuat Kıbrıs</span>
   </div>
   <div class="grain"></div>
@@ -352,9 +353,10 @@
     const logo = outro.querySelector('.logo');
     const lp = spring(t - (s + 0.12), { freq: 1.9, damping: 0.5 });
     logo.style.transform = `scale(${lp}) rotate(${(1 - lp) * -18}deg)`;
-    outro.querySelectorAll('.logo i').forEach((bar, k) => {
-      const p = ease.backOut(prog(t, s + 0.4 + k * 0.09, 0.55), 2.2);
-      bar.style.transform = `scaleX(${Math.max(0, p)})`;
+    // the panels fold out one after another, in drawing order
+    outro.querySelectorAll('.logo .pn').forEach((panel, k) => {
+      const p = ease.backOut(prog(t, s + 0.3 + k * 0.07, 0.5), 2.2);
+      panel.style.transform = `scaleY(${Math.max(0, p)})`;
     });
     outro.querySelector('.wordmark > span').style.transform = maskIn(t, s + 0.62);
     outro.querySelectorAll('.outro-title .mask > span').forEach((l, k) => (l.style.transform = maskIn(t, s + 0.85 + k * 0.09, 0.85)));
@@ -393,7 +395,7 @@
   function renderBackground(t) {
     const x = 32 + 26 * Math.sin(t * 0.23);
     const y = 34 + 14 * Math.cos(t * 0.17);
-    light.style.background = `radial-gradient(circle at ${x}% ${y}%, #2B7A7F 0%, #1E5F63 42%, #164649 100%)`;
+    light.style.background = `radial-gradient(circle at ${x}% ${y}%, #1F6573 0%, #134A53 42%, #0E3A42 100%)`;
     marquee.querySelectorAll('.row').forEach((row, r) => {
       const speed = 34 + r * 9;
       const dir = r % 2 ? 1 : -1;

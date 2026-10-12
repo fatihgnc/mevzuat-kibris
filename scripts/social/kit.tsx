@@ -3,12 +3,17 @@ import path from 'node:path';
 import type { ReactNode } from 'react';
 import { ImageResponse } from 'next/dist/compiled/@vercel/og/index.node.js';
 
+import { BRAND_COLORS } from '@/lib/brand/mark';
+import { brandMarkImage } from '@/lib/brand/mark-image';
+
 /** Instagram portrait feed size (4:5) — the tallest a feed post is shown uncropped. */
 export const FEED = { width: 1080, height: 1350 };
 
+// Ground and panel tones follow the site's folded-MK identity: the ground is the
+// same deep petrol as the share cards and icons, panels sit one step darker.
 export const C = {
-  teal: '#1E5F63',
-  tealDeep: '#174B4F',
+  teal: BRAND_COLORS.ground,
+  tealDeep: '#0D363D',
   accent: '#F2C14E',
   ink: '#FFFFFF',
   muted: '#BFDADB',
@@ -41,15 +46,9 @@ export async function renderPng(node: ReactNode, size = FEED): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
-export function Mark({ size = 56 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32">
-      <rect x="2" y="2" width="28" height="28" rx="6" fill={C.tealDeep} />
-      <rect x="6" y="8" width="14" height="4" rx="2" fill="#FFFFFF" />
-      <rect x="10" y="14" width="16" height="4" rx="2" fill={C.accent} />
-      <rect x="6" y="20" width="18" height="4" rx="2" fill="#FFFFFF" />
-    </svg>
-  );
+/** The folded MK mark; `onPaper` switches to the light-ground palette. */
+export function Mark({ height = 40, onPaper = false }: { height?: number; onPaper?: boolean }) {
+  return brandMarkImage(height, onPaper ? 'onPaper' : 'onGround');
 }
 
 type FrameProps = {
@@ -83,7 +82,7 @@ export function Frame({ theme, kicker, source, page, children }: FrameProps) {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <Mark />
+          <Mark onPaper={!dark} />
           <span style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-0.01em' }}>Mevzuat Kıbrıs</span>
         </div>
         <span

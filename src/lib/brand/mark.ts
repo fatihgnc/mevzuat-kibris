@@ -28,8 +28,10 @@ export const BRAND_MARK_PANELS: ReadonlyArray<{ facet: BrandFacet; d: string }> 
  * Raw colours for images rendered outside the page (ImageResponse cannot read
  * the CSS tokens). `onGround` is for the deep-petrol share cards and icons:
  * there the M turns to paper so it does not sink into the background.
+ * `onPaper` is the light-theme header palette, for white or paper grounds.
  */
 export const BRAND_COLORS = {
   ground: '#134A53',
   onGround: { mShade: '#CFE3E6', mLit: '#F7F5EF', kShade: '#C9952E', kLit: '#F2C14E' },
+  onPaper: { mShade: '#134A53', mLit: '#3E95A3', kShade: '#C9952E', kLit: '#F2C14E' },
 } as const;

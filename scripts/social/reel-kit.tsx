@@ -64,7 +64,7 @@ export function ReelFrame({ progress, children }: { progress: number; children: 
       />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-        <Mark size={60} />
+        <Mark height={44} />
         <span style={{ fontSize: 38, fontWeight: 700 }}>Mevzuat Kıbrıs</span>
       </div>
 
