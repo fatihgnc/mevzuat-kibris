@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>Haftalık özet</title>
+<style>
+  /* Source Sans 3 (the site's face), split into latin / latin-ext like Google serves it. */
+  @font-face { font-family: 'SS3'; font-weight: 400; src: url(../fonts/ss3-latin-400.woff) format('woff'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'SS3'; font-weight: 600; src: url(../fonts/ss3-latin-600.woff) format('woff'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'SS3'; font-weight: 700; src: url(../fonts/ss3-latin-700.woff) format('woff'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'SS3'; font-weight: 900; src: url(../fonts/ss3-latin-900.woff) format('woff'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'SS3'; font-weight: 400; src: url(../fonts/ss3-latin-ext-400.woff) format('woff'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: 'SS3'; font-weight: 600; src: url(../fonts/ss3-latin-ext-600.woff) format('woff'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: 'SS3'; font-weight: 700; src: url(../fonts/ss3-latin-ext-700.woff) format('woff'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: 'SS3'; font-weight: 900; src: url(../fonts/ss3-latin-ext-900.woff) format('woff'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+  :root {
+    --teal: #1E5F63; --teal-deep: #174B4F; --teal-ink: #0F3538; --accent: #F2C14E;
+    --ink: #FFFFFF; --muted: #BFDADB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--teal); }
+  body { font-family: 'SS3', sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+
+  /* ---- Background ------------------------------------------------------------ */
+  .light { position: absolute; inset: 0; }
+  .marquee { position: absolute; left: -400px; right: -400px; top: 120px; transform: rotate(-9deg); transform-origin: center; }
+  .marquee .row {
+    white-space: nowrap; font-size: 230px; font-weight: 900; line-height: 1.12; letter-spacing: -0.02em;
+    color: transparent; -webkit-text-stroke: 2px rgba(255, 255, 255, 0.055);
+  }
+  .grain { position: absolute; inset: 0; opacity: 0.075; mix-blend-mode: overlay; background-size: 256px 256px; pointer-events: none; }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 70% at 50% 45%, transparent 55%, rgba(5, 25, 27, 0.45) 100%); pointer-events: none; }
+
+  /* ---- Chrome ---------------------------------------------------------------- */
+  .brand { position: absolute; left: 80px; top: 236px; display: flex; align-items: center; gap: 16px; font-size: 36px; font-weight: 700; }
+  .bar { position: absolute; left: 0; top: 0; width: 1080px; height: 12px; background: rgba(255, 255, 255, 0.14); }
+  .bar-fill { position: absolute; left: 0; top: 0; height: 12px; background: var(--accent); }
+  .bar-tick { position: absolute; top: 0; width: 3px; height: 12px; background: var(--teal-deep); }
+
+  /* ---- Shared type ----------------------------------------------------------- */
+  .mask { display: block; overflow: hidden; padding-bottom: 0.1em; margin-bottom: -0.1em; }
+  .mask > span { display: block; transform-origin: left bottom; will-change: transform; }
+  .mask.inline { display: inline-block; vertical-align: bottom; }
+  .w { display: inline-block; will-change: transform, opacity; }
+  /* Display lines never wrap: fitWidth() shrinks them to the column instead. */
+  .intro-title .mask > span, .title .mask > span, .outro-title .mask > span { white-space: nowrap; }
+  .odo { display: inline-flex; height: 1em; line-height: 1; overflow: hidden; vertical-align: bottom; font-variant-numeric: tabular-nums; }
+  .odo-col { display: block; height: 1em; overflow: hidden; }
+  .odo-strip { display: flex; flex-direction: column; }
+  .odo-strip span { display: block; height: 1em; line-height: 1; }
+
+  .scene { position: absolute; inset: 0; display: none; transform-origin: 50% 45%; }
+  .content { position: absolute; left: 80px; width: 850px; top: 330px; bottom: 420px; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ---- Intro ------------------------------------------------------------------ */
+  .kicker { display: flex; align-items: center; gap: 18px; font-size: 36px; font-weight: 700; letter-spacing: 0.14em; color: var(--accent); }
+  .kicker .rule { width: 72px; height: 6px; background: var(--accent); border-radius: 3px; transform-origin: left; }
+  .intro-title { font-size: 168px; font-weight: 900; line-height: 0.98; letter-spacing: -0.03em; margin-top: 26px; }
+  .intro-title .yellow { color: var(--accent); }
+  .intro-date { font-size: 50px; font-weight: 600; color: var(--muted); margin-top: 26px; }
+  .stats { display: flex; gap: 26px; margin-top: 64px; }
+  .stat { flex: 1; background: var(--teal-deep); border-radius: 30px; padding: 30px 36px 30px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.18); }
+  .stat .num { font-size: 150px; font-weight: 900; line-height: 1; letter-spacing: -0.04em; color: var(--accent); }
+  .stat .lbl { font-size: 42px; font-weight: 600; margin-top: 8px; }
+  .next { display: flex; align-items: center; gap: 18px; margin-top: 64px; font-size: 46px; font-weight: 700; }
+
+  /* ---- Item ------------------------------------------------------------------ */
+  .bignum {
+    position: absolute; right: -70px; bottom: 300px; font-size: 760px; font-weight: 900; line-height: 0.8; letter-spacing: -0.05em;
+    color: transparent; -webkit-text-stroke: 3px rgba(242, 193, 78, 0.16);
+  }
+  .meta { display: flex; align-items: center; gap: 24px; }
+  .chip { width: 108px; height: 108px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2); }
+  .chip svg { width: 60px; height: 60px; }
+  .chip path, .chip rect, .chip circle { fill: none; stroke: var(--teal-deep); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .cat { font-size: 40px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
+  .count { margin-left: auto; font-size: 40px; font-weight: 900; color: var(--ink); display: flex; align-items: baseline; }
+  .count .of { color: rgba(255, 255, 255, 0.4); font-weight: 700; }
+  .title { font-size: 106px; font-weight: 900; line-height: 1.0; letter-spacing: -0.025em; margin-top: 48px; }
+  .figure { position: relative; align-self: flex-start; margin-top: 46px; padding: 10px 26px 16px; }
+  .figure .hl { position: absolute; inset: 0; background: var(--accent); border-radius: 10px; transform-origin: left center; }
+  .figure .fig-text { position: relative; font-size: 150px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; color: var(--teal-ink); white-space: nowrap; }
+  .detail { font-size: 46px; line-height: 1.32; margin-top: 44px; color: rgba(255, 255, 255, 0.92); }
+  .source { display: flex; align-items: center; gap: 14px; margin-top: 44px; font-size: 33px; font-weight: 600; color: var(--muted); }
+  .source svg { width: 34px; height: 34px; }
+  .source path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---- Outro ----------------------------------------------------------------- */
+  .logo { width: 170px; height: 170px; border-radius: 36px; background: var(--teal-deep); position: relative; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25); }
+  .logo i { position: absolute; height: 22px; border-radius: 11px; transform-origin: left center; }
+  .wordmark { font-size: 64px; font-weight: 900; letter-spacing: -0.01em; margin-top: 34px; }
+  .outro-title { font-size: 92px; font-weight: 900; line-height: 1.0; letter-spacing: -0.025em; margin-top: 70px; }
+  .url { position: relative; align-self: flex-start; margin-top: 44px; padding: 14px 30px 20px; }
+  .url .hl { position: absolute; inset: 0; background: var(--accent); border-radius: 14px; transform-origin: left center; }
+  .url span.txt { position: relative; display: block; font-size: 66px; font-weight: 900; color: var(--teal-ink); letter-spacing: -0.01em; }
+  .follow { font-size: 46px; font-weight: 700; margin-top: 60px; }
+  .disclaimer { font-size: 30px; color: var(--muted); margin-top: 26px; }
+
+  /* ---- Transition slabs -------------------------------------------------------- */
+  .slab { position: absolute; left: -10%; width: 120%; top: -20%; height: 140%; transform: translateY(200%); }
+  .slab-a { background: var(--accent); }
+  .slab-b { background: var(--teal-deep); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="light"></div>
+  <div class="marquee"></div>
+
+  <section class="scene" id="intro">
+    <div class="content">
+      <div class="kicker"><span class="rule"></span><span class="mask inline"><span>HAFTALIK ÖZET</span></span></div>
+      <h1 class="intro-title">
+        <span class="mask"><span>Resmî</span></span>
+        <span class="mask"><span>Gazete’de</span></span>
+        <span class="mask"><span class="yellow">bu hafta</span></span>
+      </h1>
+      <div class="intro-date mask"><span>5–11 Ekim 2026</span></div>
+      <div class="stats">
+        <div class="stat"><div class="num" data-odo="9"></div><div class="lbl">sayı</div></div>
+        <div class="stat"><div class="num" data-odo="220"></div><div class="lbl">kayıt</div></div>
+      </div>
+      <div class="next">
+        <span class="mask inline"><span>Öne çıkan 5 karar</span></span>
+        <svg class="arrow" width="54" height="54" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="#F2C14E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <div id="items"></div>
+
+  <section class="scene" id="outro">
+    <div class="content">
+      <div class="logo"><i style="left:34px;top:42px;width:76px;background:#fff"></i><i style="left:56px;top:74px;width:86px;background:#F2C14E"></i><i style="left:34px;top:106px;width:98px;background:#fff"></i></div>
+      <div class="wordmark mask"><span>Mevzuat Kıbrıs</span></div>
+      <h2 class="outro-title">
+        <span class="mask"><span>Haftanın 220 kaydının</span></span>
+        <span class="mask"><span>tamamı sitede</span></span>
+      </h2>
+      <div class="url"><div class="hl"></div><span class="mask"><span class="txt">mevzuatkibris.com</span></span></div>
+      <p class="follow">Takip et, her hafta özet burada.</p>
+      <p class="disclaimer">Bağlayıcı olan, Resmî Gazete’de yayımlanan metindir.</p>
+    </div>
+  </section>
+
+  <div class="slab slab-a"></div>
+  <div class="slab slab-b"></div>
+
+  <div class="brand">
+    <svg width="58" height="58" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="6" fill="#174B4F"/><rect x="6" y="8" width="14" height="4" rx="2" fill="#fff"/><rect x="10" y="14" width="16" height="4" rx="2" fill="#F2C14E"/><rect x="6" y="20" width="18" height="4" rx="2" fill="#fff"/></svg>
+    <span>Mevzuat Kıbrıs</span>
+  </div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+  <div class="bar"><div class="bar-fill"></div></div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+  const { clamp, prog, ease, spring, maskIn, odometer, odometerAt, drawOn, splitWords, wordsIn, fitWidth, grainTiles } = M;
+
+  // ---- Content: week of 5–11 Ekim 2026, issues 194–202 -------------------------------
+
+  const ICONS = {
+    ballot: '<rect x="3.5" y="12" width="17" height="8.5" rx="1.5" pathLength="1"/><path d="M8 12V4.5h8V12" pathLength="1"/><path d="M10 8.3l1.6 1.6 2.9-3" pathLength="1"/>',
+    bolt: '<path d="M13.5 2.5L4.5 13.5h6.5l-1 8 9-11h-6.5l1-8z" pathLength="1"/>',
+    fuel: '<path d="M4.5 20.5V5a2 2 0 0 1 2-2h5.5a2 2 0 0 1 2 2v15.5" pathLength="1"/><path d="M3 20.5h13" pathLength="1"/><path d="M7 8h5" pathLength="1"/><path d="M14 9.5h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8.5l-3-3" pathLength="1"/>',
+    house: '<path d="M3 11l9-7.5 9 7.5" pathLength="1"/><path d="M5.5 9.5v11h13v-11" pathLength="1"/><path d="M10 20.5v-5.5h4v5.5" pathLength="1"/>',
+    case: '<rect x="3" y="7.5" width="18" height="13" rx="2" pathLength="1"/><path d="M8.5 7.5V5a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 1 15.5 5v2.5" pathLength="1"/><path d="M3 13h18" pathLength="1"/>',
+  };
+  const DOC = '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h7"/>';
+
+  const ITEMS = [
+    { icon: 'ballot', cat: 'SEÇİM', title: ['Erken seçim', 'tarihi belli oldu'], fig: { text: '6 Aralık 2026' },
+      detail: 'Cumhuriyet Meclisi 8 Ekim’de oybirliğiyle seçimlerin yenilenmesine karar verdi.', source: 'Sayı 200 · 9 Ekim' },
+    { icon: 'bolt', cat: 'ENERJİ', title: ['KIB-TEK grevi', 'ertelendi'], fig: { num: 60, suffix: ' gün' },
+      detail: 'Bakanlar Kurulu, 5 Ekim’de başlayan grevi “elzem hizmet” gerekçesiyle 7 Ekim’den itibaren erteledi.', source: 'Sayı 199 · 7 Ekim' },
+    { icon: 'fuel', cat: 'AKARYAKIT', title: ['Akaryakıt ithalatında', 'vergi muafiyeti'], fig: { text: '8–14 Ekim' },
+      detail: 'Gümrük vergisi ve rıhtım harcı alınmıyor; mazot ithalatında %1 prim kesilmiyor.', source: 'Sayı 198 · 7 Ekim' },
+    { icon: 'house', cat: 'TAŞINMAZ', title: ['Yabancılara mülk:', 'yeni kararname'], fig: { prefix: 'En fazla ', num: 3, suffix: ' daire' },
+      detail: 'KKTC’yi tanıyan ülkelerin vatandaşlarına 6. Yasadaki süreler uzatıldı; amaç bekleyen vergi ve harçların tahsili.', source: 'Sayı 196 · 6 Ekim' },
+    { icon: 'case', cat: 'MÜNHAL', title: ['Kamuya ilk atama', 'ilanları açıldı'], fig: { num: 129, suffix: ' kadro' },
+      detail: 'En çok: 40 İlk ve Acil Yardım Teknikeri, 24 Gelir ve Vergi Memuru. Başvurular Nisan–Haziran 2027’ye kadar açık.', source: 'Sayı 198 ve 202 · 7 ve 10 Ekim' },
+  ];
+
+  // ---- Timeline: a 120 BPM grid (one beat = 0.5 s) so cuts can sit on a music track ----
+
+  const BEAT = 0.5;
+  const INTRO_END = 7 * BEAT;                 // 3.5 s
+  const ITEM_LEN = 8 * BEAT;                  // 4.0 s
+  const itemStart = (i) => INTRO_END + i * ITEM_LEN;
+  const OUTRO_START = itemStart(ITEMS.length); // 23.5 s
+  const DURATION = OUTRO_START + 7 * BEAT;     // 27.0 s
+  const CUTS = [INTRO_END, ...ITEMS.map((_, i) => itemStart(i + 1))];
+  const WIPE_IN = 0.36, WIPE_OUT = 0.44, WIPE_LAG = 0.07;
+  window.DURATION = DURATION;
+
+  // ---- Build -------------------------------------------------------------------------
+
+  const stage = document.getElementById('stage');
+  const itemsHost = document.getElementById('items');
+  ITEMS.forEach((it, i) => {
+    const n = String(i + 1).padStart(2, '0');
+    const fig = it.fig.text
+      ? `<span>${it.fig.text}</span>`
+      : `<span>${it.fig.prefix || ''}</span><span class="odo-host" data-odo="${it.fig.num}"></span><span>${it.fig.suffix || ''}</span>`;
+    const el = document.createElement('section');
+    el.className = 'scene item';
+    el.innerHTML = `
+      <div class="bignum">${n}</div>
+      <div class="content">
+        <div class="meta">
+          <div class="chip"><svg viewBox="0 0 24 24">${ICONS[it.icon]}</svg></div>
+          <span class="mask inline"><span class="cat">${it.cat}</span></span>
+          <div class="count"><span class="mask inline"><span>${n}</span></span><span class="of">/05</span></div>
+        </div>
+        <h2 class="title">${it.title.map((l) => `<span class="mask"><span>${l}</span></span>`).join('')}</h2>
+        <div class="figure"><div class="hl"></div><span class="mask"><span class="fig-text">${fig}</span></span></div>
+        <p class="detail">${it.detail}</p>
+        <div class="source"><svg viewBox="0 0 24 24">${DOC}</svg><span>Resmî Gazete · ${it.source}</span></div>
+      </div>`;
+    itemsHost.appendChild(el);
+  });
+
+  document.querySelectorAll('[data-odo]').forEach((el) => odometer(el, el.dataset.odo));
+
+  // Marquee rows: one repeating unit per row, translated modulo its own width.
+  const marquee = document.querySelector('.marquee');
+  const UNIT = 'RESMÎ GAZETE — ';
+  for (let r = 0; r < 5; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span class="unit">${UNIT}</span>`.repeat(5);
+    marquee.appendChild(row);
+  }
+
+  const grain = document.querySelector('.grain');
+  const light = document.querySelector('.light');
+  const slabA = document.querySelector('.slab-a');
+  const slabB = document.querySelector('.slab-b');
+  const brand = document.querySelector('.brand');
+  const barFill = document.querySelector('.bar-fill');
+  const intro = document.getElementById('intro');
+  const outro = document.getElementById('outro');
+  const itemEls = Array.from(document.querySelectorAll('.scene.item'));
+  let tiles = [];
+  let unitWidth = 1;
+
+  /** Runs once fonts are in: anything that depends on measured text. */
+  window.setup = function () {
+    tiles = grainTiles();
+    unitWidth = document.querySelector('.marquee .unit').getBoundingClientRect().width;
+    // Measure while visible so scrollWidth is real.
+    itemEls.forEach((el) => {
+      el.style.display = 'block';
+      el.querySelectorAll('.title .mask > span').forEach((l) => fitWidth(l, 850, 60));
+      fitWidth(el.querySelector('.fig-text'), 850 - 52, 70);
+      el._words = splitWords(el.querySelector('.detail'));
+      el.style.display = 'none';
+    });
+    outro.style.display = 'block';
+    outro.querySelectorAll('.outro-title .mask > span').forEach((l) => fitWidth(l, 850, 60));
+    intro.style.display = 'block';
+    intro.querySelectorAll('.intro-title .mask > span').forEach((l) => fitWidth(l, 850, 80));
+    intro.style.display = 'none';
+    outro._words = splitWords(outro.querySelector('.follow'));
+    outro.style.display = 'none';
+    const bar = document.querySelector('.bar');
+    CUTS.forEach((c) => {
+      const tick = document.createElement('div');
+      tick.className = 'bar-tick';
+      tick.style.left = Math.round((c / DURATION) * 1080) - 1 + 'px';
+      bar.appendChild(tick);
+    });
+    return true;
+  };
+
+  // ---- Per-scene renderers ---------------------------------------------------------
+
+  /** Shared scene motion: slow camera push, then a push-out that rides the wipe. */
+  function sceneMotion(el, t, start, end) {
+    const cam = 1 + 0.03 * prog(t, start, end - start);
+    const out = ease.expoIn(prog(t, end - WIPE_IN, WIPE_IN));
+    el.style.transform = `translateY(${-160 * out}px) scale(${cam})`;
+  }
+
+  function renderIntro(t) {
+    sceneMotion(intro, t, 0, INTRO_END);
+    intro.querySelector('.rule').style.transform = `scaleX(${ease.expoOut(prog(t, -0.1, 0.7))})`;
+    intro.querySelector('.kicker .mask > span').style.transform = maskIn(t, -0.05);
+    intro.querySelectorAll('.intro-title .mask > span').forEach((l, k) => (l.style.transform = maskIn(t, -0.2 + k * 0.12, 0.85)));
+    intro.querySelector('.intro-date > span').style.transform = maskIn(t, 0.35);
+    intro.querySelectorAll('.stat').forEach((s, k) => {
+      const p = spring(t - (0.85 + k * 0.1), { freq: 1.8, damping: 0.62 });
+      s.style.transform = `translateY(${(1 - p) * 220}px)`;
+      s.style.opacity = String(clamp(prog(t, 0.85 + k * 0.1, 0.3)));
+      odometerAt(s.querySelector('.num'), t, 1.0 + k * 0.1, 1.2);
+    });
+    intro.querySelector('.next .mask > span').style.transform = maskIn(t, 2.0);
+    // Arrow nudges on the beats after it lands.
+    let nudge = 0;
+    for (const b of [2.5, 3.0]) if (t >= b) nudge += 18 * Math.exp(-(t - b) * 9) * Math.sin((t - b) * 22);
+    const arrowIn = ease.expoOut(prog(t, 2.1, 0.6));
+    const arrow = intro.querySelector('.arrow');
+    arrow.style.transform = `translateX(${(1 - arrowIn) * -40 + Math.abs(nudge)}px)`;
+    arrow.style.opacity = String(arrowIn);
+  }
+
+  function renderItem(el, i, t) {
+    const s = itemStart(i);
+    const e = s + ITEM_LEN;
+    sceneMotion(el, t, s, e);
+
+    const big = el.querySelector('.bignum');
+    const bigIn = ease.expoOut(prog(t, s - 0.05, 1.3));
+    big.style.transform = `translate(${(1 - bigIn) * 260}px, ${-50 * prog(t, s, ITEM_LEN)}px)`;
+    big.style.opacity = String(bigIn);
+
+    const chip = el.querySelector('.chip');
+    const pop = spring(t - (s + 0.08), { freq: 2.4, damping: 0.5 });
+    chip.style.transform = `scale(${pop}) rotate(${(1 - pop) * -40}deg)`;
+    drawOn(chip.querySelector('svg'), t, s + 0.25, 0.75, 0.09);
+    el.querySelector('.meta .mask > .cat').parentElement.style.transform = maskIn(t, s + 0.18);
+    el.querySelector('.count .mask > span').style.transform = maskIn(t, s + 0.24);
+    el.querySelector('.count .of').style.opacity = String(ease.cubicOut(prog(t, s + 0.35, 0.4)));
+
+    el.querySelectorAll('.title .mask > span').forEach((l, k) => (l.style.transform = maskIn(t, s + 0.22 + k * 0.09, 0.85)));
+
+    // Highlighter swipe, then the figure rises out of it.
+    const hl = ease.expoOut(prog(t, s + 0.62, 0.55));
+    el.querySelector('.figure .hl').style.transform = `scaleX(${hl}) skewX(-6deg)`;
+    el.querySelector('.figure .mask > span').style.transform = maskIn(t, s + 0.78, 0.75);
+    const odo = el.querySelector('.odo-host');
+    if (odo) odometerAt(odo, t, s + 0.82, 1.0);
+
+    wordsIn(el._words, t, s + 1.08, 0.028, 0.6);
+
+    const src = el.querySelector('.source');
+    const sp = ease.expoOut(prog(t, s + 1.55, 0.7));
+    src.style.opacity = String(sp);
+    src.style.transform = `translateX(${(1 - sp) * -40}px)`;
+  }
+
+  function renderOutro(t) {
+    const s = OUTRO_START;
+    const cam = 1 + 0.025 * prog(t, s, DURATION - s);
+    outro.style.transform = `scale(${cam})`;
+
+    const logo = outro.querySelector('.logo');
+    const lp = spring(t - (s + 0.12), { freq: 1.9, damping: 0.5 });
+    logo.style.transform = `scale(${lp}) rotate(${(1 - lp) * -18}deg)`;
+    outro.querySelectorAll('.logo i').forEach((bar, k) => {
+      const p = ease.backOut(prog(t, s + 0.4 + k * 0.09, 0.55), 2.2);
+      bar.style.transform = `scaleX(${Math.max(0, p)})`;
+    });
+    outro.querySelector('.wordmark > span').style.transform = maskIn(t, s + 0.62);
+    outro.querySelectorAll('.outro-title .mask > span').forEach((l, k) => (l.style.transform = maskIn(t, s + 0.85 + k * 0.09, 0.85)));
+    const hl = ease.expoOut(prog(t, s + 1.3, 0.55));
+    outro.querySelector('.url .hl').style.transform = `scaleX(${hl}) skewX(-6deg)`;
+    outro.querySelector('.url .mask > span').style.transform = maskIn(t, s + 1.42, 0.75);
+    wordsIn(outro._words, t, s + 1.8, 0.05, 0.6);
+    const d = outro.querySelector('.disclaimer');
+    d.style.opacity = String(0.9 * ease.cubicOut(prog(t, s + 2.2, 0.6)));
+  }
+
+  /**
+   * Layered slab wipe around each cut. Slab B (deep teal) sits above slab A (yellow):
+   * going in, A leads and B follows, so a yellow band runs ahead of the teal; going
+   * out, B leaves first and A trails, so the yellow band follows it off screen.
+   * Positions are translateY percentages: 100 parked below, 0 covering, -120 gone.
+   */
+  function slabPos(t, inStart, outStart) {
+    if (t < inStart) return 100;
+    if (t < inStart + WIPE_IN) return 100 * (1 - ease.expoIn(prog(t, inStart, WIPE_IN)));
+    if (t < outStart) return 0;
+    return -120 * ease.expoOut(prog(t, outStart, WIPE_OUT));
+  }
+
+  function renderWipe(t) {
+    let a = 100, b = 100;
+    const c = CUTS.find((cut) => t >= cut - WIPE_IN - 0.01 && t <= cut + 2 * WIPE_LAG + WIPE_OUT + 0.01);
+    if (c !== undefined) {
+      a = slabPos(t, c - WIPE_IN, c + 2 * WIPE_LAG);
+      b = slabPos(t, c - WIPE_IN + WIPE_LAG, c + WIPE_LAG);
+    }
+    slabA.style.transform = `translateY(${a}%) skewY(-8deg)`;
+    slabB.style.transform = `translateY(${b}%) skewY(-8deg)`;
+  }
+
+  function renderBackground(t) {
+    const x = 32 + 26 * Math.sin(t * 0.23);
+    const y = 34 + 14 * Math.cos(t * 0.17);
+    light.style.background = `radial-gradient(circle at ${x}% ${y}%, #2B7A7F 0%, #1E5F63 42%, #164649 100%)`;
+    marquee.querySelectorAll('.row').forEach((row, r) => {
+      const speed = 34 + r * 9;
+      const dir = r % 2 ? 1 : -1;
+      const off = ((t * speed + r * 173) % unitWidth);
+      row.style.transform = `translateX(${dir < 0 ? -off : off - unitWidth}px)`;
+    });
+    if (tiles.length) grain.style.backgroundImage = `url(${tiles[Math.floor(t * 24) % tiles.length]})`;
+  }
+
+  // ---- Entry point -------------------------------------------------------------------
+
+  /**
+   * Draws the frame at time t. `progress` (0..1) drives the top bar and is passed in
+   * by the renderer so the last output frame is exactly 100%; null hides the bar.
+   */
+  window.renderAt = function (t, progress) {
+    renderBackground(t);
+
+    let active = intro;
+    if (t >= OUTRO_START) active = outro;
+    else if (t >= INTRO_END) active = itemEls[Math.min(ITEMS.length - 1, Math.floor((t - INTRO_END) / ITEM_LEN))];
+    [intro, outro, ...itemEls].forEach((el) => (el.style.display = el === active ? 'block' : 'none'));
+
+    if (active === intro) renderIntro(t);
+    else if (active === outro) renderOutro(t);
+    else renderItem(active, itemEls.indexOf(active), t);
+
+    renderWipe(t);
+    brand.style.opacity = t >= OUTRO_START ? '0' : '1';
+
+    const bar = document.querySelector('.bar');
+    bar.style.display = progress == null ? 'none' : 'block';
+    if (progress != null) barFill.style.width = Math.round(clamp(progress) * 1080) + 'px';
+    return true;
+  };
+</script>
+</body>
+</html>
