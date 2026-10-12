@@ -25,7 +25,8 @@ export const C = {
 
 export type Theme = 'teal' | 'paper';
 
-const FONT_DIR = path.join(__dirname, 'fonts');
+// Shared with the site's share cards (src/lib/seo/og-fonts.ts).
+const FONT_DIR = path.join(__dirname, '..', '..', 'src', 'assets', 'fonts');
 
 /**
  * Source Sans 3, the site's own face. Fontsource splits it into latin and latin-ext

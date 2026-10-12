@@ -4,6 +4,7 @@ import { ImageResponse } from 'next/og';
 import { BRAND_COLORS } from '@/lib/brand/mark';
 import { brandMarkImage } from '@/lib/brand/mark-image';
 import { SITE_NAME, SITE_URL } from '@/lib/seo/config';
+import { OG_FONT_FAMILY, ogFonts } from '@/lib/seo/og-fonts';
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = 'image/png';
@@ -33,7 +34,8 @@ const ACCENT = '#F2C14E';
  * The home page, record pages and calculators all go through here — three hand-copied
  * layouts had already started to drift apart.
  *
- * No font is downloaded: ImageResponse's default face carries the Turkish characters.
+ * Set in Source Sans 3 from src/assets/fonts (see og-fonts.ts); nothing is fetched
+ * from the network.
  */
 export function ogCard({ kicker, heading, summary, footer, headingSize }: OgCardInput) {
   const host = SITE_URL.replace(/^https?:\/\//, '');
@@ -49,6 +51,7 @@ export function ogCard({ kicker, heading, summary, footer, headingSize }: OgCard
           justifyContent: 'space-between',
           background: GROUND,
           padding: '60px 72px',
+          fontFamily: OG_FONT_FAMILY,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -96,6 +99,6 @@ export function ogCard({ kicker, heading, summary, footer, headingSize }: OgCard
         </div>
       </div>
     ),
-    OG_SIZE,
+    { ...OG_SIZE, fonts: ogFonts() },
   );
 }
