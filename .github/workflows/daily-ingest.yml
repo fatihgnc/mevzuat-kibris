@@ -32,6 +32,10 @@ jobs:
     # aynı adımda tanımlanan env'i göremiyor.
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # basimevi.gov.ct.tr stopped sending its intermediate certificates on
+      # 2026-10-13; without these Node's fetch fails and no issue is ingested.
+      # See the header of the PEM file.
+      NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/scripts/shared/certs/basimevi-intermediates.pem
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
