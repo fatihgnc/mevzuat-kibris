@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { filterLegislation, searchText } from '@/lib/legislation/filter';
 import { cn } from '@/lib/utils';
+
+const MIN_QUERY = 2;
 
 export interface IndexItem {
   href: string;
@@ -30,10 +33,27 @@ export interface IndexGroup {
  * The laws of a letter run down the page in two columns, not across it in rows:
  * a row is as tall as its longer title, and a long title on one side left a gap
  * under the short one beside it. CSS columns pack each column independently.
+ *
+ * Above the letters sits a search box. While it holds MIN_QUERY characters the
+ * letters and the open letter step aside for one flat list of matches; emptying
+ * it brings back whatever was on screen before, open letter included. The query
+ * is not put in the URL: the fragment already belongs to the open letter.
  */
 export function LegislationIndex({ groups, noun }: { groups: IndexGroup[]; noun: string }) {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const topRef = useRef<HTMLDivElement>(null);
+
+  const searchable = useMemo(
+    () => groups.flatMap((group) => group.items.map((item) => ({ item, text: searchText(item) }))),
+    [groups],
+  );
+  const trimmed = query.trim();
+  const searching = trimmed.length >= MIN_QUERY;
+  const matches = useMemo(
+    () => (searching ? filterLegislation(searchable, trimmed) : []),
+    [searchable, searching, trimmed],
+  );
 
   useEffect(() => {
     const readHash = () => {
@@ -84,8 +104,51 @@ export function LegislationIndex({ groups, noun }: { groups: IndexGroup[]; noun:
     topRef.current?.scrollIntoView({ block: 'start' });
   };
 
+  const searchLabel = noun.charAt(0).toLocaleUpperCase('tr') + noun.slice(1) + ' ara';
+
   return (
     <div ref={topRef} className="scroll-mt-24">
+      <div className="mb-6">
+        <label className="sr-only" htmlFor="legislation-filter">
+          {searchLabel}
+        </label>
+        <input
+          id="legislation-filter"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setQuery('');
+          }}
+          placeholder={searchLabel + ': başlık veya sayı…'}
+          autoComplete="off"
+          spellCheck={false}
+          className="w-full rounded border border-line bg-surface px-3.5 py-2.5 text-md text-ink outline-none placeholder:text-ink-placeholder focus:border-ink sm:max-w-md"
+        />
+      </div>
+
+      {searching ? (
+        <div aria-live="polite">
+          {matches.length ? (
+            <>
+              <p className="m-0 mb-4 border-b border-line pb-3 text-base text-ink-muted">
+                {matches.length} {noun}
+              </p>
+              <ul className="m-0 list-none p-0 md:columns-2 md:gap-x-10">
+                {matches.map((item) => (
+                  <LawItem key={item.href} item={item} />
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="m-0 text-md text-ink-muted">
+              Eşleşen {noun} yok.{' '}
+              <Link href={'/ara?q=' + encodeURIComponent(trimmed)}>Resmî Gazete kayıtlarında arayın.</Link>
+            </p>
+          )}
+        </div>
+      ) : null}
+
       {/*
         * EVERY LETTER'S LAWS ARE IN THE HTML; the ones not open are only hidden.
         * They used to be rendered when a letter was chosen and not before, which
@@ -97,7 +160,7 @@ export function LegislationIndex({ groups, noun }: { groups: IndexGroup[]; noun:
         */}
       <nav
         aria-label={'Harfe göre ' + noun + ' listesi'}
-        className={cn('flex-wrap gap-2.5', open ? 'hidden' : 'flex')}
+        className={cn('flex-wrap gap-2.5', open || searching ? 'hidden' : 'flex')}
       >
         {groups.map((group) => (
           <button
@@ -116,7 +179,7 @@ export function LegislationIndex({ groups, noun }: { groups: IndexGroup[]; noun:
       </nav>
 
       {groups.map((group) => (
-        <section key={group.slug} className={open?.slug === group.slug ? undefined : 'hidden'}>
+        <section key={group.slug} className={open?.slug === group.slug && !searching ? undefined : 'hidden'}>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-line pb-3">
             <h2 className="m-0 text-md font-semibold text-ink">
               {label(group.letter)}{' '}
@@ -135,12 +198,7 @@ export function LegislationIndex({ groups, noun }: { groups: IndexGroup[]; noun:
 
           <ul className="m-0 list-none p-0 md:columns-2 md:gap-x-10">
             {group.items.map((item) => (
-              <li key={item.href} className="mb-3 break-inside-avoid">
-                <Link href={item.href} className="text-base leading-[1.4]">
-                  {item.title}
-                </Link>
-                {item.ref ? <div className="text-sm text-ink-fainter">{item.ref}</div> : null}
-              </li>
+              <LawItem key={item.href} item={item} />
             ))}
           </ul>
 
@@ -154,6 +212,17 @@ export function LegislationIndex({ groups, noun }: { groups: IndexGroup[]; noun:
         </section>
       ))}
     </div>
+  );
+}
+
+function LawItem({ item }: { item: IndexItem }) {
+  return (
+    <li className="mb-3 break-inside-avoid">
+      <Link href={item.href} className="text-base leading-[1.4]">
+        {item.title}
+      </Link>
+      {item.ref ? <div className="text-sm text-ink-fainter">{item.ref}</div> : null}
+    </li>
   );
 }
 
